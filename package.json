@@ -1,0 +1,26 @@
+{
+  "name": "mizan",
+  "private": true,
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=22.13.0 <23 || >=24 <25"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @mizan/database --filter @mizan/contracts build && pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format:check": "prettier --check package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs \"apps/**/*.{json,ts,tsx,css}\" \"packages/**/*.{json,ts}\"",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "eslint": "^9",
+    "prettier": "^3",
+    "supabase": "^2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@mizan/database",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "types": "./src/index.ts",
+    "default": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "generate": "prisma generate",
+    "validate": "prisma validate",
+    "migrate": "prisma migrate deploy",
+    "test:integration": "vitest run test/schema.integration.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7",
+    "@prisma/client": "^7",
+    "pg": "^8"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "prisma": "^7",
+    "vitest": "^3.2"
+  }
+}

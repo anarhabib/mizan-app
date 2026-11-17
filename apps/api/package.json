@@ -1,0 +1,25 @@
+{
+  "name": "@mizan/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mizan/contracts": "workspace:*",
+    "@mizan/database": "workspace:*",
+    "fastify": "^5",
+    "jose": "^6",
+    "nodemailer": "^8"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/nodemailer": "^7",
+    "tsx": "^4",
+    "vitest": "^3.2"
+  }
+}

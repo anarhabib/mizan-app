@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "module": "NodeNext", "noEmit": true },
+  "include": ["prisma.config.ts", "src/**/*.ts", "test/**/*.ts"]
+}

@@ -1,0 +1,82 @@
+export const locales = ["az", "en"] as const;
+export type Locale = (typeof locales)[number];
+
+const az = {
+  environment: "Yerli inkişaf mühiti",
+  registerLink: "Qeydiyyat və giriş",
+  language: "Dil",
+  account: "Mizan hesabı",
+  setup: "Biznesinizi qurun",
+  organization: "Biznesin adı",
+  storeName: "Mağazanın adı",
+  currency: "Əsas valyuta",
+  saving: "Saxlanılır…",
+  createStore: "Mağazanı yarat",
+  email: "E-poçt ünvanı",
+  password: "Şifrə",
+  signUp: "Qeydiyyatdan keç",
+  signIn: "Daxil ol",
+  signOut: "Çıxış",
+  selectStore: "Mağaza seçin",
+  store: "Mağaza",
+  owner: "Sahib",
+  salesperson: "Satıcı",
+  retry: "Yenidən cəhd edin",
+  openStore: "Mağazanı aç",
+  storeUnavailable: "Mağaza məlumatlarını yükləmək mümkün olmadı.",
+  accessDenied: "Seçilmiş mağazaya giriş icazəniz yoxdur.",
+  confirmationFailed: "Təsdiq keçidi etibarsızdır və ya müddəti bitib.",
+  authUnavailable: "Giriş xidməti hazırda əlçatan deyil.",
+  invalidCredentials: "E-poçt ünvanını və şifrəni yoxlayın.",
+  signInFailed: "E-poçt ünvanını və şifrəni yoxlayın və yenidən cəhd edin.",
+  signUpFailed:
+    "Hesab yaratmaq mümkün olmadı. Şifrənizi yoxlayın və ya daxil olun.",
+  confirmEmail:
+    "Təsdiq keçidi üçün e-poçtunuzu yoxlayın. Hesabınız varsa, daxil olun.",
+  invalidSetup: "Biznes, mağaza və valyuta məlumatlarını yoxlayın.",
+  sessionExpired: "Sessiyanız bitib. Yenidən daxil olun.",
+  setupFailed: "Quraşdırmanı tamamlamaq mümkün olmadı. Yenidən cəhd edin.",
+};
+
+const en: typeof az = {
+  environment: "Local development",
+  registerLink: "Register or sign in",
+  language: "Language",
+  account: "Mizan account",
+  setup: "Set up your business",
+  organization: "Business name",
+  storeName: "Store name",
+  currency: "Default currency",
+  saving: "Saving…",
+  createStore: "Create store",
+  email: "Email address",
+  password: "Password",
+  signUp: "Register",
+  signIn: "Sign in",
+  signOut: "Sign out",
+  selectStore: "Choose a store",
+  store: "Store",
+  owner: "Owner",
+  salesperson: "Salesperson",
+  retry: "Try again",
+  openStore: "Open store",
+  storeUnavailable: "Store information could not be loaded.",
+  accessDenied: "You don’t have access to the selected store.",
+  confirmationFailed: "The confirmation link is invalid or expired.",
+  authUnavailable: "Sign-in is temporarily unavailable.",
+  invalidCredentials: "Check your email address and password.",
+  signInFailed: "Check your email address and password, then try again.",
+  signUpFailed:
+    "We couldn’t create the account. Check your password or sign in.",
+  confirmEmail:
+    "Check your email for the confirmation link. If you already have an account, sign in.",
+  invalidSetup: "Check your business, store, and currency details.",
+  sessionExpired: "Your session expired. Sign in again.",
+  setupFailed: "Setup could not be completed. Try again.",
+};
+
+export const messages = { az, en };
+
+export function parseLocale(value: unknown): Locale {
+  return value === "en" ? "en" : "az";
+}

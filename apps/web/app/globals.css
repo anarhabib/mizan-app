@@ -1,0 +1,38 @@
+:root {
+  color: #051f20;
+  background: #edf4ef;
+  font-family: "Manrope Variable", system-ui, sans-serif;
+}
+
+main {
+  max-width: 36rem;
+  margin: 3rem auto;
+  padding: 1.25rem;
+}
+
+.language-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.language-picker button {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #8eb69b;
+  border-radius: 12px;
+  background: #f2f8f4;
+  color: #051f20;
+  font: inherit;
+  cursor: pointer;
+}
+
+.language-picker button[aria-pressed="true"] {
+  background: #daf1de;
+  font-weight: 700;
+}
+
+.language-picker button:focus-visible {
+  outline: 2px solid #245347;
+  outline-offset: 2px;
+}

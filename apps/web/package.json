@@ -1,0 +1,26 @@
+{
+  "name": "@mizan/web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "start": "next start --hostname 127.0.0.1",
+    "build": "next build",
+    "test": "vitest run",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5",
+    "@mizan/contracts": "workspace:*",
+    "@supabase/ssr": "^0.12",
+    "@supabase/supabase-js": "^2",
+    "next": "^16",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "vitest": "^3.2"
+  }
+}
