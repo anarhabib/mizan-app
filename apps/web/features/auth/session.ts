@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 export function authConfig() {
   const url = process.env.SUPABASE_URL;
@@ -66,3 +67,5 @@ export async function apiRequest(
     return { status: 503 };
   }
 }
+
+export const requestContexts = cache(() => apiRequest("/me/contexts"));

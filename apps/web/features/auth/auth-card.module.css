@@ -39,6 +39,20 @@
 .card.wide {
   max-width: min(760px, calc(100% - 2rem));
 }
+.card.embedded {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.card.embedded h1 {
+  font-size: clamp(29px, 8vw, 39px);
+  letter-spacing: -0.048em;
+}
+@media (min-width: 761px) {
+  .card.embedded h1 {
+    font-size: clamp(30px, 3.3vw, 48px);
+  }
+}
 .card.wide :global(.membership-list) > li {
   padding: 0.875rem;
   border: 1px solid #8eb69b;

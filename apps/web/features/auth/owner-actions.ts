@@ -22,6 +22,14 @@ export async function submitCredentials(
   return handleCredentials(form);
 }
 
+export async function submitSignIn(
+  _state: CredentialsState,
+  form: FormData,
+): Promise<CredentialsState> {
+  form.set("intent", "signin");
+  return handleCredentials(form);
+}
+
 export async function submitInvitationCredentials(
   token: string,
   _state: CredentialsState,
@@ -94,7 +102,7 @@ export async function submitOwnerSetup(
 export async function signOut() {
   const client = await authClient();
   if (client) await client.auth.signOut({ scope: "local" });
-  redirect("/register");
+  redirect("/sign-in");
 }
 
 export async function switchInvitationAccount(token: string) {

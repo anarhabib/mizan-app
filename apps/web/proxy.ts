@@ -35,6 +35,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/register",
+    "/sign-in",
     "/workspace",
     "/settings/:path*",
     "/invitations/:token",

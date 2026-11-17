@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { MembershipDirectory, StoreContext } from "@mizan/contracts";
 import { AuthCard } from "../../../../features/auth/auth-card";
-import { apiRequest } from "../../../../features/auth/session";
+import { apiRequest, requestContexts } from "../../../../features/auth/session";
 import { currentLocale } from "../../../../features/language/preference";
 import { MemberManagement } from "../../../../features/memberships/member-management";
 import { membershipCopy } from "../../../../features/memberships/membership-copy";
@@ -14,9 +14,9 @@ export default async function UsersPage({
   const [{ organizationId }, locale, session] = await Promise.all([
     searchParams,
     currentLocale(),
-    apiRequest("/me/contexts"),
+    requestContexts(),
   ]);
-  if (session.status === 401) redirect("/register");
+  if (session.status === 401) redirect("/sign-in");
   const copy = membershipCopy[locale];
   const owners = new Map<string, string>();
   if (session.status === 200) {
@@ -35,7 +35,7 @@ export default async function UsersPage({
         )
       : undefined;
   return (
-    <AuthCard title={copy.title} locale={locale} wide>
+    <AuthCard title={copy.title} locale={locale} wide embedded>
       <a href="/workspace">{copy.back}</a>
       {session.status !== 200 ? (
         <p role="alert">{copy.failed}</p>
