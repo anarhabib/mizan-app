@@ -36,4 +36,4 @@
 
 ## Next step
 
-Task 6 is organization settings, purity grades, and old-gold rates. Apply the additive onboarding and invitation migrations to the local development database before trying those flows. Confirm the local Supabase port restriction before leaving the full stack running for ongoing development.
+Task 6 implements owner-only organization settings at `/settings`, acquisition-cost visibility, purity creation/deactivation, and append-only purchase rates with history. Tailwind CSS and Lucide React are configured as the frontend standard. Workspace tests (41), lint, types, and formatting passed against disposable PostgreSQL. Full browser settings verification remains incomplete. Task 7 is the shared Zümrüd shell and controls after the Task 6 PR is reviewed and merged.

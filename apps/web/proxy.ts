@@ -36,7 +36,7 @@ export const config = {
   matcher: [
     "/register",
     "/workspace",
-    "/settings/users",
+    "/settings/:path*",
     "/invitations/:token",
   ],
 };

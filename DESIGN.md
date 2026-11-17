@@ -40,6 +40,8 @@ Prototype source map, relative to the **Sites reference checkout**:
 
 ## 3. Visual language and typography
 
+Use Tailwind CSS utilities and shared design tokens for the frontend. Use Lucide React for interface icons; keep the documented custom SVG for the Mizan brand mark.
+
 Use a light tinted canvas, crisp typography, translucent surfaces with fine highlights, and a few deeper surfaces to guide attention. Give the left sidebar and the headline sales card the same dark surface treatment. Use soft shadow around the perimeter of floating surfaces and a thin inner edge to show depth. Keep secondary information on light glass.
 
 - Use **Manrope** across the dashboard, catalog, landing, account, and pricing screens. Use the same family for headings and body text, with `system-ui, sans-serif` as fallback. Version 43 requests weights 400, 500, 600, 700 and 800 from Google Fonts. It also declares 650 and 750 on selected elements. Load a suitable variable font if exact intermediate weights are needed in the rebuild. Confirm that the chosen font source renders Azerbaijani characters, including **Ə ə, Ğ ğ, İ ı, Ö ö, Ş ş, Ü ü, Ç ç** and the **₼** sign.

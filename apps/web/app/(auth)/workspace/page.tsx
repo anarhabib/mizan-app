@@ -10,6 +10,8 @@ import {
 import { currentLocale } from "../../../features/language/preference";
 import { messages } from "../../../features/language/messages";
 import { membershipCopy } from "../../../features/memberships/membership-copy";
+import { settingsCopy } from "../../../features/settings/settings-copy";
+import { Settings } from "lucide-react";
 
 export default async function StorePage({
   searchParams,
@@ -48,6 +50,17 @@ export default async function StorePage({
         <a href="/workspace">{copy.openStore}</a>
       )}
       <ContextPicker contexts={contexts} selected={selected} locale={locale} />
+      {selected?.role === "OWNER" && (
+        <p>
+          <a
+            className="gap-2"
+            href={`/settings?${new URLSearchParams({ organizationId: selected.organizationId })}`}
+          >
+            <Settings aria-hidden="true" size={18} />
+            {settingsCopy[locale].title}
+          </a>
+        </p>
+      )}
       {selected?.role === "OWNER" && (
         <p>
           <a

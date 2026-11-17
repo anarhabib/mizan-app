@@ -12,6 +12,8 @@ Mizan is an inventory and sales app for jewelry stores, available in Azerbaijani
 
 Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and `pnpm build` from the workspace root to verify changes.
 
+The frontend uses Tailwind CSS and Lucide React with the Zümrüd design tokens. On Windows, put the supported Node executable first on PATH before running the web build. Next.js starts a separate process for CSS compilation.
+
 ## Database changes
 
 With local Supabase running, set `DATABASE_URL` in your shell to the local PostgreSQL connection string reported by the Supabase CLI. Keep this value server-side. Mizan tables use the private `mizan` PostgreSQL schema.
@@ -32,7 +34,7 @@ Set `DATABASE_URL` and `SUPABASE_URL` in the API process environment to enable a
 
 `GET /api/v1/organizations/:organizationId/stores/:storeId/access` accepts a Supabase user token using `Authorization: Bearer <token>`. An allowed request returns the user's ID, scoped role, and organization settings. Missing or invalid credentials return 401. An unavailable or unassigned store returns the same 403 response, including when an existing assignment or membership has been deactivated. The route returns 503 when the API is started without authentication configuration.
 
-To include API access, onboarding, and invitation integration tests, apply the migrations to a disposable local test database, run `pnpm build`, and set `MIZAN_TEST_DATABASE_URL` in the shell before running `pnpm test`. The onboarding and invitation tests exercise independent transactions and leave fixtures in that disposable database.
+To include API access, onboarding, invitation, and settings integration tests, apply the migrations to a disposable local test database, run `pnpm build`, and set `MIZAN_TEST_DATABASE_URL` in the shell before running `pnpm test`. These tests can leave fixtures in that disposable database.
 
 ## Owner signup and language
 
@@ -46,3 +48,7 @@ To include API access, onboarding, and invitation integration tests, apply the m
 2. As an owner, open **Salespeople and invitations** in the workspace. Choose a store and send the invite. Open Mailpit at http://127.0.0.1:54324 and follow the captured link in a separate browser profile or private window.
 3. Sign in or register using the invited address. If Supabase requires confirmation, confirm the email before accepting the invitation. Creating an Auth account alone does not grant store access. Use confirmed email settings for hosted environments.
 4. A link expires after 48 hours and can be accepted once. Resending creates a new link and invalidates the old one. If SMTP fails, the owner can resend the stored invitation. Deactivation and store removal preserve the membership and assignment records while blocking access on the next API request.
+
+## Organization settings
+
+Open **Organization settings** from an owner workspace. The default currency is set during onboarding. Owners can change salesperson cost visibility, manage purity grades, and enter exact purchase rates per gram for each currency and purity. Changing a rate creates a history entry. Deactivating a grade removes it from new rate entry while keeping its history.
