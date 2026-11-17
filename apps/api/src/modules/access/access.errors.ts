@@ -3,9 +3,19 @@ export type AccessFailure =
   | "ACCESS_DENIED"
   | "AUTH_UNAVAILABLE"
   | "INVITATION_UNAVAILABLE"
-  | "INVALID_MEMBERSHIP";
+  | "INVALID_MEMBERSHIP"
+  | "INVALID_SETTINGS"
+  | "PURITY_CONFLICT";
 
 const details = {
+  INVALID_SETTINGS: {
+    statusCode: 400,
+    message: "Parametr məlumatlarını yoxlayın.",
+  },
+  PURITY_CONFLICT: {
+    statusCode: 409,
+    message: "Əyar artıq mövcuddur və ya aktiv deyil.",
+  },
   UNAUTHENTICATED: {
     statusCode: 401,
     message: "Daxil olmağınız tələb olunur.",

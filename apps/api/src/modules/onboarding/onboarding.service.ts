@@ -1,4 +1,5 @@
-import type {
+import {
+  defaultPurities,
   OnboardingRequest,
   OnboardingResult,
   StoreContext,
@@ -15,8 +16,6 @@ export type OnboardingDatabase = Pick<
     callback: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T>;
 };
-
-const defaultPurities = [375, 585, 750, 916, 999];
 
 export function provisionOwnerWorkspace(
   db: OnboardingDatabase,

@@ -3,11 +3,15 @@ import type { InvitationSummary, MembershipDirectory } from "@mizan/contracts";
 import type { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
 import { uuidPattern } from "../access/access.service.js";
+import {
+  assertOwner,
+  lockOrganization,
+  ownerChange,
+  type OrganizationDatabase,
+} from "../access/organization-owner.js";
 
 type Tx = Prisma.TransactionClient;
-export type MembershipDatabase = Tx & {
-  $transaction<T>(callback: (tx: Tx) => Promise<T>): Promise<T>;
-};
+export type MembershipDatabase = OrganizationDatabase;
 type Invite = Pick<
   Prisma.InvitationGetPayload<object>,
   "id" | "email" | "storeId" | "expiresAt" | "revokedAt" | "acceptedAt"
@@ -29,21 +33,6 @@ function summarize(invite: Invite): InvitationSummary {
           ? "expired"
           : "pending",
   };
-}
-
-async function lockOrganization(tx: Tx, organizationId: string) {
-  await tx.$queryRaw`SELECT "id" FROM "mizan"."Organization" WHERE "id" = ${organizationId}::uuid FOR UPDATE`;
-}
-
-async function assertOwner(db: Tx, organizationId: string, userId: string) {
-  if (
-    !uuidPattern.test(organizationId) ||
-    !(await db.organizationMembership.findFirst({
-      where: { organizationId, userId, active: true, role: "OWNER" },
-      select: { userId: true },
-    }))
-  )
-    throw new AccessError("ACCESS_DENIED");
 }
 
 async function assertStore(db: Tx, organizationId: string, id: string) {
@@ -98,21 +87,6 @@ export async function listMemberships(
       storeIds: member.assignments.map((assignment) => assignment.storeId),
     })),
   };
-}
-
-function ownerChange<T>(
-  db: MembershipDatabase,
-  organizationId: string,
-  userId: string,
-  work: (tx: Tx) => Promise<T>,
-) {
-  return db.$transaction(async (tx) => {
-    if (!uuidPattern.test(organizationId))
-      throw new AccessError("ACCESS_DENIED");
-    await lockOrganization(tx, organizationId);
-    await assertOwner(tx, organizationId, userId);
-    return work(tx);
-  });
 }
 
 function freshToken() {

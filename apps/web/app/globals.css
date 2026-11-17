@@ -1,3 +1,17 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  --color-mizan-ink: #051f20;
+  --color-mizan-deep: #0b2b26;
+  --color-mizan-muted: #46645a;
+  --color-mizan-edge: #8eb69b;
+  --color-mizan-pale: #daf1de;
+  --color-mizan-field: #f8fbf9;
+  --color-mizan-surface: #f2f8f4;
+}
+
 :root {
   color: #051f20;
   background: #edf4ef;

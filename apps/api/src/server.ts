@@ -39,6 +39,7 @@ const app = await buildApp({
   access,
   onboardingDb: db,
   memberships,
+  settingsDb: db,
 });
 if (db) app.addHook("onClose", async () => db.$disconnect());
 

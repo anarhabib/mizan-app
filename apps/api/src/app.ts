@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import type { OnboardingDatabase } from "./modules/onboarding/onboarding.service.js";
 import type { MembershipOptions } from "./modules/memberships/membership.routes.js";
+import type { OrganizationDatabase } from "./modules/access/organization-owner.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
 import {
   requestContextRoutes,
@@ -12,6 +13,7 @@ export interface BuildAppOptions {
   access?: AccessOptions;
   onboardingDb?: OnboardingDatabase;
   memberships?: MembershipOptions;
+  settingsDb?: OrganizationDatabase;
 }
 
 export async function buildApp(
@@ -26,6 +28,7 @@ export async function buildApp(
     access: options.access,
     onboardingDb: options.onboardingDb,
     memberships: options.memberships,
+    settingsDb: options.settingsDb,
   });
   return app;
 }

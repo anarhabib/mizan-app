@@ -7,6 +7,8 @@ import {
 import { authenticate, type VerifyToken } from "./auth.js";
 import { registerOnboardingRoutes } from "../modules/onboarding/onboarding.routes.js";
 import type { OnboardingDatabase } from "../modules/onboarding/onboarding.service.js";
+import type { OrganizationDatabase } from "../modules/access/organization-owner.js";
+import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
 import {
   registerMembershipRoutes,
   type MembershipOptions,
@@ -35,7 +37,8 @@ export const requestContextRoutes: FastifyPluginAsync<{
   access?: AccessOptions;
   onboardingDb?: OnboardingDatabase;
   memberships?: MembershipOptions;
-}> = async (app, { access, onboardingDb, memberships }) => {
+  settingsDb?: OrganizationDatabase;
+}> = async (app, { access, onboardingDb, memberships, settingsDb }) => {
   app.decorateRequest("identity", null);
   app.decorateRequest("access", null);
 
@@ -60,6 +63,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   });
   registerOnboardingRoutes(app, access, onboardingDb);
   registerMembershipRoutes(app, access, memberships);
+  registerSettingsRoutes(app, access, settingsDb);
 
   app.get<{ Params: ScopeParams }>(
     "/organizations/:organizationId/stores/:storeId/access",

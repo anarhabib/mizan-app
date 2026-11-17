@@ -29,6 +29,7 @@ You are assisting the sole developer of Mizan, a jewelry-store inventory and sal
 - Do not add dependencies, infrastructure, services, or complex abstractions unless they solve a demonstrated need.
 - Favor mobile-friendly workflows and localize user-facing text for Azerbaijani (default) and English.
 - Use English for folder names, file names, and route paths.
+- Use Tailwind CSS for frontend styling and Lucide React for interface icons throughout the project. Follow the tokens and conventions in `DESIGN.md`.
 - Use AZN and explicit units (including grams and gold purity) wherever relevant. Never silently round, convert, or reinterpret financial or weight data.
 
 ## Data integrity and security
