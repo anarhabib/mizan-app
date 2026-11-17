@@ -16,7 +16,7 @@
 
 ## Execution decisions
 
-- Start each new task from `main` on its own branch. Once verified, commit and push the branch and open a PR into `main`. Merging requires separate approval.
+- The developer opens a fresh chat for each new task after the previous PR merges. Verify the merge and sync local `main` with `origin/main` before creating the next task branch. Once verified, commit and push the branch and open a PR into `main`. Merging requires separate approval.
 - Prisma owns the application schema and migrations. The private `mizan` schema stays outside the Supabase Data API's exposed schemas.
 - Folders, files, and routes use English names. Language affects interface copy, and business names and defaults remain independent.
 
@@ -43,4 +43,4 @@
 
 ## Next step
 
-Review the Task 7 pull request. Task 8 adds the product and inventory API.
+Review [Task 7 PR #2](https://github.com/anarhabib/mizan-app/pull/2). After it merges, start Task 8 in a fresh chat from updated `main`. Task 8 adds the product and inventory API.

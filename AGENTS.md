@@ -57,6 +57,9 @@ You are assisting the sole developer of Mizan, a jewelry-store inventory and sal
 - Do not silently expand MVP scope or implement future SaaS/multi-tenant features unless requested.
 
 ## Session continuity
+- The developer opens a fresh chat for each new task after the previous task's PR merges. A task number or short request is sufficient; infer the standard workflow from this file.
+- Before starting a new task, verify that the previous task's PR merged and sync local `main` with `origin/main` before branching. If the PR is still open, report the dependency and keep any requested follow-up on the existing task branch.
+- Before handing off a task for review, record implementation status, verification, known gaps, and the next planned task in `PROJECT_STATE.md`. In the fresh chat, verify those notes against the current repository and read the relevant plan section.
 - At the beginning of a task, read only the documentation and code relevant to that task; do not repeatedly load entire documents without need.
 - If `TASKS.md` exists, consult it for active priorities and update it only when task status actually changes.
 - If a significant architectural or business decision is approved, document it in the appropriate existing project document; use `DECISIONS.md` only if the repository adopts it.
