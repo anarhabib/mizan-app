@@ -10,18 +10,99 @@
   --color-mizan-pale: #daf1de;
   --color-mizan-field: #f8fbf9;
   --color-mizan-surface: #f2f8f4;
+  --color-mizan-canvas: #edf4ef;
+  --color-mizan-accent: #235347;
+  --color-mizan-focus: #245347;
+  --color-mizan-selected: #e7f3e9;
+  --color-mizan-main: #145440;
+  --color-mizan-dark-text: #f1fff5;
+  --color-mizan-dark-muted: #d0f1dc;
+  --color-mizan-primary: #0d342d;
+  --color-mizan-primary-hover: #17483c;
+  --color-mizan-primary-pressed: #08241f;
+  --color-mizan-primary-text: #f5f8f5;
+  --color-mizan-inverse: #faf9f4;
+  --color-mizan-inverse-hover: #eeece3;
+  --color-mizan-inverse-pressed: #e2dfd5;
 }
 
 :root {
-  color: #051f20;
-  background: #edf4ef;
+  color: var(--color-mizan-ink);
+  background: var(--color-mizan-canvas);
   font-family: "Manrope Variable", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
-main {
+body {
+  margin: 0;
+  font-size: 14px;
+}
+
+.home {
   max-width: 36rem;
   margin: 3rem auto;
   padding: 1.25rem;
+}
+
+.mizan-glass-light,
+.mizan-header,
+.mizan-dock,
+.mizan-dialog {
+  border: 1px solid #ffffffdc;
+  background: var(--color-mizan-surface);
+  box-shadow:
+    inset 0 1px #fff,
+    0 10px 22px #051f201a,
+    0 2px 5px 1px #051f2010;
+}
+
+.mizan-glass-dark {
+  border: 1px solid #a4dcc1b5;
+  background: var(--color-mizan-main);
+  color: var(--color-mizan-dark-text);
+  box-shadow:
+    inset 0 1px 1px #daf1de45,
+    inset 0 -10px 20px #051f2033,
+    0 12px 26px #051f2030,
+    0 2px 5px #051f2026;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .mizan-glass-light,
+  .mizan-header,
+  .mizan-dock,
+  .mizan-dialog {
+    background: #fbfdfbcf;
+  }
+  .mizan-glass-light {
+    backdrop-filter: blur(22px);
+  }
+  .mizan-header {
+    backdrop-filter: blur(32px) saturate(175%);
+  }
+  .mizan-dock {
+    backdrop-filter: blur(34px) saturate(180%);
+  }
+  .mizan-dialog {
+    backdrop-filter: blur(29px) saturate(165%);
+  }
+  .mizan-glass-dark {
+    background: #084b3ae3;
+    backdrop-filter: blur(36px) saturate(145%);
+  }
+}
+
+@media (min-width: 761px) {
+  .mizan-shell {
+    padding-left: 230px;
+  }
+}
+
+@media (min-width: 1001px) {
+  .mizan-shell {
+    padding-left: 263px;
+  }
 }
 
 .language-picker {

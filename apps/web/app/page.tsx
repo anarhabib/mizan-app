@@ -5,11 +5,11 @@ import { currentLocale } from "../features/language/preference";
 export default async function Home() {
   const locale = await currentLocale();
   return (
-    <main>
+    <main className="home">
       <h1>Mizan</h1>
       <p>{messages[locale].environment}</p>
       <LanguagePicker locale={locale} />
-      <a href="/register">{messages[locale].registerLink}</a>
+      <a href="/sign-in">{messages[locale].signIn}</a>
     </main>
   );
 }

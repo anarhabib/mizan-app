@@ -1,10 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "@fontsource-variable/manrope";
 import { currentLocale } from "../features/language/preference";
 import "./globals.css";
 
 export const metadata: Metadata = { title: "Mizan" };
+export const viewport: Viewport = {
+  themeColor: "#0b2b26",
+  viewportFit: "cover",
+};
 
 export default async function RootLayout({
   children,

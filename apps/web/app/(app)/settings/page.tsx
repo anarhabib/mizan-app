@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import type { StoreContext, TradingSettings } from "@mizan/contracts";
 import { AuthCard } from "../../../features/auth/auth-card";
-import { apiRequest } from "../../../features/auth/session";
+import { apiRequest, requestContexts } from "../../../features/auth/session";
 import { currentLocale } from "../../../features/language/preference";
 import { OrganizationSettingsForm } from "../../../features/settings/organization-settings-form";
 import { PurityRateManager } from "../../../features/settings/purity-rate-manager";
@@ -16,9 +16,9 @@ export default async function SettingsPage({
   const [{ organizationId }, locale, session] = await Promise.all([
     searchParams,
     currentLocale(),
-    apiRequest("/me/contexts"),
+    requestContexts(),
   ]);
-  if (session.status === 401) redirect("/register");
+  if (session.status === 401) redirect("/sign-in");
   const copy = settingsCopy[locale];
   const contexts: StoreContext[] = session.status === 200 ? session.data : [];
   const owners = new Map(
@@ -41,7 +41,7 @@ export default async function SettingsPage({
   const data =
     result?.status === 200 ? (result.data as TradingSettings) : undefined;
   return (
-    <AuthCard title={copy.title} locale={locale} wide>
+    <AuthCard title={copy.title} locale={locale} wide embedded>
       <a className="gap-2" href="/workspace">
         <ArrowLeft aria-hidden="true" size={18} />
         {copy.back}
