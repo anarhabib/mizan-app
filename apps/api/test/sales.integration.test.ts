@@ -70,6 +70,7 @@ test.skipIf(!db)(
       });
       const payload = {
         productId: product.id,
+        expectedCurrency: "AZN",
         saleAmount: "200",
         tradeIns: [{ purity: 585, weight: "2.000", rateId: rate.id }],
         payment: { currency: "USD", amount: "110", exchangeRate: "1.70" },
@@ -87,6 +88,15 @@ test.skipIf(!db)(
         });
 
       expect((await send("denied", payload, "other")).statusCode).toBe(403);
+      const staleCurrency = await send("stale-currency", {
+        ...payload,
+        expectedCurrency: "USD",
+      });
+      expect(staleCurrency.statusCode).toBe(409);
+      expect(staleCurrency.json()).toMatchObject({
+        code: "SALE_CONFLICT",
+        field: "currency",
+      });
       expect(
         (
           await send("stale", {
@@ -244,6 +254,11 @@ test.skipIf(!db)(
         data: { active: false },
       });
       expect((await send("inactive", rollbackPayload)).statusCode).toBe(409);
+      await db.organization.update({
+        where: { id: organizationId },
+        data: { defaultCurrency: "USD" },
+      });
+      expect((await send(winningKey)).json()).toEqual(created);
     } finally {
       await app.close();
     }

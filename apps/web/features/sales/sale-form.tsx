@@ -1,0 +1,356 @@
+"use client";
+
+import { useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import {
+  currencyMinorUnits,
+  type ProductListItem,
+  type SaleCreateInput,
+} from "@mizan/contracts";
+import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
+import { Surface } from "../../components/ui/surface";
+import type { Locale } from "../language/messages";
+import {
+  productCopy,
+  productHref,
+  type ProductScope,
+} from "../products/product-copy";
+import { ProductIdentity, ProductLookup } from "./product-lookup";
+import { submitSale } from "./sale-actions";
+import { SaleConfirmation, type SaleReview } from "./sale-confirmation";
+import { saleCopy, type SaleOptions } from "./sale-copy";
+import { SettlementSummary } from "./settlement-summary";
+import { previewSale, saleDecimal } from "./settlement";
+import { selectClass, TradeInLines, type TradeDraft } from "./trade-in-lines";
+
+const currencies = Intl.supportedValuesOf("currency");
+
+export function SaleForm({
+  locale,
+  scope,
+  options,
+  initialProduct,
+  missingProduct,
+}: {
+  locale: Locale;
+  scope: ProductScope;
+  options: SaleOptions;
+  initialProduct?: ProductListItem;
+  missingProduct?: boolean;
+}) {
+  const copy = saleCopy[locale];
+  const router = useRouter();
+  const [product, setProduct] = useState(initialProduct);
+  const [unavailable, setUnavailable] = useState(
+    missingProduct || initialProduct?.status === "SOLD",
+  );
+  const [amount, setAmount] = useState("");
+  const [lines, setLines] = useState<TradeDraft[]>([]);
+  const [tender, setTender] = useState(false);
+  const [chosenCurrency, setChosenCurrency] = useState("");
+  const [cash, setCash] = useState("");
+  const [exchange, setExchange] = useState("");
+  const [review, setReview] = useState<SaleReview | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [draftCurrency, setDraftCurrency] = useState(options.currency);
+  const [validation, setValidation] = useState(false);
+  const [error, setError] = useState("");
+  const [refreshOptions, setRefreshOptions] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const { currency } = options;
+  const currencyChanged = draftCurrency !== currency;
+  const cashCurrency = chosenCurrency || currency;
+  const scale = currencyMinorUnits(currency);
+  let draft: Omit<SaleCreateInput, "productId"> | undefined;
+  let preview: SaleReview["preview"] | undefined;
+  let cashDue = false;
+
+  try {
+    const valuedLines = lines.map((line) => {
+      const rate = options.rates.find((entry) => entry.purity === line.purity);
+      if (!rate) throw new RangeError("Unavailable rate");
+      return {
+        purity: line.purity,
+        rateId: rate.id,
+        rate: rate.amountPerGram,
+        weight: saleDecimal(line.weight, 3, 12),
+        overrideAmount: line.overrideAmount.trim()
+          ? saleDecimal(line.overrideAmount, scale, 16, true)
+          : undefined,
+      };
+    });
+    const saleAmount = saleDecimal(amount, scale, 16);
+    const base = previewSale(currency, saleAmount, valuedLines);
+    cashDue = !base.balance.startsWith("-") && /[1-9]/.test(base.balance);
+    const payment =
+      tender && cashDue
+        ? {
+            currency: cashCurrency,
+            amount: saleDecimal(cash, currencyMinorUnits(cashCurrency), 16),
+            exchangeRate:
+              cashCurrency !== currency
+                ? saleDecimal(exchange, 8, 12)
+                : undefined,
+          }
+        : undefined;
+    preview = payment
+      ? previewSale(currency, saleAmount, valuedLines, payment)
+      : base;
+    draft = {
+      expectedCurrency: currency,
+      saleAmount,
+      tradeIns: valuedLines.map(
+        ({ purity, rateId, weight, overrideAmount }) => ({
+          purity,
+          rateId,
+          weight,
+          overrideAmount,
+        }),
+      ),
+      payment,
+    };
+  } catch {
+    // Incomplete amounts are expected while editing.
+  }
+
+  function reviewSale(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setValidation(!draft || !product || !!unavailable);
+    if (
+      !draft ||
+      !preview ||
+      !product ||
+      unavailable ||
+      review ||
+      currencyChanged ||
+      inFlight.current
+    )
+      return;
+    setError("");
+    setReview({
+      product,
+      input: { ...draft, productId: product.id },
+      preview,
+      key: crypto.randomUUID(),
+    });
+    setReviewOpen(true);
+  }
+
+  function close() {
+    if (inFlight.current) return;
+    setReviewOpen(false);
+    if (!uncertain) setReview(null);
+    if (refreshOptions) {
+      setRefreshOptions(false);
+      router.refresh();
+    }
+  }
+
+  async function confirm() {
+    if (!review || inFlight.current || (error && !uncertain)) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    let navigating = false;
+    try {
+      const response = await submitSale(scope, review.input, review.key);
+      if (response.id) {
+        navigating = true;
+        router.replace(
+          productHref("/sales/" + encodeURIComponent(response.id), scope),
+        );
+        return;
+      }
+      if (response.status === 401) {
+        navigating = true;
+        router.push("/sign-in");
+        return;
+      }
+      const field = response.error?.field;
+      if (response.status === 404 || field === "productId") {
+        setUnavailable(true);
+        setError(copy.unavailable);
+      } else if (field === "currency" || field === "rateId") {
+        setRefreshOptions(true);
+        setError(copy.settingsChanged);
+      } else {
+        setError(copy.failed);
+      }
+      setUncertain(response.status >= 500);
+    } catch {
+      setError(copy.failed);
+      setUncertain(true);
+    } finally {
+      if (!navigating) {
+        inFlight.current = false;
+        setBusy(false);
+      }
+    }
+  }
+
+  return (
+    <section className="grid gap-4">
+      <h1>{copy.title}</h1>
+      {review && !reviewOpen && (
+        <Surface className="grid gap-3 p-4">
+          <p role="status">{copy.pending}</p>
+          <Button className="w-fit" onClick={() => setReviewOpen(true)}>
+            {copy.resume}
+          </Button>
+        </Surface>
+      )}
+      {currencyChanged && (
+        <Surface className="grid gap-3 p-4">
+          <p role="alert">
+            {copy.currencyChanged} ({draftCurrency} → {currency})
+          </p>
+          <Button
+            className="w-fit"
+            onClick={() => {
+              setDraftCurrency(currency);
+              setExchange("");
+              if (!chosenCurrency) setCash("");
+            }}
+          >
+            {copy.useCurrency} {currency}
+          </Button>
+        </Surface>
+      )}
+      <fieldset
+        disabled={!!review || currencyChanged}
+        className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+      >
+        <Surface className="grid gap-4 p-4">
+          <ProductLookup
+            locale={locale}
+            scope={scope}
+            onSelect={(item) => {
+              setProduct(item);
+              setUnavailable(false);
+            }}
+          />
+          {product && (
+            <ProductIdentity
+              locale={locale}
+              product={product}
+              showStatus={!unavailable || product.status === "SOLD"}
+            />
+          )}
+          {unavailable && <p role="alert">{copy.unavailable}</p>}
+        </Surface>
+        <form onSubmit={reviewSale} className="grid min-w-0 gap-4">
+          <Surface className="grid gap-4 p-4">
+            <Field
+              id="sale-amount"
+              label={copy.amount + " (" + draftCurrency + ")"}
+              inputMode="decimal"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+            <TradeInLines
+              locale={locale}
+              options={options}
+              lines={lines}
+              onChange={setLines}
+            />
+            {cashDue && (
+              <div className="grid gap-3">
+                <label className="flex min-h-11 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={tender}
+                    onChange={(event) => setTender(event.target.checked)}
+                  />
+                  {copy.tender}
+                </label>
+                {tender && (
+                  <>
+                    <div className="grid gap-1.5">
+                      <label
+                        htmlFor="sale-cash-currency"
+                        className="text-sm font-bold"
+                      >
+                        {productCopy[locale].currency}
+                      </label>
+                      <select
+                        id="sale-cash-currency"
+                        className={selectClass}
+                        value={cashCurrency}
+                        onChange={(event) => {
+                          setChosenCurrency(event.target.value);
+                          setCash("");
+                          setExchange("");
+                        }}
+                      >
+                        {currencies.map((code) => (
+                          <option key={code}>{code}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Field
+                      id="cash-received"
+                      label={copy.cash + " (" + cashCurrency + ")"}
+                      inputMode="decimal"
+                      value={cash}
+                      onChange={(event) => setCash(event.target.value)}
+                    />
+                    {cashCurrency !== currency && (
+                      <Field
+                        id="exchange-rate"
+                        label={
+                          copy.exchange +
+                          " (" +
+                          currency +
+                          " / " +
+                          cashCurrency +
+                          ")"
+                        }
+                        inputMode="decimal"
+                        value={exchange}
+                        onChange={(event) => setExchange(event.target.value)}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </Surface>
+          <Surface tone="dark" className="grid gap-4 p-4">
+            {preview && draft && !currencyChanged && (
+              <SettlementSummary
+                locale={locale}
+                currency={currency}
+                amount={draft.saleAmount}
+                payment={draft.payment}
+                {...preview}
+              />
+            )}
+            {validation && (!draft || !product) && (
+              <p role="alert">{!product ? copy.choose : copy.invalid}</p>
+            )}
+            <Button
+              type="submit"
+              variant="inverse"
+              disabled={!!unavailable || !!review}
+            >
+              {copy.review}
+            </Button>
+          </Surface>
+        </form>
+      </fieldset>
+      <SaleConfirmation
+        locale={locale}
+        review={reviewOpen ? review : null}
+        currency={review?.input.expectedCurrency ?? currency}
+        busy={busy}
+        uncertain={uncertain}
+        error={error}
+        close={close}
+        confirm={() => void confirm()}
+      />
+    </section>
+  );
+}

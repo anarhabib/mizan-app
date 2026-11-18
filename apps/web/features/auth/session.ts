@@ -35,8 +35,10 @@ export async function apiRequest(
     | "/onboarding"
     | "/invitations/accept"
     | `/products${string}`
+    | `/sales${string}`
     | `/organizations/${string}`,
   body?: unknown,
+  headers?: Record<string, string>,
 ) {
   const client = await authClient();
   if (!client) return { status: 503 };
@@ -54,6 +56,7 @@ export async function apiRequest(
         headers: {
           authorization: `Bearer ${token}`,
           ...(body === undefined ? {} : { "content-type": "application/json" }),
+          ...headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         cache: "no-store",
