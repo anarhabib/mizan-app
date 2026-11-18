@@ -237,7 +237,7 @@ export function SaleForm({
         </Surface>
       )}
       <fieldset
-        disabled={!!review || currencyChanged}
+        disabled={(!!review && !reviewOpen) || currencyChanged}
         className="m-0 grid min-w-0 items-stretch gap-3 border-0 p-0 min-[1100px]:grid-cols-[minmax(0,1.73fr)_minmax(0,1fr)]"
       >
         <Surface className="grid min-w-0 content-start gap-4 p-4 sm:p-5">
@@ -362,7 +362,9 @@ export function SaleForm({
               <Button
                 type="submit"
                 className="mizan-page-action w-full"
-                disabled={!product || !!unavailable || !!review}
+                disabled={
+                  !product || !!unavailable || (!!review && !reviewOpen)
+                }
               >
                 {copy.review}
               </Button>
