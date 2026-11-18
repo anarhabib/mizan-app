@@ -4,7 +4,10 @@ import type { StoreContext, TradingSettings } from "@mizan/contracts";
 import styles from "../../../components/ui/form-controls.module.css";
 import { actionClass } from "../../../components/ui/button";
 import { PageHeading } from "../../../components/ui/page-heading";
+import { Surface } from "../../../components/ui/surface";
 import { apiRequest, requestContexts } from "../../../features/auth/session";
+import { LanguagePicker } from "../../../features/language/language-picker";
+import { messages } from "../../../features/language/messages";
 import { currentLocale } from "../../../features/language/preference";
 import { OrganizationSettingsForm } from "../../../features/settings/organization-settings-form";
 import { PurityRateManager } from "../../../features/settings/purity-rate-manager";
@@ -45,7 +48,7 @@ export default async function SettingsPage({
   return (
     <section className="grid gap-4">
       <PageHeading
-        title={copy.title}
+        title={owners.size ? copy.title : messages[locale].settingsNav}
         description={selected && owners.get(selected)}
         actions={
           <a className={actionClass + " mizan-table-action"} href="/workspace">
@@ -54,6 +57,12 @@ export default async function SettingsPage({
           </a>
         }
       />
+      <Surface className="grid justify-items-start gap-3 p-4 sm:p-6">
+        <h2 className="m-0 text-base font-extrabold">
+          {messages[locale].language}
+        </h2>
+        <LanguagePicker locale={locale} />
+      </Surface>
       {data && selected ? (
         <div className={styles.controls} key={`${selected}:${locale}`}>
           <OrganizationSettingsForm
@@ -89,9 +98,9 @@ export default async function SettingsPage({
             ))}
           </ul>
         </nav>
-      ) : (
+      ) : owners.size ? (
         <p role="alert">{copy.denied}</p>
-      )}
+      ) : null}
     </section>
   );
 }

@@ -204,10 +204,11 @@ body {
     backdrop-filter: blur(32px) saturate(175%);
   }
   .mizan-header[data-scrolled] {
-    background-color: rgb(251 253 251 / 70%);
+    background-color: rgb(251 253 251 / 44%);
+    backdrop-filter: blur(12px) saturate(175%);
   }
   .mizan-header[data-scrolled="true"] {
-    background-color: rgb(251 253 251 / 92%);
+    background-color: rgb(251 253 251 / 64%);
   }
   .mizan-dock {
     backdrop-filter: blur(34px) saturate(180%);
@@ -258,4 +259,17 @@ body {
 .language-picker button:focus-visible {
   outline: 2px solid #245347;
   outline-offset: 2px;
+}
+
+.language-picker-compact {
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.language-picker-compact button {
+  min-width: 44px;
+  padding: 0 0.5rem;
+  border-color: transparent;
+  background: transparent;
+  font-size: 0.75rem;
 }

@@ -63,7 +63,8 @@ Review the remaining Task 12 verification limits below before pilot use. Task 12
 
 ## Management header
 
-- `apps/web/components/shell/glass-header.tsx` stays 54 px tall on mobile and 60 px on desktop. `app-shell.tsx` tracks whether the page is scrolled, and `apps/web/app/globals.css` increases the glass background opacity from 70% to 92%. The mobile dock still compacts independently.
+- `apps/web/components/shell/glass-header.tsx` stays 54 px tall on mobile and 60 px on desktop. `app-shell.tsx` tracks whether the page is scrolled, and `apps/web/app/globals.css` increases the glass background opacity from 44% to 64% with a 12 px backdrop blur. The mobile dock compacts independently.
+- `apps/web/app/(app)/settings/page.tsx` offers language selection to all signed-in users. Organization controls follow existing owner permissions. The public landing page has a compact AZ/EN switch.
 - `tests/e2e/first-milestone.spec.ts` covers stable height and the background change at 320 and 1440 px with reduced motion.
 
 ## Task 12

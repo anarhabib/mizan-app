@@ -100,8 +100,13 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   browser,
 }, testInfo) => {
   const owner = `owner-${run}@example.test`;
-  await english(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "English", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.goto("/register");
+  await expect(
+    page.getByRole("button", { name: "English", exact: true }),
+  ).toHaveCount(0);
   await credentials(page, owner, true);
   await expect(page.locator('[name="organizationName"]')).toBeVisible();
   await page.locator('[name="organizationName"]').fill(`Milestone ${run}`);
@@ -174,6 +179,21 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await expect(
       seller.getByText("Acquisition cost", { exact: true }),
     ).toHaveCount(0);
+    await expect(
+      seller.getByRole("banner").getByRole("button", { name: "English" }),
+    ).toHaveCount(0);
+    await seller.getByRole("link", { name: "Settings", exact: true }).click();
+    await expect(
+      seller.getByRole("heading", { name: "Language", exact: true }),
+    ).toBeVisible();
+    await expect(
+      seller.locator('[name="salespersonCanViewAcquisitionCost"]'),
+    ).toHaveCount(0);
+    await seller.locator('button[name="language"][value="az"]').click();
+    await expect(seller.locator("html")).toHaveAttribute("lang", "az");
+    await seller.getByRole("button", { name: "English", exact: true }).click();
+    await expect(seller.locator("html")).toHaveAttribute("lang", "en");
+    await seller.goto(`/products/${first}?${scope}`);
     // Removing the assignment must invalidate this already authenticated session.
     await page.goto(`/settings/users?${scope}`);
     const member = page
@@ -315,18 +335,18 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await expect(header).toHaveCSS("height", height);
     await expect(header).toHaveCSS(
       "backdrop-filter",
-      "blur(32px) saturate(1.75)",
+      "blur(12px) saturate(1.75)",
     );
     await expect(header).toHaveCSS(
       "background-color",
-      "rgba(251, 253, 251, 0.7)",
+      "rgba(251, 253, 251, 0.44)",
     );
     await page.evaluate(() => window.scrollTo(0, 200));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200);
     await expect(header).toHaveCSS("height", height);
     await expect(header).toHaveCSS(
       "background-color",
-      "rgba(251, 253, 251, 0.92)",
+      "rgba(251, 253, 251, 0.64)",
     );
     await page.screenshot({
       path: testInfo.outputPath(`${width}-header-scrolled.png`),
@@ -334,7 +354,7 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect(header).toHaveCSS(
       "background-color",
-      "rgba(251, 253, 251, 0.7)",
+      "rgba(251, 253, 251, 0.44)",
     );
   }
   await page.emulateMedia({ reducedMotion: "no-preference" });

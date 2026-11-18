@@ -11,7 +11,9 @@ export function LanguagePicker({
   return (
     <form
       action={changeLanguage}
-      className="language-picker"
+      className={
+        compact ? "language-picker language-picker-compact" : "language-picker"
+      }
       aria-label={messages[locale].language}
     >
       <button

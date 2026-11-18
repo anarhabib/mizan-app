@@ -8,7 +8,6 @@ import { messages, type Locale } from "../../features/language/messages";
 import { membershipCopy } from "../../features/memberships/membership-copy";
 import { productCopy } from "../../features/products/product-copy";
 import { saleCopy } from "../../features/sales/sale-copy";
-import { settingsCopy } from "../../features/settings/settings-copy";
 import { Dialog } from "../ui/dialog";
 import { GlassHeader } from "./glass-header";
 import { MobileDock } from "./mobile-dock";
@@ -115,24 +114,21 @@ export function AppShell({
         label: saleCopy[locale].history,
       },
     );
+  destinations.push({
+    path: "/settings",
+    href: "/settings" + (settingsQuery || workspaceQuery),
+    label: copy.settingsNav,
+  });
   if (
     owners.length &&
     !(pathname === "/workspace" && selected?.role === "SALESPERSON")
   ) {
-    destinations.push(
-      {
-        path: "/settings",
-        href: "/settings" + settingsQuery,
-        label: settingsCopy[locale].title,
-        shortLabel: copy.settingsNav,
-      },
-      {
-        path: "/settings/users",
-        href: "/settings/users" + settingsQuery,
-        label: membershipCopy[locale].title,
-        shortLabel: copy.usersNav,
-      },
-    );
+    destinations.push({
+      path: "/settings/users",
+      href: "/settings/users" + settingsQuery,
+      label: membershipCopy[locale].title,
+      shortLabel: copy.usersNav,
+    });
   }
   const current = destinations.find(({ path }) => path === navigationPath);
   const identity =
