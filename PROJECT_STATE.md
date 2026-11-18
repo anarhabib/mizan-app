@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Tasks 1–7 are on `main`. Task 8 is implemented on `task/8-product-inventory-api`.
+- Tasks 1–8 are on `main`. Task 9 is implemented on `task/9-product-inventory-interface`.
 - `apps/web` provides owner registration, sign-in, and workspace selection at `/register` and `/workspace`. Azerbaijani is the default and English can be selected. Translations live in `apps/web/features/language/messages.ts`; the browser remembers the selected language.
 - `packages/contracts` provides exact decimal input, currency precision, and half-up settlement rounding. `packages/database/prisma/schema.prisma` defines the private `mizan` schema. The initial Prisma migration applied to local Supabase PostgreSQL.
 - `apps/api/src/plugins/auth.ts` verifies Supabase-issued tokens through JWKS or Supabase Auth's user endpoint for legacy signing. `apps/api/src/plugins/request-context.ts` attaches context only after verifying current membership and store assignment in PostgreSQL. Access errors do not expose whether an unauthorized scope exists.
@@ -49,6 +49,12 @@
 - Acquisition costs accept an explicitly selected supported currency with ISO minor-unit validation so the form can use the organization's configured default.
 - Workspace build, type checks, lint, Prisma validation, and formatting for the changed TypeScript files passed. All 50 tests passed, including disposable PostgreSQL integration and real local Supabase Storage. Unconfirmed uploads can remain in the private bucket.
 
+## Task 9
+
+- `apps/web/app/(app)/products` and `apps/web/features/products` provide localized product creation, store-scoped inventory search and pagination, product detail and movement history, and optional photo confirmation. The form preserves rejected values and submits decimal strings through the authenticated client in `apps/web/lib/api-client.ts`.
+- `GET /api/v1/products/options` gives assigned owners and salespeople the store organization's default currency and active purity grades. The detail view only renders acquisition cost when the API includes it. The existing photo API accepts one confirmed photo per product.
+- The production web build, TypeScript checks, ESLint, 14 web tests, and 15 API tests against disposable PostgreSQL passed. Browser checks with local fixtures covered the workflow as owner and salesperson at 320 and 1440 px, including photo confirmation and refresh for the owner. The live Supabase Storage check was skipped in this run.
+
 ## Next step
 
-Review and merge the Task 8 pull request. Task 9 adds the product and inventory interface on updated `main`.
+Review and merge the Task 9 pull request. Task 10 implements the transaction-safe sales and trade-in API on updated `main`.

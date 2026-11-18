@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { chooseContext } from "../../features/context/context-picker";
 import { messages, type Locale } from "../../features/language/messages";
 import { membershipCopy } from "../../features/memberships/membership-copy";
+import { productCopy } from "../../features/products/product-copy";
 import { settingsCopy } from "../../features/settings/settings-copy";
 import { Dialog } from "../ui/dialog";
 import { GlassHeader } from "./glass-header";
@@ -24,6 +25,9 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const navigationPath = pathname.startsWith("/products/")
+    ? "/products"
+    : pathname;
   const params = useSearchParams();
   const route = pathname + "?" + params.toString();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,6 +96,12 @@ export function AppShell({
       label: copy.store,
     },
   ];
+  if (contexts.length)
+    destinations.push({
+      path: "/products",
+      href: "/products" + workspaceQuery,
+      label: productCopy[locale].title,
+    });
   if (
     owners.length &&
     !(pathname === "/workspace" && selected?.role === "SALESPERSON")
@@ -111,7 +121,7 @@ export function AppShell({
       },
     );
   }
-  const current = destinations.find(({ path }) => path === pathname);
+  const current = destinations.find(({ path }) => path === navigationPath);
   const identity =
     selected?.storeName ??
     owners.find((context) => context.organizationId === ownerScope)
@@ -123,7 +133,7 @@ export function AppShell({
       <aside className="mizan-glass-dark fixed inset-y-4 left-4 hidden box-border w-49.75 overflow-y-auto rounded-[26px] p-3 min-[761px]:block min-[1001px]:w-57.75">
         <Sidebar
           destinations={destinations}
-          pathname={pathname}
+          pathname={navigationPath}
           locale={locale}
           identity={identity}
           dark
@@ -149,7 +159,7 @@ export function AppShell({
       </div>
       <MobileDock
         destinations={destinations}
-        pathname={pathname}
+        pathname={navigationPath}
         locale={locale}
         compact={compact}
         openMenu={openMenu}
@@ -163,7 +173,7 @@ export function AppShell({
       >
         <Sidebar
           destinations={destinations}
-          pathname={pathname}
+          pathname={navigationPath}
           locale={locale}
           onNavigate={() => setMenuOpen(false)}
         />

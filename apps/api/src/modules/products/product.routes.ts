@@ -95,6 +95,22 @@ export function registerProductRoutes(
       after,
     });
   });
+  app.get<ProductQuery>(
+    "/products/options",
+    { preHandler },
+    async (request) => {
+      const access = request.access!;
+      const grades = await options().db.purityGrade.findMany({
+        where: { organizationId: access.organizationId, active: true },
+        orderBy: { value: "asc" },
+        select: { value: true },
+      });
+      return {
+        defaultCurrency: access.settings.defaultCurrency,
+        purities: grades.map(({ value }) => value),
+      };
+    },
+  );
   app.get<ProductId>("/products/:id", { preHandler }, (request) =>
     getProduct(options(), request.access!, request.params.id),
   );

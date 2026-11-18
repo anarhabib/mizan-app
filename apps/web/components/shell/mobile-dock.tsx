@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Ellipsis, Settings, Store, Users } from "lucide-react";
+import { Ellipsis, Gem, Settings, Store, Users } from "lucide-react";
 import { actionClass, Button } from "../ui/button";
 import { messages, type Locale } from "../../features/language/messages";
 import type { Destination } from "./sidebar";
 
 const icons = {
   "/workspace": Store,
+  "/products": Gem,
   "/settings": Settings,
   "/settings/users": Users,
 };

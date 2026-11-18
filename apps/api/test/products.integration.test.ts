@@ -157,6 +157,26 @@ test.skipIf(!db)(
         data: { ...scope, userId: users.seller },
       });
 
+      await db.purityGrade.update({
+        where: { organizationId_value: { organizationId, value: 375 } },
+        data: { active: false },
+      });
+      const sellerOptions = await send(
+        "GET",
+        path(scope, "/options"),
+        undefined,
+        "seller",
+      );
+      expect(sellerOptions.statusCode).toBe(200);
+      expect(sellerOptions.json()).toEqual({
+        defaultCurrency: "AZN",
+        purities: [585, 750, 916, 999],
+      });
+      expect(
+        (await send("GET", path(other, "/options"), undefined, "seller"))
+          .statusCode,
+      ).toBe(403);
+
       const input = {
         code: "RG-101",
         name: "Gold Ring",
