@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { actionClass } from "../../../../components/ui/button";
+import { PageHeading } from "../../../../components/ui/page-heading";
+import { Surface } from "../../../../components/ui/surface";
 import { saveProduct } from "../../../../features/products/product-actions";
 import {
   productHref,
@@ -26,21 +29,30 @@ export default async function NewProductPage({
   if (result.status === 401) redirect("/sign-in");
   return (
     <section className="grid gap-4">
-      <Link className="w-fit underline" href={productHref("/products", scope)}>
-        {copy.back}
-      </Link>
-      <h1>{copy.add}</h1>
-      {result.data ? (
-        <ProductForm
-          key={scope.storeId}
-          locale={locale}
-          options={result.data}
-          scope={scope}
-          save={saveProduct}
-        />
-      ) : (
-        <p role="alert">{copy.unavailable}</p>
-      )}
+      <PageHeading
+        title={copy.add}
+        actions={
+          <Link
+            className={actionClass + " mizan-table-action"}
+            href={productHref("/products", scope)}
+          >
+            ← {copy.back}
+          </Link>
+        }
+      />
+      <Surface className="w-full max-w-4xl box-border p-4 sm:p-5">
+        {result.data ? (
+          <ProductForm
+            key={scope.storeId}
+            locale={locale}
+            options={result.data}
+            scope={scope}
+            save={saveProduct}
+          />
+        ) : (
+          <p role="alert">{copy.unavailable}</p>
+        )}
+      </Surface>
     </section>
   );
 }

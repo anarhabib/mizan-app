@@ -34,7 +34,7 @@ export function OrganizationSettingsForm({
         intent="visibility"
         label={copy.save}
       >
-        <label className="settings-toggle">
+        <label className="flex min-h-11 items-center gap-2">
           <input
             type="checkbox"
             name="salespersonCanViewAcquisitionCost"

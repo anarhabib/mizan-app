@@ -1,4 +1,6 @@
 import type { StoreContext } from "@mizan/contracts";
+import { Store } from "lucide-react";
+import { actionClass } from "../../components/ui/button";
 import { messages, type Locale } from "../language/messages";
 
 export function chooseContext(
@@ -28,12 +30,16 @@ export function ContextPicker({
   if (contexts.length <= 1) return null;
   return (
     <nav aria-label={messages[locale].selectStore}>
-      <h2>{messages[locale].selectStore}</h2>
-      <ul>
+      <h2 className="m-0 mb-3 text-lg">{messages[locale].selectStore}</h2>
+      <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
         {contexts.map(
           ({ organizationId, organizationName, storeId, storeName }) => (
             <li key={`${organizationId}:${storeId}`}>
               <a
+                className={
+                  actionClass +
+                  " mizan-table-action w-full justify-start aria-[current=page]:bg-mizan-selected"
+                }
                 aria-current={
                   selected?.organizationId === organizationId &&
                   selected.storeId === storeId
@@ -42,7 +48,13 @@ export function ContextPicker({
                 }
                 href={`/workspace?${new URLSearchParams({ organizationId, storeId })}`}
               >
-                {organizationName} / {storeName}
+                <Store size={18} aria-hidden className="shrink-0" />
+                <span className="min-w-0 wrap-anywhere">
+                  <strong className="block">{storeName}</strong>
+                  <span className="block text-xs text-mizan-muted">
+                    {organizationName}
+                  </span>
+                </span>
               </a>
             </li>
           ),

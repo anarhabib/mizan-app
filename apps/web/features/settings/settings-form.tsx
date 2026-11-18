@@ -3,9 +3,10 @@ import { useActionState, type ReactNode } from "react";
 import type { Locale } from "../language/messages";
 import { updateSettings } from "./settings-actions";
 import { settingsCopy } from "./settings-copy";
+import { Button } from "../../components/ui/button";
 
 export const settingsPanel =
-  "rounded-2xl border border-solid border-mizan-edge bg-mizan-surface p-4 sm:p-5";
+  "mizan-glass-light grid gap-4 rounded-[19px] p-4 sm:rounded-[26px] sm:p-5";
 
 export function SettingsForm({
   organizationId,
@@ -28,9 +29,9 @@ export function SettingsForm({
     <form action={dispatch}>
       <input type="hidden" name="intent" value={intent} />
       {children}
-      <button className="justify-self-start" disabled={pending}>
+      <Button type="submit" className="justify-self-start" disabled={pending}>
         {pending ? settingsCopy[locale].saving : label}
-      </button>
+      </Button>
       {state.error && <p role="alert">{state.error}</p>}
       {state.notice && <p role="status">{state.notice}</p>}
     </form>

@@ -3,6 +3,7 @@ import { Package, Plus, Search } from "lucide-react";
 import type { ProductList as Inventory } from "@mizan/contracts";
 import { Button, actionClass } from "../../components/ui/button";
 import { Surface } from "../../components/ui/surface";
+import { PageHeading } from "../../components/ui/page-heading";
 import { StatusBadge } from "../../components/ui/status-badge";
 import type { Locale } from "../language/messages";
 import { saleCopy } from "../sales/sale-copy";
@@ -28,31 +29,31 @@ export function ProductList({
   const home = productHref("/products", scope);
   return (
     <section className="grid gap-4">
-      <div className="mizan-page-heading">
-        <div>
-          <h1>{copy.title}</h1>
-          <p>
-            {locale === "az"
-              ? "Məhsul kartları, çəkilər və anbar statusu."
-              : "Product records, weights, and stock status."}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            className={actionClass + " mizan-table-action"}
-            href={productHref("/sales/new", scope)}
-          >
-            {saleCopy[locale].title}
-          </Link>
-          <Link
-            className={actionClass + " mizan-page-action"}
-            href={productHref("/products/new", scope)}
-          >
-            <Plus aria-hidden size={19} />
-            {copy.add}
-          </Link>
-        </div>
-      </div>
+      <PageHeading
+        title={copy.title}
+        description={
+          locale === "az"
+            ? "Məhsul kartları, çəkilər və anbar statusu."
+            : "Product records, weights, and stock status."
+        }
+        actions={
+          <>
+            <Link
+              className={actionClass + " mizan-table-action"}
+              href={productHref("/sales/new", scope)}
+            >
+              {saleCopy[locale].title}
+            </Link>
+            <Link
+              className={actionClass + " mizan-page-action"}
+              href={productHref("/products/new", scope)}
+            >
+              <Plus aria-hidden size={19} />
+              {copy.add}
+            </Link>
+          </>
+        }
+      />
       <Surface className="p-3">
         <form action="/products" className="flex flex-wrap items-end gap-2">
           <input
