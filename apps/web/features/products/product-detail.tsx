@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { MoneyInput, ProductDetail as Product } from "@mizan/contracts";
 import { StatusBadge } from "../../components/ui/status-badge";
 import { actionClass } from "../../components/ui/button";
+import { PageHeading } from "../../components/ui/page-heading";
+import { Surface } from "../../components/ui/surface";
 import type { Locale } from "../language/messages";
 import { saleCopy } from "../sales/sale-copy";
 import { productCopy, productHref, type ProductScope } from "./product-copy";
@@ -48,55 +50,73 @@ export function ProductDetail({
       : []),
   ];
   return (
-    <article className="grid max-w-4xl gap-4">
-      <Link className="w-fit underline" href={productHref("/products", scope)}>
-        {copy.back}
-      </Link>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="wrap-break-word">{product.name}</h1>
-        <StatusBadge>{copy[product.status]}</StatusBadge>
-        {product.status === "IN_STOCK" && (
-          <Link
-            className={
-              actionClass + " bg-mizan-primary text-mizan-primary-text"
-            }
-            href={
-              productHref("/sales/new", scope) +
-              "&productId=" +
-              encodeURIComponent(product.id)
-            }
-          >
-            {saleCopy[locale].title}
-          </Link>
-        )}
-        {product.sale && (
-          <Link
-            className={actionClass + " bg-mizan-selected"}
-            href={productHref(
-              "/sales/" + encodeURIComponent(product.sale.id),
-              scope,
+    <article className="grid min-w-0 gap-4">
+      <PageHeading
+        title={product.name}
+        description={product.code + " · " + product.category}
+        actions={
+          <>
+            <Link
+              className={actionClass + " mizan-table-action"}
+              href={productHref("/products", scope)}
+            >
+              ← {copy.back}
+            </Link>
+            {product.status === "IN_STOCK" && (
+              <Link
+                className={actionClass + " mizan-page-action"}
+                href={
+                  productHref("/sales/new", scope) +
+                  "&productId=" +
+                  encodeURIComponent(product.id)
+                }
+              >
+                {saleCopy[locale].title}
+              </Link>
             )}
-          >
-            {copy.sale}
-          </Link>
-        )}
+            {product.sale && (
+              <Link
+                className={actionClass + " mizan-table-action"}
+                href={productHref(
+                  "/sales/" + encodeURIComponent(product.sale.id),
+                  scope,
+                )}
+              >
+                {copy.sale}
+              </Link>
+            )}
+          </>
+        }
+      />
+      <div className="grid items-start gap-4 min-[1050px]:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <Surface className="min-w-0 p-4 sm:p-5">
+          <ProductPhoto locale={locale} product={product} scope={scope} />
+        </Surface>
+        <Surface className="grid min-w-0 gap-3 p-4 sm:p-5">
+          <div>
+            <StatusBadge>{copy[product.status]}</StatusBadge>
+          </div>
+          <dl className="m-0 grid gap-2">
+            {detailRows.map(([label, value]) => (
+              <div
+                key={label}
+                className="grid gap-1 border-b border-mizan-edge/40 py-2 last:border-0 sm:grid-cols-2"
+              >
+                <dt className="text-sm font-bold text-mizan-muted">{label}</dt>
+                <dd className="m-0 wrap-anywhere">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </Surface>
       </div>
-      <div className="grid items-start gap-4 sm:grid-cols-2">
-        <ProductPhoto locale={locale} product={product} scope={scope} />
-        <dl className="grid gap-3 rounded-xl border border-mizan-edge bg-mizan-field p-4">
-          {detailRows.map(([label, value]) => (
-            <div key={label} className="grid gap-1">
-              <dt className="text-sm font-bold">{label}</dt>
-              <dd className="wrap-break-word">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-      <section className="grid gap-2">
-        <h2>{copy.history}</h2>
-        <ul>
+      <Surface className="grid gap-3 p-4 sm:p-5">
+        <h2 className="m-0 text-xl tracking-tight">{copy.history}</h2>
+        <ul className="m-0 grid list-none gap-2 p-0">
           {product.movements.map((movement) => (
-            <li key={movement.id}>
+            <li
+              className="flex flex-wrap justify-between gap-2 border-b border-mizan-edge/40 py-2 last:border-0"
+              key={movement.id}
+            >
               {copy[movement.kind]} ·{" "}
               <time dateTime={movement.createdAt}>
                 {date.format(new Date(movement.createdAt))}
@@ -104,7 +124,7 @@ export function ProductDetail({
             </li>
           ))}
         </ul>
-      </section>
+      </Surface>
     </article>
   );
 }

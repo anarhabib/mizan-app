@@ -5,6 +5,7 @@ import type { SaleList } from "@mizan/contracts";
 import { actionClass, Button } from "../../../components/ui/button";
 import { StatusBadge } from "../../../components/ui/status-badge";
 import { Surface } from "../../../components/ui/surface";
+import { PageHeading } from "../../../components/ui/page-heading";
 import { apiRequest } from "../../../features/auth/session";
 import { productHref } from "../../../features/products/product-copy";
 import {
@@ -40,19 +41,19 @@ export default async function SalesPage({
   });
   return (
     <section className="grid gap-4">
-      <div className="mizan-page-heading">
-        <div>
-          <h1>{labels.history}</h1>
-          <p>{labels.historyDescription}</p>
-        </div>
-        <Link
-          className={actionClass + " mizan-page-action"}
-          href={productHref("/sales/new", scope)}
-        >
-          <Plus size={19} aria-hidden />
-          {labels.title}
-        </Link>
-      </div>
+      <PageHeading
+        title={labels.history}
+        description={labels.historyDescription}
+        actions={
+          <Link
+            className={actionClass + " mizan-page-action"}
+            href={productHref("/sales/new", scope)}
+          >
+            <Plus size={19} aria-hidden />
+            {labels.title}
+          </Link>
+        }
+      />
       <Surface className="p-3">
         <form action="/sales" className="flex flex-wrap items-center gap-2">
           <input

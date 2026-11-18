@@ -13,6 +13,7 @@ import {
 import { actionClass, Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
 import { Surface } from "../../components/ui/surface";
+import { PageHeading } from "../../components/ui/page-heading";
 import type { Locale } from "../language/messages";
 import {
   productCopy,
@@ -198,18 +199,18 @@ export function SaleForm({
 
   return (
     <section className="grid gap-4">
-      <div className="mizan-page-heading">
-        <div>
-          <h1>{copy.title}</h1>
-          <p>{copy.startDescription}</p>
-        </div>
-        <Link
-          className={actionClass + " mizan-table-action"}
-          href={productHref("/sales", scope)}
-        >
-          ← {copy.backToSales}
-        </Link>
-      </div>
+      <PageHeading
+        title={copy.title}
+        description={copy.startDescription}
+        actions={
+          <Link
+            className={actionClass + " mizan-table-action"}
+            href={productHref("/sales", scope)}
+          >
+            ← {copy.backToSales}
+          </Link>
+        }
+      />
       {review && !reviewOpen && (
         <Surface className="grid gap-3 p-4">
           <p role="status">{copy.pending}</p>

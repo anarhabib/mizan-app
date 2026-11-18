@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import type { MembershipDirectory, StoreContext } from "@mizan/contracts";
-import { AuthCard } from "../../../../features/auth/auth-card";
+import styles from "../../../../components/ui/form-controls.module.css";
+import { actionClass } from "../../../../components/ui/button";
+import { PageHeading } from "../../../../components/ui/page-heading";
 import { apiRequest, requestContexts } from "../../../../features/auth/session";
 import { currentLocale } from "../../../../features/language/preference";
 import { MemberManagement } from "../../../../features/memberships/member-management";
@@ -35,25 +37,39 @@ export default async function UsersPage({
         )
       : undefined;
   return (
-    <AuthCard title={copy.title} locale={locale} wide embedded>
-      <a href="/workspace">{copy.back}</a>
+    <section className="grid gap-4">
+      <PageHeading
+        title={copy.title}
+        description={selected && owners.get(selected)}
+        actions={
+          <a className={actionClass + " mizan-table-action"} href="/workspace">
+            {copy.back}
+          </a>
+        }
+      />
       {session.status !== 200 ? (
         <p role="alert">{copy.failed}</p>
       ) : directory?.status === 200 && selected ? (
-        <MemberManagement
-          key={`${selected}:${locale}`}
-          organizationId={selected}
-          locale={locale}
-          directory={directory.data as MembershipDirectory}
-        />
+        <div className={styles.controls}>
+          <MemberManagement
+            key={`${selected}:${locale}`}
+            organizationId={selected}
+            locale={locale}
+            directory={directory.data as MembershipDirectory}
+          />
+        </div>
       ) : directory && directory.status !== 403 ? (
         <p role="alert">{copy.failed}</p>
       ) : !selected && owners.size > 1 ? (
-        <nav aria-label={copy.chooseOrganization}>
+        <nav
+          className={styles.controls + " mizan-glass-light rounded-[19px] p-4"}
+          aria-label={copy.chooseOrganization}
+        >
           <ul>
             {[...owners].map(([id, label]) => (
               <li key={id}>
                 <a
+                  className={actionClass + " mizan-table-action"}
                   href={`/settings/users?${new URLSearchParams({ organizationId: id })}`}
                 >
                   {label}
@@ -65,6 +81,6 @@ export default async function UsersPage({
       ) : (
         <p role="alert">{copy.denied}</p>
       )}
-    </AuthCard>
+    </section>
   );
 }

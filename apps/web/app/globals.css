@@ -39,12 +39,6 @@ body {
   font-size: 14px;
 }
 
-.home {
-  max-width: 36rem;
-  margin: 3rem auto;
-  padding: 1.25rem;
-}
-
 .mizan-page-heading {
   display: flex;
   flex-wrap: wrap;

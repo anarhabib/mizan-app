@@ -150,6 +150,8 @@ Set `currentColor` and `--mizan-mark-pivot` on the enclosing mark component. The
 
 ## 7. Reusable component boundaries
 
+All current routes use the same visual hierarchy. Authenticated pages start with a `PageHeading` and put related controls, details, and records in separate light-glass `Surface` panels. Place page actions beside the heading on desktop and let them wrap below on compact layouts. Public home, sign-in, registration, and invitation pages use the same branded header and compact panel through `AuthCard`. Workspace links lead to the active store’s real features, and settings and access-management panels group fields by task.
+
 The names below are suggested implementation boundaries. Match the conventions of the new repository.
 
 | Component | Responsibilities |

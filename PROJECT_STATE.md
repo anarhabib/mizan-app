@@ -79,3 +79,10 @@ Task 12 covers end-to-end milestone verification, backup, and handoff after the 
 - Sales history exposes the recorded seller ID and completed status. Inventory list rows use a product icon, with uploaded photos available from product detail. Demo prices, customer and payment selectors, and returns remain outside the current workflow.
 - `AGENTS.md` now requires comparing rendered UI against the reference at desktop and mobile widths before opening future UI PRs.
 - Verification covered 18 web tests, 19 API tests on disposable PostgreSQL, production builds, lint, and browser fixtures at 320 and 1890 px. The optional live Storage test was skipped.
+
+## App-wide design
+
+- Existing routes now share `components/ui/page-heading.tsx`, light-glass panels, and grouped forms. `components/ui/form-controls.module.css` replaces the authentication-specific stylesheet. Workspace, settings, membership management, product creation/details, sale details, and public account pages use these patterns.
+- `features/auth/auth-card.tsx` provides the public branded layout for home, sign-in, registration, setup, and invitations. The authenticated shell owns one main landmark. Future pages follow the shared patterns documented in `AGENTS.md` and `DESIGN.md`.
+- Static review identified and corrected a mobile input font-size regression. Browser verification uses local fixtures, with captures for existing routes at 320 and 1890 px. Live account and settings mutations remain part of milestone end-to-end verification.
+- The production web build with TypeScript checks, workspace lint, and all 18 web tests passed. Browser checks passed for desktop and mobile routes, sale flows, overflow, main landmarks, and the 16 px sign-in input baseline.

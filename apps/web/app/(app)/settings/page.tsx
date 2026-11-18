@@ -1,7 +1,9 @@
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import type { StoreContext, TradingSettings } from "@mizan/contracts";
-import { AuthCard } from "../../../features/auth/auth-card";
+import styles from "../../../components/ui/form-controls.module.css";
+import { actionClass } from "../../../components/ui/button";
+import { PageHeading } from "../../../components/ui/page-heading";
 import { apiRequest, requestContexts } from "../../../features/auth/session";
 import { currentLocale } from "../../../features/language/preference";
 import { OrganizationSettingsForm } from "../../../features/settings/organization-settings-form";
@@ -41,13 +43,19 @@ export default async function SettingsPage({
   const data =
     result?.status === 200 ? (result.data as TradingSettings) : undefined;
   return (
-    <AuthCard title={copy.title} locale={locale} wide embedded>
-      <a className="gap-2" href="/workspace">
-        <ArrowLeft aria-hidden="true" size={18} />
-        {copy.back}
-      </a>
+    <section className="grid gap-4">
+      <PageHeading
+        title={copy.title}
+        description={selected && owners.get(selected)}
+        actions={
+          <a className={actionClass + " mizan-table-action"} href="/workspace">
+            <ArrowLeft aria-hidden="true" size={18} />
+            {copy.back}
+          </a>
+        }
+      />
       {data && selected ? (
-        <div className="grid gap-4" key={`${selected}:${locale}`}>
+        <div className={styles.controls} key={`${selected}:${locale}`}>
           <OrganizationSettingsForm
             organizationId={selected}
             locale={locale}
@@ -64,11 +72,15 @@ export default async function SettingsPage({
       ) : session.status !== 200 || (result && result.status !== 403) ? (
         <p role="alert">{copy.failure}</p>
       ) : !selected && owners.size > 1 ? (
-        <nav aria-label={copy.choose}>
+        <nav
+          className={styles.controls + " mizan-glass-light rounded-[19px] p-4"}
+          aria-label={copy.choose}
+        >
           <ul>
             {[...owners].map(([id, name]) => (
               <li key={id}>
                 <a
+                  className={actionClass + " mizan-table-action"}
                   href={`/settings?${new URLSearchParams({ organizationId: id })}`}
                 >
                   {name}
@@ -80,6 +92,6 @@ export default async function SettingsPage({
       ) : (
         <p role="alert">{copy.denied}</p>
       )}
-    </AuthCard>
+    </section>
   );
 }

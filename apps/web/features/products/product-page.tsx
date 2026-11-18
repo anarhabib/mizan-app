@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PageHeading } from "../../components/ui/page-heading";
+import { Surface } from "../../components/ui/surface";
 import { requestContexts } from "../auth/session";
 import { chooseContext } from "../context/context-picker";
 import { messages } from "../language/messages";
@@ -29,23 +31,25 @@ export async function productPage(
   const copy = productCopy[locale];
   const fallback = (
     <section className="grid gap-4">
-      <h1>{title?.[locale] ?? copy.title}</h1>
-      {contexts.length ? (
-        <nav aria-label={messages[locale].selectStore}>
-          <h2>{messages[locale].selectStore}</h2>
-          <ul className="grid gap-2">
-            {contexts.map((context: NonNullable<typeof scope>) => (
-              <li key={context.organizationId + ":" + context.storeId}>
-                <Link className="underline" href={productHref(path, context)}>
-                  {context.organizationName} / {context.storeName}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      ) : (
-        <p role="alert">{copy.unavailable}</p>
-      )}
+      <PageHeading title={title?.[locale] ?? copy.title} />
+      <Surface className="p-4 sm:p-5">
+        {contexts.length ? (
+          <nav aria-label={messages[locale].selectStore}>
+            <h2>{messages[locale].selectStore}</h2>
+            <ul className="grid gap-2">
+              {contexts.map((context: NonNullable<typeof scope>) => (
+                <li key={context.organizationId + ":" + context.storeId}>
+                  <Link className="underline" href={productHref(path, context)}>
+                    {context.organizationName} / {context.storeName}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : (
+          <p role="alert">{copy.unavailable}</p>
+        )}
+      </Surface>
     </section>
   );
   return { scope, locale, copy, query, fallback };

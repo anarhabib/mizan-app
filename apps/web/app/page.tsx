@@ -1,15 +1,17 @@
-import { LanguagePicker } from "../features/language/language-picker";
+import Link from "next/link";
+import { actionClass } from "../components/ui/button";
+import { AuthCard } from "../features/auth/auth-card";
 import { messages } from "../features/language/messages";
 import { currentLocale } from "../features/language/preference";
 
 export default async function Home() {
   const locale = await currentLocale();
   return (
-    <main className="home">
-      <h1>Mizan</h1>
+    <AuthCard locale={locale} title="Mizan">
       <p>{messages[locale].environment}</p>
-      <LanguagePicker locale={locale} />
-      <a href="/sign-in">{messages[locale].signIn}</a>
-    </main>
+      <Link href="/sign-in" className={actionClass + " mizan-page-action"}>
+        {messages[locale].signIn}
+      </Link>
+    </AuthCard>
   );
 }

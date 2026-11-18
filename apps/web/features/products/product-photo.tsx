@@ -118,6 +118,7 @@ export function ProductPhoto({
           <input
             ref={input}
             type="file"
+            className="box-border min-h-11 min-w-0 w-full rounded-xl border border-mizan-edge bg-mizan-field p-2 text-sm font-normal text-mizan-ink file:mr-3 file:min-h-9 file:rounded-lg file:border-0 file:bg-mizan-selected file:px-3 file:font-bold file:text-mizan-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mizan-focus"
             accept={photoTypes.join(",")}
             disabled={pending}
             onChange={(event) => select(event.currentTarget.files?.[0])}

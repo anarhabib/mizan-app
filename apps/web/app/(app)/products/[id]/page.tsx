@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ProductDetail as Product } from "@mizan/contracts";
+import { actionClass } from "../../../../components/ui/button";
+import { PageHeading } from "../../../../components/ui/page-heading";
+import { Surface } from "../../../../components/ui/surface";
 import { productHref } from "../../../../features/products/product-copy";
 import { ProductDetail } from "../../../../features/products/product-detail";
 import {
@@ -35,12 +38,22 @@ export default async function ProductPage({
     />
   ) : (
     <section className="grid gap-4">
-      <Link className="w-fit underline" href={productHref("/products", scope)}>
-        {copy.back}
-      </Link>
-      <p role="alert">
-        {result.status === 404 ? copy.missing : copy.unavailable}
-      </p>
+      <PageHeading
+        title={copy.title}
+        actions={
+          <Link
+            className={actionClass + " mizan-table-action"}
+            href={productHref("/products", scope)}
+          >
+            {copy.back}
+          </Link>
+        }
+      />
+      <Surface className="p-4">
+        <p role="alert" className="m-0">
+          {result.status === 404 ? copy.missing : copy.unavailable}
+        </p>
+      </Surface>
     </section>
   );
 }

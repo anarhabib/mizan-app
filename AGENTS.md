@@ -43,6 +43,7 @@ You are assisting the sole developer of Mizan, a jewelry-store inventory and sal
 - Enforce authorization server-side, not only by hiding UI controls.
 
 ## Design implementation
+- Build every new page from the shared Mizan patterns. Use `PageHeading` and role-appropriate actions, `Surface` for grouped content, the shared controls and table styles, and the existing authenticated shell or public authentication layout. Adapt the pattern to the page's purpose and available data.
 - Use the owner's reference screenshots and the live Mizan prototype linked in `DESIGN.md` as the visual acceptance baseline for every UI task. Before editing, identify the matching route and state and compare its shell, layout, typography, spacing, controls, and responsive behavior with the current app.
 - Before opening a UI pull request, capture the implemented screen at the closest available reference viewport and at a mobile width. Compare it side by side with the reference, fix visible mismatches within scope, and record the checked states and deliberate differences in the PR. If the live prototype is unavailable, use the supplied screenshots and report any state that could not be compared.
 - Use [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) when designing, implementing, or reviewing frontend UI. Read the relevant sections of `DESIGN.md` first, then use the skill for supplemental guidance on accessibility, responsive layouts, navigation, and form feedback.

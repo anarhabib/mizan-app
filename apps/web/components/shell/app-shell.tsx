@@ -167,9 +167,9 @@ export function AppShell({
           compact={compact}
           openMenu={openMenu}
         />
-        <div className="mx-auto min-w-0 max-w-[1520px] pt-4 min-[761px]:px-5 min-[761px]:pt-7 min-[1200px]:px-10">
+        <main className="mx-auto min-w-0 max-w-[1520px] pt-4 min-[761px]:px-5 min-[761px]:pt-7 min-[1200px]:px-10">
           {children}
-        </div>
+        </main>
       </div>
       <MobileDock
         destinations={destinations}
