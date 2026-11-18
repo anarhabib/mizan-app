@@ -303,6 +303,42 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     page.getByRole("row").filter({ hasText: `T-${run}` }),
   ).toHaveCount(1);
 
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/settings?${scope}`);
+    await page.getByRole("main").evaluate((main) => {
+      main.style.minHeight = "200vh";
+    });
+    const header = page.getByRole("banner");
+    const height = width === 320 ? "54px" : "60px";
+    await expect(header).toHaveCSS("height", height);
+    await expect(header).toHaveCSS(
+      "backdrop-filter",
+      "blur(32px) saturate(1.75)",
+    );
+    await expect(header).toHaveCSS(
+      "background-color",
+      "rgba(251, 253, 251, 0.7)",
+    );
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200);
+    await expect(header).toHaveCSS("height", height);
+    await expect(header).toHaveCSS(
+      "background-color",
+      "rgba(251, 253, 251, 0.92)",
+    );
+    await page.screenshot({
+      path: testInfo.outputPath(`${width}-header-scrolled.png`),
+    });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(header).toHaveCSS(
+      "background-color",
+      "rgba(251, 253, 251, 0.7)",
+    );
+  }
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
   for (const width of [320, 375, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ["/products", "/sales", "/sales/new", "/settings"]) {

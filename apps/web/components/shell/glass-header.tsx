@@ -10,7 +10,7 @@ export function GlassHeader({
   role,
   dateLabel,
   locale,
-  compact,
+  scrolled,
   openMenu,
 }: {
   title: string;
@@ -18,13 +18,14 @@ export function GlassHeader({
   role?: string;
   dateLabel: string;
   locale: Locale;
-  compact: boolean;
+  scrolled: boolean;
   openMenu: () => void;
 }) {
   return (
     <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 h-13.5 min-[761px]:h-15">
       <header
-        className={`mizan-header box-border flex items-center justify-between gap-2 rounded-[19px] px-1.5 motion-safe:transition-[height] min-[761px]:px-4 ${compact ? "h-12" : "h-full"}`}
+        className="mizan-header box-border flex h-full items-center justify-between gap-2 rounded-[19px] px-1.5 motion-safe:transition-colors min-[761px]:px-4"
+        data-scrolled={scrolled}
       >
         <div className="flex min-w-0 items-center gap-1.5">
           <Button

@@ -203,6 +203,12 @@ body {
   .mizan-header {
     backdrop-filter: blur(32px) saturate(175%);
   }
+  .mizan-header[data-scrolled] {
+    background-color: rgb(251 253 251 / 70%);
+  }
+  .mizan-header[data-scrolled="true"] {
+    background-color: rgb(251 253 251 / 92%);
+  }
   .mizan-dock {
     backdrop-filter: blur(34px) saturate(180%);
   }

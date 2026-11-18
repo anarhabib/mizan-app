@@ -59,7 +59,12 @@
 
 ## Next step
 
-Review the Task 12 pull request and the remaining verification limits below before pilot use.
+Review the remaining Task 12 verification limits below before pilot use. Task 12 merged in PR #11.
+
+## Management header
+
+- `apps/web/components/shell/glass-header.tsx` stays 54 px tall on mobile and 60 px on desktop. `app-shell.tsx` tracks whether the page is scrolled, and `apps/web/app/globals.css` increases the glass background opacity from 70% to 92%. The mobile dock still compacts independently.
+- `tests/e2e/first-milestone.spec.ts` covers stable height and the background change at 320 and 1440 px with reduced motion.
 
 ## Task 12
 
