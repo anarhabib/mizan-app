@@ -86,3 +86,8 @@ Task 12 covers end-to-end milestone verification, backup, and handoff after the 
 - `features/auth/auth-card.tsx` provides the public branded layout for sign-in, registration, setup, and invitations. The home page follows approved Figma frame `2:172`, using the wide public header, dark hero, shared brand geometry, and feature panels. Feature copy describes shipped inventory, photo, and settlement workflows. The authenticated shell owns one main landmark.
 - Static review identified and corrected a mobile input font-size regression. Browser verification uses local fixtures, with captures for existing routes at 320 and 1890 px. Live account and settings mutations remain part of milestone end-to-end verification.
 - The production web build with TypeScript checks, workspace lint, and all 18 web tests passed. Browser checks passed for desktop and mobile routes, sale flows, overflow, main landmarks, and the 16 px sign-in input baseline.
+
+## Workflow efficiency
+
+- AGENTS.md now prefers inline execution of approved milestone tasks, contextual reuse of unchanged material, focused iteration checks, and full relevant verification before completion. UI work checks the exact approved reference and existing components first.
+- Mandatory Superpowers planning, fresh-read, and review requirements remain applicable. The milestone plan and approved design remain the scope authorities. No execution-mode configuration change was needed.
