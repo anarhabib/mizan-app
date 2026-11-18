@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { LogOut, Settings, Store, Users } from "lucide-react";
+import { Gem, LogOut, Settings, Store, Users } from "lucide-react";
 import { BrandMark } from "../brand/brand-mark";
 import { actionClass, Button } from "../ui/button";
 import { signOut } from "../../features/auth/owner-actions";
 import { messages, type Locale } from "../../features/language/messages";
 
 export type Destination = {
-  path: "/workspace" | "/settings" | "/settings/users";
+  path: "/workspace" | "/products" | "/settings" | "/settings/users";
   href: string;
   label: string;
   shortLabel?: string;
@@ -14,6 +14,7 @@ export type Destination = {
 
 const icons = {
   "/workspace": Store,
+  "/products": Gem,
   "/settings": Settings,
   "/settings/users": Users,
 };

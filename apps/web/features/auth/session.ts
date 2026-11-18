@@ -34,6 +34,7 @@ export async function apiRequest(
     | "/me/contexts"
     | "/onboarding"
     | "/invitations/accept"
+    | `/products${string}`
     | `/organizations/${string}`,
   body?: unknown,
 ) {
@@ -62,6 +63,10 @@ export async function apiRequest(
     return {
       status: response.status,
       data: response.ok ? await response.json() : undefined,
+      error: response.ok
+        ? undefined
+        : ((await response.json().catch(() => undefined)) as
+            { code?: string; field?: string } | undefined),
     };
   } catch {
     return { status: 503 };
