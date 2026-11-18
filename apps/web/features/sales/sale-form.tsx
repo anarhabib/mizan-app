@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
+
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   currencyMinorUnits,
   type ProductListItem,
+  type ProductList,
   type SaleCreateInput,
 } from "@mizan/contracts";
-import { Button } from "../../components/ui/button";
+import { actionClass, Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
 import { Surface } from "../../components/ui/surface";
 import type { Locale } from "../language/messages";
@@ -31,12 +34,14 @@ export function SaleForm({
   scope,
   options,
   initialProduct,
+  initialStock,
   missingProduct,
 }: {
   locale: Locale;
   scope: ProductScope;
   options: SaleOptions;
   initialProduct?: ProductListItem;
+  initialStock?: ProductList;
   missingProduct?: boolean;
 }) {
   const copy = saleCopy[locale];
@@ -193,7 +198,18 @@ export function SaleForm({
 
   return (
     <section className="grid gap-4">
-      <h1>{copy.title}</h1>
+      <div className="mizan-page-heading">
+        <div>
+          <h1>{copy.title}</h1>
+          <p>{copy.startDescription}</p>
+        </div>
+        <Link
+          className={actionClass + " mizan-table-action"}
+          href={productHref("/sales", scope)}
+        >
+          ← {copy.backToSales}
+        </Link>
+      </div>
       {review && !reviewOpen && (
         <Surface className="grid gap-3 p-4">
           <p role="status">{copy.pending}</p>
@@ -221,125 +237,137 @@ export function SaleForm({
       )}
       <fieldset
         disabled={!!review || currencyChanged}
-        className="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+        className="m-0 grid min-w-0 items-stretch gap-3 border-0 p-0 min-[1100px]:grid-cols-[minmax(0,1.73fr)_minmax(0,1fr)]"
       >
-        <Surface className="grid gap-4 p-4">
+        <Surface className="grid min-w-0 content-start gap-4 p-4 sm:p-5">
           <ProductLookup
             locale={locale}
             scope={scope}
+            initial={initialStock}
             onSelect={(item) => {
               setProduct(item);
               setUnavailable(false);
             }}
           />
-          {product && (
-            <ProductIdentity
-              locale={locale}
-              product={product}
-              showStatus={!unavailable || product.status === "SOLD"}
-            />
-          )}
-          {unavailable && <p role="alert">{copy.unavailable}</p>}
         </Surface>
-        <form onSubmit={reviewSale} className="grid min-w-0 gap-4">
-          <Surface className="grid gap-4 p-4">
-            <Field
-              id="sale-amount"
-              label={copy.amount + " (" + draftCurrency + ")"}
-              inputMode="decimal"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
-            <TradeInLines
-              locale={locale}
-              options={options}
-              lines={lines}
-              onChange={setLines}
-            />
-            {cashDue && (
-              <div className="grid gap-3">
-                <label className="flex min-h-11 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={tender}
-                    onChange={(event) => setTender(event.target.checked)}
-                  />
-                  {copy.tender}
-                </label>
-                {tender && (
-                  <>
-                    <div className="grid gap-1.5">
-                      <label
-                        htmlFor="sale-cash-currency"
-                        className="text-sm font-bold"
-                      >
-                        {productCopy[locale].currency}
-                      </label>
-                      <select
-                        id="sale-cash-currency"
-                        className={selectClass}
-                        value={cashCurrency}
-                        onChange={(event) => {
-                          setChosenCurrency(event.target.value);
-                          setCash("");
-                          setExchange("");
-                        }}
-                      >
-                        {currencies.map((code) => (
-                          <option key={code}>{code}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <Field
-                      id="cash-received"
-                      label={copy.cash + " (" + cashCurrency + ")"}
-                      inputMode="decimal"
-                      value={cash}
-                      onChange={(event) => setCash(event.target.value)}
-                    />
-                    {cashCurrency !== currency && (
-                      <Field
-                        id="exchange-rate"
-                        label={
-                          copy.exchange +
-                          " (" +
-                          currency +
-                          " / " +
-                          cashCurrency +
-                          ")"
-                        }
-                        inputMode="decimal"
-                        value={exchange}
-                        onChange={(event) => setExchange(event.target.value)}
-                      />
-                    )}
-                  </>
-                )}
+        <Surface className="min-w-0 p-4 sm:p-5">
+          <form onSubmit={reviewSale} className="m-0 grid min-w-0 gap-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="m-0 text-xl tracking-tight">{copy.cart}</h2>
+              <span className="rounded-full border border-mizan-edge bg-mizan-selected px-2 py-0.5 text-xs font-bold">
+                {product && !unavailable ? 1 : 0}{" "}
+                {locale === "az" ? "məhsul" : "item"}
+              </span>
+            </div>
+            {product && !unavailable ? (
+              <div className="rounded-xl border border-mizan-edge/50 bg-mizan-field p-3">
+                <ProductIdentity locale={locale} product={product} />
               </div>
+            ) : (
+              <p className="m-0 grid min-h-24 place-items-center text-center text-xs text-mizan-muted">
+                {copy.cartEmpty}
+              </p>
             )}
-          </Surface>
-          <Surface tone="dark" className="grid gap-4 p-4">
-            {preview && draft && !currencyChanged && (
-              <SettlementSummary
-                locale={locale}
-                currency={currency}
-                amount={draft.saleAmount}
-                payment={draft.payment}
-                {...preview}
+            {unavailable && <p role="alert">{copy.unavailable}</p>}
+            <div className="grid gap-4">
+              <Field
+                id="sale-amount"
+                label={copy.amount + " (" + draftCurrency + ")"}
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
               />
-            )}
-            {validation && (!draft || !product) && (
-              <p role="alert">{!product ? copy.choose : copy.invalid}</p>
-            )}
-            <Button
-              type="submit"
-              variant="inverse"
-              disabled={!!unavailable || !!review}
-            >
-              {copy.review}
-            </Button>
-          </Surface>
-        </form>
+              <TradeInLines
+                locale={locale}
+                options={options}
+                lines={lines}
+                onChange={setLines}
+              />
+              {cashDue && (
+                <div className="grid gap-3">
+                  <label className="flex min-h-11 items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={tender}
+                      onChange={(event) => setTender(event.target.checked)}
+                    />
+                    {copy.tender}
+                  </label>
+                  {tender && (
+                    <>
+                      <div className="grid gap-1.5">
+                        <label
+                          htmlFor="sale-cash-currency"
+                          className="text-sm font-bold"
+                        >
+                          {productCopy[locale].currency}
+                        </label>
+                        <select
+                          id="sale-cash-currency"
+                          className={selectClass}
+                          value={cashCurrency}
+                          onChange={(event) => {
+                            setChosenCurrency(event.target.value);
+                            setCash("");
+                            setExchange("");
+                          }}
+                        >
+                          {currencies.map((code) => (
+                            <option key={code}>{code}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <Field
+                        id="cash-received"
+                        label={copy.cash + " (" + cashCurrency + ")"}
+                        inputMode="decimal"
+                        value={cash}
+                        onChange={(event) => setCash(event.target.value)}
+                      />
+                      {cashCurrency !== currency && (
+                        <Field
+                          id="exchange-rate"
+                          label={
+                            copy.exchange +
+                            " (" +
+                            currency +
+                            " / " +
+                            cashCurrency +
+                            ")"
+                          }
+                          inputMode="decimal"
+                          value={exchange}
+                          onChange={(event) => setExchange(event.target.value)}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="grid gap-4 border-t border-mizan-edge/50 pt-4">
+              {preview && draft && !currencyChanged && (
+                <SettlementSummary
+                  locale={locale}
+                  currency={currency}
+                  amount={draft.saleAmount}
+                  payment={draft.payment}
+                  {...preview}
+                />
+              )}
+              {validation && (!draft || !product) && (
+                <p role="alert">{!product ? copy.choose : copy.invalid}</p>
+              )}
+              <Button
+                type="submit"
+                className="mizan-page-action w-full"
+                disabled={!product || !!unavailable || !!review}
+              >
+                {copy.review}
+              </Button>
+            </div>
+          </form>
+        </Surface>
       </fieldset>
       <SaleConfirmation
         locale={locale}

@@ -42,8 +42,8 @@ export default async function SalePage({
   const show = (amount: string) => money(locale, amount, sale!.currency);
   return (
     <section className="grid max-w-3xl gap-4">
-      <Link className="w-fit underline" href={productHref("/products", scope)}>
-        {copy.back}
+      <Link className="w-fit underline" href={productHref("/sales", scope)}>
+        {labels.backToSales}
       </Link>
       {sale ? (
         <>

@@ -19,6 +19,9 @@ type Query = {
   q?: string;
   status?: string;
   after?: string;
+  category?: string;
+  purity?: string;
+  facets?: string;
 };
 type ProductQuery = { Querystring: Query };
 type ProductId = ProductQuery & { Params: { id: string } };
@@ -73,7 +76,19 @@ export function registerProductRoutes(
     },
   );
   app.get<ProductQuery>("/products", { preHandler }, (request) => {
-    const { q, status, after } = request.query;
+    const { q, status, after, category, purity, facets } = request.query;
+    if (
+      category !== undefined &&
+      (typeof category !== "string" ||
+        category.length > 80 ||
+        category.includes("\0"))
+    )
+      throw new AccessError("INVALID_PRODUCT", "category");
+    if (
+      purity !== undefined &&
+      (typeof purity !== "string" || !/^[1-9]\d{0,2}$/.test(purity))
+    )
+      throw new AccessError("INVALID_PRODUCT", "purity");
     if (
       q !== undefined &&
       (typeof q !== "string" || q.length > 160 || q.includes("\0"))
@@ -93,6 +108,9 @@ export function registerProductRoutes(
       q: q?.trim(),
       status,
       after,
+      category,
+      purity: purity === undefined ? undefined : Number(purity),
+      facets: facets === "1",
     });
   });
   app.get<ProductQuery>(

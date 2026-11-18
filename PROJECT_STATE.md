@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Tasks 1–10 are on `main`. Task 10 merged in PR #5 (`7712eed`).
+- Tasks 1–11 are on `main`. Task 11 merged in PR #7 (`c0db717`).
 - `apps/web` provides owner registration, sign-in, and workspace selection at `/register` and `/workspace`. Azerbaijani is the default and English can be selected. Translations live in `apps/web/features/language/messages.ts`; the browser remembers the selected language.
 - `packages/contracts` provides exact decimal input, currency precision, and half-up settlement rounding. `packages/database/prisma/schema.prisma` defines the private `mizan` schema. The initial Prisma migration applied to local Supabase PostgreSQL.
 - `apps/api/src/plugins/auth.ts` verifies Supabase-issued tokens through JWKS or Supabase Auth's user endpoint for legacy signing. `apps/api/src/plugins/request-context.ts` attaches context only after verifying current membership and store assignment in PostgreSQL. Access errors do not expose whether an unauthorized scope exists.
@@ -59,7 +59,7 @@
 
 ## Next step
 
-Task 12 covers end-to-end milestone verification, backup, and handoff after Task 11 merges.
+Task 12 covers end-to-end milestone verification, backup, and handoff after the Task 11 design alignment.
 
 ## Task 10
 
@@ -72,3 +72,10 @@ Task 12 covers end-to-end milestone verification, backup, and handoff after Task
 - `apps/web/app/(app)/sales/new` and `apps/web/features/sales` provide Azerbaijani and English sale entry, in-stock lookup and inventory prefill, optional old-gold lines and overrides, cash tender and change, and confirmation. The result at `/sales/[id]` reloads the persisted sale, and sold product details link to it.
 - The preview calculates with decimal strings and integer arithmetic. An uncertain submission retains the same payload and idempotency key while the confirmation is closed or retried. The optional `expectedCurrency` field rejects a stale default currency before inventory changes and accepts an exact retry against the saved currency.
 - The contracts and API builds, web production build with TypeScript checks, workspace lint, and formatting for changed sources passed. The web suite passed 18 tests and the API suite passed 19 tests against disposable PostgreSQL. The optional live Storage test was skipped. Browser checks used local fixtures at 320 and 1440 px for ordinary sales, foreign cash with a trade-in, cash payouts, unavailable prefill, retry, and result reload.
+
+## Task 11 design alignment
+
+- `apps/web/components/shell`, the Products table, the New Sale work area, and the new Sales history route follow the owner's screenshot layout and live prototype. The Products table filters by store-scoped category, purity, and stock status. The Sales table uses recorded snapshots and supports reference/product search, Baku business dates, and pagination through `GET /api/v1/sales`.
+- Sales history exposes the recorded seller ID and completed status. Inventory list rows use a product icon, with uploaded photos available from product detail. Demo prices, customer and payment selectors, and returns remain outside the current workflow.
+- `AGENTS.md` now requires comparing rendered UI against the reference at desktop and mobile widths before opening future UI PRs.
+- Verification covered 18 web tests, 19 API tests on disposable PostgreSQL, production builds, lint, and browser fixtures at 320 and 1890 px. The optional live Storage test was skipped.

@@ -111,13 +111,22 @@ const pageSize = 50;
 export async function listProducts(
   db: OrganizationDatabase,
   access: AccessContext,
-  filters: { q?: string; status?: ProductStatus; after?: string },
+  filters: {
+    q?: string;
+    status?: ProductStatus;
+    after?: string;
+    category?: string;
+    purity?: number;
+    facets?: boolean;
+  },
 ) {
   const search = filters.q?.replace(/[\\%_]/g, "\\$&");
   const rows = await db.product.findMany({
     where: {
       ...scope(access),
       status: filters.status,
+      category: filters.category,
+      purity: filters.purity,
       code: filters.after === undefined ? undefined : { gt: filters.after },
       OR: search
         ? [
@@ -131,8 +140,28 @@ export async function listProducts(
     select: listFields,
   });
   const items = rows.slice(0, pageSize).map(presentListItem);
+  const facets = filters.facets
+    ? await Promise.all([
+        db.product.groupBy({
+          by: ["category"],
+          where: scope(access),
+          orderBy: { category: "asc" },
+        }),
+        db.product.groupBy({
+          by: ["purity"],
+          where: scope(access),
+          orderBy: { purity: "asc" },
+        }),
+      ])
+    : undefined;
   return {
     items,
+    ...(facets && {
+      filters: {
+        categories: facets[0].map((row) => row.category),
+        purities: facets[1].map((row) => row.purity),
+      },
+    }),
     ...(rows.length > pageSize && { nextCursor: items[pageSize - 1].code }),
   };
 }

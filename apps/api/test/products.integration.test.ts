@@ -277,6 +277,33 @@ test.skipIf(!db)(
         items: [],
       });
       expect(
+        (
+          await send(
+            "GET",
+            path(
+              scope,
+              "",
+              "&facets=1&" +
+                new URLSearchParams({
+                  category: input.category,
+                  purity: String(input.purity),
+                }),
+            ),
+            undefined,
+            "seller",
+          )
+        ).json(),
+      ).toMatchObject({
+        items: [{ id }],
+        filters: { categories: [input.category], purities: [input.purity] },
+      });
+      expect(
+        (await send("GET", path(secondScope, "", "&facets=1"))).json(),
+      ).toEqual({
+        items: [],
+        filters: { categories: [], purities: [] },
+      });
+      expect(
         (await send("GET", path(scope, detail), undefined, "seller")).json(),
       ).not.toHaveProperty("acquisitionCost");
       await send("POST", "/organizations/" + organizationId + "/settings", {

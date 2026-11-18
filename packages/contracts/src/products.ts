@@ -41,6 +41,7 @@ export interface ProductDetail extends ProductListItem {
 export interface ProductList {
   items: ProductListItem[];
   nextCursor?: string;
+  filters?: { categories: string[]; purities: number[] };
 }
 
 export interface ProductPhotoUpload {

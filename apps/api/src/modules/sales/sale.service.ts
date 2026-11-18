@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { SaleResult } from "@mizan/contracts";
+import type { SaleList, SaleResult } from "@mizan/contracts";
 import { Prisma, type createDatabase } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
 import { lockOrganization } from "../access/organization-owner.js";
@@ -113,6 +113,132 @@ export async function getSale(
   });
   if (!sale) throw new AccessError("SALE_NOT_FOUND");
   return presentSale(sale);
+}
+
+export async function listSales(
+  db: SalesDatabase,
+  { organizationId, storeId }: AccessContext,
+  filters: { q?: string; date?: string; after?: string },
+): Promise<SaleList> {
+  const scope = { organizationId, storeId };
+  const { q, date, after } = filters;
+  if (
+    q !== undefined &&
+    (typeof q !== "string" || q.length > 160 || q.includes("\0"))
+  )
+    throw new AccessError("INVALID_SALE", "q");
+  let createdAt: Prisma.DateTimeFilter | undefined;
+  if (date !== undefined) {
+    if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+      throw new AccessError("INVALID_SALE", "date");
+    const utc = new Date(date + "T00:00:00Z");
+    if (!Number.isFinite(+utc) || utc.toISOString().slice(0, 10) !== date)
+      throw new AccessError("INVALID_SALE", "date");
+    createdAt = {
+      gte: new Date(+utc - 4 * 3600000),
+      lt: new Date(+utc + 20 * 3600000),
+    };
+  }
+  const cursor =
+    after && typeof after === "string" && uuidPattern.test(after)
+      ? await db.sale.findUnique({
+          where: { organizationId_storeId_id: { ...scope, id: after } },
+          select: { id: true, createdAt: true },
+        })
+      : undefined;
+  if (after !== undefined && !cursor)
+    throw new AccessError("INVALID_SALE", "after");
+  const search = q?.replace(/[\\%_]/g, "\\$&");
+  const reference =
+    q && /^[0-9a-f]{8}$/i.test(q)
+      ? {
+          id: {
+            gte: q + "-0000-0000-0000-000000000000",
+            lte: q + "-ffff-ffff-ffff-ffffffffffff",
+          },
+        }
+      : undefined;
+  const rows = await db.sale.findMany({
+    where: {
+      ...scope,
+      createdAt,
+      AND: [
+        ...(search
+          ? [
+              {
+                OR: [
+                  {
+                    productName: {
+                      contains: search,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    productCode: {
+                      contains: search,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  ...(q && uuidPattern.test(q)
+                    ? [{ id: q }]
+                    : reference
+                      ? [reference]
+                      : []),
+                ],
+              },
+            ]
+          : []),
+        ...(cursor
+          ? [
+              {
+                OR: [
+                  { createdAt: { lt: cursor.createdAt } },
+                  { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+                ],
+              },
+            ]
+          : []),
+      ],
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 51,
+    select: {
+      id: true,
+      createdAt: true,
+      actorId: true,
+      defaultCurrency: true,
+      defaultSaleAmount: true,
+      defaultSettlement: true,
+      paymentCurrency: true,
+      productId: true,
+      productCode: true,
+      productName: true,
+      productCategory: true,
+      productPurity: true,
+      productWeight: true,
+    },
+  });
+  return {
+    items: rows.slice(0, 50).map((sale) => ({
+      id: sale.id,
+      createdAt: sale.createdAt.toISOString(),
+      actorId: sale.actorId,
+      currency: sale.defaultCurrency,
+      saleAmount: sale.defaultSaleAmount.toFixed(),
+      balance: sale.defaultSettlement.toFixed(),
+      paymentCurrency: sale.paymentCurrency,
+      product: {
+        id: sale.productId,
+        code: sale.productCode,
+        name: sale.productName,
+        category: sale.productCategory,
+        purity: sale.productPurity,
+        weight: sale.productWeight.toFixed(),
+        status: "SOLD",
+      },
+    })),
+    nextCursor: rows.length > 50 ? rows[49].id : undefined,
+  };
 }
 
 export async function recordSale(
