@@ -73,15 +73,13 @@ export function PurityRateManager({
                 <strong>{value} ‰</strong> ·{" "}
                 {active ? copy.active : copy.inactive}
               </span>
-              {active && (
-                <SettingsForm
-                  {...shared}
-                  intent="deactivate"
-                  label={copy.deactivate}
-                >
-                  <input type="hidden" name="purity" value={value} />
-                </SettingsForm>
-              )}
+              <SettingsForm
+                {...shared}
+                intent={active ? "deactivate" : "reactivate"}
+                label={active ? copy.deactivate : copy.reactivate}
+              >
+                <input type="hidden" name="purity" value={value} />
+              </SettingsForm>
             </li>
           ))}
         </ul>

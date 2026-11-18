@@ -146,6 +146,19 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await expect(rateForm.getByRole("status")).toHaveText("Change saved.");
   await page.locator("summary").filter({ hasText: "Rate history" }).click();
   await expect(page.getByText(/585 ‰ · 100\.00 AZN$/)).toBeVisible();
+  await page
+    .locator("summary")
+    .filter({ hasText: "Gold purity grades" })
+    .click();
+  const grade = page.getByRole("listitem").filter({ hasText: "375 ‰" });
+  await grade.getByRole("button", { name: "Deactivate", exact: true }).click();
+  await expect(grade.getByText("Inactive", { exact: false })).toBeVisible();
+  await expect(rateForm.locator('option[value="375"]')).toHaveCount(0);
+  await grade.getByRole("button", { name: "Reactivate", exact: true }).click();
+  await expect(
+    grade.getByRole("button", { name: "Deactivate", exact: true }),
+  ).toBeVisible();
+  await expect(rateForm.locator('option[value="375"]')).toHaveCount(1);
 
   const first = await addProduct(page, scope, `R-${run}`);
   await page.reload();
@@ -339,6 +352,14 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/settings?${scope}`);
     const header = page.getByRole("banner");
+    const settingsColumns = await page
+      .locator("main summary")
+      .evaluateAll(([permissions, purities]) => {
+        const first = permissions.getBoundingClientRect();
+        const second = purities.getBoundingClientRect();
+        return first.top === second.top && first.left < second.left;
+      });
+    expect(settingsColumns).toBe(width === 1440);
     const height = width === 320 ? "54px" : "60px";
     await expect(header).toHaveCSS("height", height);
     await expect(header).toHaveCSS(

@@ -69,24 +69,26 @@ export function registerSettingsRoutes(
       );
     },
   );
-  app.post<{ Params: Scope & { value: string } }>(
-    `${base}/purities/:value/deactivate`,
-    { preHandler },
-    (request) => {
-      const raw = request.params.value;
-      const value = /^[1-9]\d{0,2}$/.test(raw)
-        ? parsePurity(Number(raw))
-        : null;
-      if (value === null) throw new AccessError("INVALID_SETTINGS");
-      return changePurity(
-        database(),
-        request.params.organizationId,
-        request.identity!.userId,
-        value,
-        "deactivate",
-      );
-    },
-  );
+  for (const action of ["deactivate", "reactivate"] as const) {
+    app.post<{ Params: Scope & { value: string } }>(
+      `${base}/purities/:value/${action}`,
+      { preHandler },
+      (request) => {
+        const raw = request.params.value;
+        const value = /^[1-9]\d{0,2}$/.test(raw)
+          ? parsePurity(Number(raw))
+          : null;
+        if (value === null) throw new AccessError("INVALID_SETTINGS");
+        return changePurity(
+          database(),
+          request.params.organizationId,
+          request.identity!.userId,
+          value,
+          action,
+        );
+      },
+    );
+  }
   app.post<{ Params: Scope }>(`${base}/rates`, { preHandler }, (request) => {
     const rate = parseRate(request.body);
     if (!rate) throw new AccessError("INVALID_SETTINGS");

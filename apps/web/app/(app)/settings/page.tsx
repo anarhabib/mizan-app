@@ -56,7 +56,10 @@ export default async function SettingsPage({
         }
       />
       {data && selected ? (
-        <div className={styles.controls} key={`${selected}:${locale}`}>
+        <div
+          className={styles.controls + " items-start min-[1100px]:grid-cols-2"}
+          key={`${selected}:${locale}`}
+        >
           <OrganizationSettingsForm
             organizationId={selected}
             locale={locale}
