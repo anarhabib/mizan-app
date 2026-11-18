@@ -1,22 +1,7 @@
-import { currencyMinorUnits, type SaleCreateInput } from "@mizan/contracts";
+import type { SaleCreateInput } from "@mizan/contracts";
+import { money } from "../../lib/format-money";
 import type { Locale } from "../language/messages";
 import { saleCopy } from "./sale-copy";
-
-export function money(locale: Locale, amount: string, currency: string) {
-  const [whole, rawFraction = ""] = amount.split(".");
-  const fraction = rawFraction
-    .replace(/0+$/, "")
-    .padEnd(currencyMinorUnits(currency), "0");
-  const localized = new Intl.NumberFormat(locale).format(BigInt(whole));
-  const sign = whole === "-0" ? "-" : "";
-  return (
-    sign +
-    localized +
-    (fraction ? (locale === "az" ? "," : ".") + fraction : "") +
-    " " +
-    (locale === "az" && currency === "AZN" ? "₼" : currency)
-  );
-}
 
 export function Rows({ values }: { values: Array<[string, string]> }) {
   return (

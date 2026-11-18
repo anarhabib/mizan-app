@@ -13,7 +13,7 @@ import {
   type ProductSearch,
 } from "../../../features/products/product-page";
 import { saleCopy } from "../../../features/sales/sale-copy";
-import { money } from "../../../features/sales/settlement-summary";
+import { money } from "../../../lib/format-money";
 
 export default async function SalesPage({
   searchParams,

@@ -9,6 +9,7 @@ export function Dialog({
   closeLabel,
   open = false,
   placement = "center",
+  scrolled,
   closeDisabled = false,
   onClose,
   children,
@@ -17,6 +18,7 @@ export function Dialog({
   closeLabel: string;
   open?: boolean;
   placement?: "center" | "side";
+  scrolled?: boolean;
   closeDisabled?: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -36,6 +38,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      data-scrolled={scrolled}
       aria-labelledby={id}
       onCancel={(event) => {
         event.preventDefault();

@@ -16,13 +16,13 @@ export default async function InvitationPage({
   const copy = membershipCopy[locale];
   if (!invitationTokenPattern.test(token))
     return (
-      <AuthCard title={copy.acceptTitle}>
+      <AuthCard locale={locale} title={copy.acceptTitle}>
         <p role="alert">{copy.unavailable}</p>
       </AuthCard>
     );
   const session = await apiRequest("/me/contexts");
   return (
-    <AuthCard title={copy.acceptTitle}>
+    <AuthCard locale={locale} title={copy.acceptTitle}>
       {session.status === 401 ? (
         <>
           <p>{copy.useInvitedEmail}</p>

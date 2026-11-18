@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { MoneyInput, ProductDetail as Product } from "@mizan/contracts";
+import { money } from "../../lib/format-money";
 import { StatusBadge } from "../../components/ui/status-badge";
 import { actionClass } from "../../components/ui/button";
 import { PageHeading } from "../../components/ui/page-heading";
@@ -19,8 +20,8 @@ export function ProductDetail({
   product: Product;
 }) {
   const copy = productCopy[locale];
-  const money = ({ amount, currency }: MoneyInput) =>
-    (locale === "az" ? amount.replace(".", ",") : amount) + " " + currency;
+  const showMoney = ({ amount, currency }: MoneyInput) =>
+    money(locale, amount, currency);
   const date = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -35,14 +36,14 @@ export function ProductDetail({
       locale === "az" ? product.weight.replace(".", ",") : product.weight,
     ],
     ...(product.acquisitionCost
-      ? [[copy.acquisitionCost, money(product.acquisitionCost)]]
+      ? [[copy.acquisitionCost, showMoney(product.acquisitionCost)]]
       : []),
     ...(product.note ? [[copy.note, product.note]] : []),
     ...(product.sale
       ? [
           [
             copy.sale,
-            money(product.sale.total) +
+            showMoney(product.sale.total) +
               " · " +
               date.format(new Date(product.sale.createdAt)),
           ],

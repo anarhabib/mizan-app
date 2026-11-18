@@ -203,18 +203,22 @@ body {
   .mizan-header {
     backdrop-filter: blur(32px) saturate(175%);
   }
-  .mizan-header[data-scrolled] {
-    background-color: rgb(251 253 251 / 44%);
-    backdrop-filter: blur(12px) saturate(175%);
-  }
-  .mizan-header[data-scrolled="true"] {
-    background-color: rgb(251 253 251 / 64%);
-  }
   .mizan-dock {
     backdrop-filter: blur(34px) saturate(180%);
   }
   .mizan-dialog {
     backdrop-filter: blur(29px) saturate(165%);
+  }
+  .mizan-header[data-scrolled],
+  .mizan-dock[data-scrolled],
+  .mizan-dialog[data-scrolled] {
+    background-color: rgb(251 253 251 / 44%);
+    backdrop-filter: blur(12px) saturate(175%);
+  }
+  .mizan-header[data-scrolled="true"],
+  .mizan-dock[data-scrolled="true"],
+  .mizan-dialog[data-scrolled="true"] {
+    background-color: rgb(251 253 251 / 64%);
   }
   .mizan-glass-dark {
     background: #205b4e;
@@ -235,16 +239,21 @@ body {
 }
 
 .language-picker {
-  min-height: 44px;
-  max-width: 100%;
-  padding-inline: 0.625rem;
-  border: 1px solid var(--color-mizan-edge);
-  border-radius: 10px;
-  background: var(--color-mizan-surface);
-  color: var(--color-mizan-ink);
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: transparent;
   font: inherit;
-  font-size: 0.8125rem;
   cursor: pointer;
+}
+
+.language-picker option {
+  background: Canvas;
+  color: CanvasText;
 }
 
 .language-picker:focus-visible {

@@ -101,11 +101,16 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
 }, testInfo) => {
   const owner = `owner-${run}@example.test`;
   await page.goto("/");
+  await expect(page.getByRole("combobox")).toHaveCSS("width", "44px");
+  await expect(page.getByRole("combobox").locator("option")).toHaveText([
+    "Azərbaycanca",
+    "English",
+  ]);
   await page.getByRole("combobox").selectOption("en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("combobox")).toHaveValue("en");
   await page.goto("/register");
-  await expect(page.locator('select[name="language"]')).toHaveCount(0);
+  await expect(page.locator("header").getByRole("combobox")).toHaveValue("en");
   await credentials(page, owner, true);
   await expect(page.locator('[name="organizationName"]')).toBeVisible();
   await page.locator('[name="organizationName"]').fill(`Milestone ${run}`);
@@ -115,9 +120,23 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   const scope = new URL(page.url()).searchParams.toString();
 
   await page.goto(`/settings?${scope}`);
+  await expect(
+    page.getByRole("main").locator('select[name="language"]'),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[name="salespersonCanViewAcquisitionCost"]'),
+  ).toBeHidden();
+  await page
+    .locator("summary")
+    .filter({ hasText: "Salesperson permissions" })
+    .click();
   await page.locator('[name="salespersonCanViewAcquisitionCost"]').uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status").first()).toHaveText("Change saved.");
+  await page
+    .locator("summary")
+    .filter({ hasText: "Old-gold purchase rates" })
+    .click();
   const rateForm = page
     .locator("form")
     .filter({ has: page.locator('[name="amountPerGram"]') });
@@ -125,6 +144,8 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await rateForm.locator('[name="amountPerGram"]').fill("100.0000");
   await rateForm.getByRole("button", { name: "Save rate" }).click();
   await expect(rateForm.getByRole("status")).toHaveText("Change saved.");
+  await page.locator("summary").filter({ hasText: "Rate history" }).click();
+  await expect(page.getByText(/585 ‰ · 100\.00 AZN$/)).toBeVisible();
 
   const first = await addProduct(page, scope, `R-${run}`);
   await page.reload();
@@ -178,23 +199,12 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await expect(
       seller.getByText("Acquisition cost", { exact: true }),
     ).toHaveCount(0);
-    await expect(seller.getByRole("banner").getByRole("combobox")).toHaveCount(
-      0,
-    );
-    await seller.getByRole("link", { name: "Settings", exact: true }).click();
-    await expect(
-      seller.getByRole("heading", { name: "Language", exact: true }),
-    ).toBeVisible();
-    await expect(
-      seller.locator('[name="salespersonCanViewAcquisitionCost"]'),
-    ).toHaveCount(0);
-    const language = seller.locator('select[name="language"]');
+    const language = seller.getByRole("banner").getByRole("combobox");
     await language.selectOption("az");
     await expect(seller.locator("html")).toHaveAttribute("lang", "az");
     await expect(language).toHaveValue("az");
     await language.selectOption("en");
     await expect(seller.locator("html")).toHaveAttribute("lang", "en");
-    await seller.goto(`/products/${first}?${scope}`);
     // Removing the assignment must invalidate this already authenticated session.
     await page.goto(`/settings/users?${scope}`);
     const member = page
@@ -328,9 +338,6 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   for (const width of [320, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/settings?${scope}`);
-    await page.getByRole("main").evaluate((main) => {
-      main.style.minHeight = "200vh";
-    });
     const header = page.getByRole("banner");
     const height = width === 320 ? "54px" : "60px";
     await expect(header).toHaveCSS("height", height);
@@ -342,13 +349,47 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
       "background-color",
       "rgba(251, 253, 251, 0.44)",
     );
-    await page.evaluate(() => window.scrollTo(0, 200));
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200);
+    await expect
+      .poll(() =>
+        page.getByRole("main").evaluate((main) => {
+          main.style.minHeight = "200vh";
+          window.scrollTo(0, 200);
+          return window.scrollY;
+        }),
+      )
+      .toBe(200);
     await expect(header).toHaveCSS("height", height);
     await expect(header).toHaveCSS(
       "background-color",
       "rgba(251, 253, 251, 0.64)",
     );
+    if (width === 320) {
+      const dock = page.getByRole("navigation", {
+        name: "Navigation",
+        exact: true,
+      });
+      await expect(dock).toHaveCSS(
+        "background-color",
+        "rgba(251, 253, 251, 0.64)",
+      );
+      await header
+        .getByRole("button", { name: "Navigation", exact: true })
+        .click();
+      const drawer = page.getByRole("dialog", {
+        name: "Navigation",
+        exact: true,
+      });
+      await expect(drawer).toHaveCSS(
+        "backdrop-filter",
+        "blur(12px) saturate(1.75)",
+      );
+      await expect(drawer).toHaveCSS(
+        "background-color",
+        "rgba(251, 253, 251, 0.64)",
+      );
+      await page.keyboard.press("Escape");
+      await expect(drawer).toBeHidden();
+    }
     await page.screenshot({
       path: testInfo.outputPath(`${width}-header-scrolled.png`),
     });

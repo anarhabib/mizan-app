@@ -17,7 +17,7 @@ export default async function SignInPage() {
     redirect(result.data.length ? "/workspace" : "/register");
   const copy = messages[locale];
   return (
-    <AuthCard title={copy.signIn}>
+    <AuthCard locale={locale} title={copy.signIn}>
       {result.status === 503 && <Feedback>{copy.authUnavailable}</Feedback>}
       <SignInForm key={locale} locale={locale} />
       <Link

@@ -36,7 +36,7 @@ test("excludes inactive grades from rate entry and keeps their history visible",
           id: "old",
           purity: 610,
           currency: "USD",
-          amountPerGram: "32.7901",
+          amountPerGram: "32.7951",
           effectiveAt: "2026-11-18T00:00:00Z",
           current: false,
         },
@@ -46,7 +46,7 @@ test("excludes inactive grades from rate entry and keeps their history visible",
   expect(html).toMatch(/<option value="585"[^>]*>/);
   expect(html).not.toMatch(/<option value="610"[^>]*>/);
   expect(html).toContain('value="AZN" selected=""');
-  expect(html).toContain("USD");
+  expect(html).toContain("32,80 USD");
   expect(html).toContain("610");
   expect(html).toContain("Tarixçə");
 });

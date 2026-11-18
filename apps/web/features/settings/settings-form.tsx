@@ -5,9 +5,6 @@ import { updateSettings } from "./settings-actions";
 import { settingsCopy } from "./settings-copy";
 import { Button } from "../../components/ui/button";
 
-export const settingsPanel =
-  "mizan-glass-light grid gap-4 rounded-[19px] p-4 sm:rounded-[26px] sm:p-5";
-
 export function SettingsForm({
   organizationId,
   locale,

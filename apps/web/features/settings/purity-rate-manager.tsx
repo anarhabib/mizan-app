@@ -3,7 +3,9 @@ import { useId, useState } from "react";
 import { Coins, Gem, History } from "lucide-react";
 import type { OldGoldRate, PurityGrade } from "@mizan/contracts";
 import type { Locale } from "../language/messages";
-import { SettingsForm, settingsPanel } from "./settings-form";
+import { SettingsForm } from "./settings-form";
+import { SettingsSection } from "./settings-section";
+import { money } from "../../lib/format-money";
 import { settingsCopy } from "./settings-copy";
 
 const currencies = Intl.supportedValuesOf("currency");
@@ -43,11 +45,10 @@ export function PurityRateManager({
   const shared = { organizationId, locale };
   return (
     <>
-      <div className={settingsPanel}>
-        <h2 className="flex items-center gap-2">
-          <Gem aria-hidden="true" size={20} />
-          {copy.purities}
-        </h2>
+      <SettingsSection
+        title={copy.purities}
+        icon={<Gem aria-hidden="true" size={20} />}
+      >
         <SettingsForm {...shared} intent="purity" label={copy.add}>
           <label>
             {copy.purity}
@@ -84,12 +85,11 @@ export function PurityRateManager({
             </li>
           ))}
         </ul>
-      </div>
-      <div className={settingsPanel}>
-        <h2 className="flex items-center gap-2">
-          <Coins aria-hidden="true" size={20} />
-          {copy.rates}
-        </h2>
+      </SettingsSection>
+      <SettingsSection
+        title={copy.rates}
+        icon={<Coins aria-hidden="true" size={20} />}
+      >
         {!active.length ? (
           <p>{copy.noActive}</p>
         ) : (
@@ -143,10 +143,11 @@ export function PurityRateManager({
             </label>
           </SettingsForm>
         )}
-        <h3 className="flex items-center gap-2">
-          <History aria-hidden="true" size={18} />
-          {copy.history}
-        </h3>
+      </SettingsSection>
+      <SettingsSection
+        title={copy.history}
+        icon={<History aria-hidden="true" size={18} />}
+      >
         {rates.length === 0 ? (
           <p>{copy.empty}</p>
         ) : (
@@ -155,10 +156,7 @@ export function PurityRateManager({
               <li key={rate.id} className={`grid gap-1 ${listItem}`}>
                 <strong className="wrap-anywhere tabular-nums">
                   {rate.purity} ‰ ·{" "}
-                  {locale === "az"
-                    ? rate.amountPerGram.replace(".", ",")
-                    : rate.amountPerGram}{" "}
-                  {rate.currency}
+                  {money(locale, rate.amountPerGram, rate.currency)}
                 </strong>
                 <span className="text-sm text-mizan-muted">
                   {rate.current ? copy.current : copy.historical} ·{" "}
@@ -170,7 +168,7 @@ export function PurityRateManager({
             ))}
           </ul>
         )}
-      </div>
+      </SettingsSection>
     </>
   );
 }

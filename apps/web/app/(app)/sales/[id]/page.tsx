@@ -13,10 +13,10 @@ import {
 import { ProductIdentity } from "../../../../features/sales/product-lookup";
 import { saleCopy } from "../../../../features/sales/sale-copy";
 import {
-  money,
   Rows,
   SettlementSummary,
 } from "../../../../features/sales/settlement-summary";
+import { money } from "../../../../lib/format-money";
 
 export default async function SalePage({
   params,

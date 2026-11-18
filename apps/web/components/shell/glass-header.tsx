@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { BrandMark } from "../brand/brand-mark";
 import { Button } from "../ui/button";
+import { LanguagePicker } from "../../features/language/language-picker";
 import { messages, type Locale } from "../../features/language/messages";
 
 export function GlassHeader({
@@ -51,6 +52,7 @@ export function GlassHeader({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <LanguagePicker locale={locale} />
           <time className="hidden text-xs text-mizan-muted min-[1001px]:block">
             {dateLabel}
           </time>

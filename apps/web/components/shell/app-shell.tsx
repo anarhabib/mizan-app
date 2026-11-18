@@ -114,21 +114,23 @@ export function AppShell({
         label: saleCopy[locale].history,
       },
     );
-  destinations.push({
-    path: "/settings",
-    href: "/settings" + (settingsQuery || workspaceQuery),
-    label: copy.settingsNav,
-  });
   if (
     owners.length &&
     !(pathname === "/workspace" && selected?.role === "SALESPERSON")
   ) {
-    destinations.push({
-      path: "/settings/users",
-      href: "/settings/users" + settingsQuery,
-      label: membershipCopy[locale].title,
-      shortLabel: copy.usersNav,
-    });
+    destinations.push(
+      {
+        path: "/settings",
+        href: "/settings" + settingsQuery,
+        label: copy.settingsNav,
+      },
+      {
+        path: "/settings/users",
+        href: "/settings/users" + settingsQuery,
+        label: membershipCopy[locale].title,
+        shortLabel: copy.usersNav,
+      },
+    );
   }
   const current = destinations.find(({ path }) => path === navigationPath);
   const identity =
@@ -175,6 +177,7 @@ export function AppShell({
         pathname={navigationPath}
         locale={locale}
         compact={compact}
+        scrolled={scrolled}
         openMenu={openMenu}
       />
       <Dialog
@@ -182,6 +185,7 @@ export function AppShell({
         closeLabel={copy.close}
         open={menuOpen}
         placement="side"
+        scrolled={scrolled}
         onClose={() => setMenuOpen(false)}
       >
         <Sidebar

@@ -23,7 +23,7 @@ export default async function RegistrationPage({
   if (result.status === 200 && result.data.length > 0) redirect("/workspace");
   if (result.status === 200)
     return (
-      <AuthCard title={copy.setup}>
+      <AuthCard locale={locale} title={copy.setup}>
         <OwnerSetupForm key={locale} locale={locale} />
         <form action={signOut}>
           <button className="auth-secondary">{copy.signOut}</button>
@@ -31,7 +31,7 @@ export default async function RegistrationPage({
       </AuthCard>
     );
   return (
-    <AuthCard title={copy.account}>
+    <AuthCard locale={locale} title={copy.account}>
       {confirmation === "failed" && (
         <p role="alert">{copy.confirmationFailed}</p>
       )}

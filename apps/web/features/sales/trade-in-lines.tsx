@@ -5,7 +5,7 @@ import type { Locale } from "../language/messages";
 import { productCopy } from "../products/product-copy";
 import { saleCopy, type SaleOptions } from "./sale-copy";
 import { tradeValue } from "./settlement";
-import { money } from "./settlement-summary";
+import { money } from "../../lib/format-money";
 
 export type TradeDraft = {
   id: string;

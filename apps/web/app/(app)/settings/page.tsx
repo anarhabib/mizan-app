@@ -4,14 +4,12 @@ import type { StoreContext, TradingSettings } from "@mizan/contracts";
 import styles from "../../../components/ui/form-controls.module.css";
 import { actionClass } from "../../../components/ui/button";
 import { PageHeading } from "../../../components/ui/page-heading";
-import { Surface } from "../../../components/ui/surface";
 import { apiRequest, requestContexts } from "../../../features/auth/session";
-import { LanguagePicker } from "../../../features/language/language-picker";
-import { messages } from "../../../features/language/messages";
 import { currentLocale } from "../../../features/language/preference";
 import { OrganizationSettingsForm } from "../../../features/settings/organization-settings-form";
 import { PurityRateManager } from "../../../features/settings/purity-rate-manager";
 import { settingsCopy } from "../../../features/settings/settings-copy";
+import { SettingsSection } from "../../../features/settings/settings-section";
 
 export default async function SettingsPage({
   searchParams,
@@ -48,7 +46,7 @@ export default async function SettingsPage({
   return (
     <section className="grid gap-4">
       <PageHeading
-        title={owners.size ? copy.title : messages[locale].settingsNav}
+        title={copy.title}
         description={selected && owners.get(selected)}
         actions={
           <a className={actionClass + " mizan-table-action"} href="/workspace">
@@ -57,10 +55,6 @@ export default async function SettingsPage({
           </a>
         }
       />
-      <Surface className="flex w-fit max-w-full flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1">
-        <h2 className="m-0 text-sm font-bold">{messages[locale].language}</h2>
-        <LanguagePicker locale={locale} />
-      </Surface>
       {data && selected ? (
         <div className={styles.controls} key={`${selected}:${locale}`}>
           <OrganizationSettingsForm
@@ -79,11 +73,8 @@ export default async function SettingsPage({
       ) : session.status !== 200 || (result && result.status !== 403) ? (
         <p role="alert">{copy.failure}</p>
       ) : !selected && owners.size > 1 ? (
-        <nav
-          className={styles.controls + " mizan-glass-light rounded-[19px] p-4"}
-          aria-label={copy.choose}
-        >
-          <ul>
+        <SettingsSection title={copy.choose}>
+          <ul className={styles.controls}>
             {[...owners].map(([id, name]) => (
               <li key={id}>
                 <a
@@ -95,10 +86,10 @@ export default async function SettingsPage({
               </li>
             ))}
           </ul>
-        </nav>
-      ) : owners.size ? (
+        </SettingsSection>
+      ) : (
         <p role="alert">{copy.denied}</p>
-      ) : null}
+      )}
     </section>
   );
 }
