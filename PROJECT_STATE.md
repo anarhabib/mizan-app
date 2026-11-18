@@ -79,3 +79,8 @@ Task 12 covers end-to-end milestone verification, backup, and handoff after the 
 - Sales history exposes the recorded seller ID and completed status. Inventory list rows use a product icon, with uploaded photos available from product detail. Demo prices, customer and payment selectors, and returns remain outside the current workflow.
 - `AGENTS.md` now requires comparing rendered UI against the reference at desktop and mobile widths before opening future UI PRs.
 - Verification covered 18 web tests, 19 API tests on disposable PostgreSQL, production builds, lint, and browser fixtures at 320 and 1890 px. The optional live Storage test was skipped.
+
+## Workflow efficiency
+
+- AGENTS.md now prefers inline execution of approved milestone tasks, contextual reuse of unchanged material, focused iteration checks, and full relevant verification before completion. UI work checks the exact approved reference and existing components first.
+- Mandatory Superpowers planning, fresh-read, and review requirements remain applicable. The milestone plan and approved design remain the scope authorities. No execution-mode configuration change was needed.
