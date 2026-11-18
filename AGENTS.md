@@ -1,83 +1,63 @@
-# Mizan — Codex Agent Instructions
-
-## Role and priorities
-You are assisting the sole developer of Mizan, a jewelry-store inventory and sales management application. Favor reliable, maintainable, straightforward implementations over unnecessary abstraction. Work incrementally and preserve existing functionality and data.
-
-## Sources of truth
-- `PROJECT_CONTEXT.md`: product scope, business rules, architecture, and feature requirements. Consult relevant sections before implementing or changing behavior.
-- `DESIGN.md`: visual design system and interaction specifications. Read before any UI/UX changes; follow its tokens, typography, components, states, responsive behavior, and motion rules.
-- Existing code, tests, and database schema: inspect before proposing changes. If documentation conflicts with implementation, identify the conflict and ask before making a consequential decision.
-- `docs/superpowers/plans/2026-11-17-mizan-first-milestone.md` and its linked approved design: the current milestone scope, decisions, and task sequence. Reuse the approved plan when executing its tasks.
-- This file: agent workflow and engineering rules. Do not invent requirements absent from the project documents.
-
-## Development workflow
-1. Understand the requested change and inspect the relevant files before editing.
-2. Reuse approved requirements, designs, and the existing milestone plan. Revisit brainstorming or scope decisions only when a material requirement is unresolved or changes, subject to mandatory skill instructions. Present decisions requiring product input before implementing.
-3. For well-scoped tasks, implement directly without unnecessary ceremony.
-4. Prefer small, reviewable changes; avoid unrelated refactors.
-5. Add or update appropriate tests, especially for inventory, financial calculations, authentication, and permissions. Use Superpowers test-driven development and systematic debugging workflows when available and appropriate.
-6. During iteration, run focused validation for the changed behavior. Before completion, run the full relevant formatting, linting, type checks, tests, and build checks. Repeat checks when later changes could invalidate their results. Preserve required tests, security checks, and skill verification gates. Report actual results and failures.
-7. For each implementation task, create a new branch from current `main`, using `task/<number>-<short-description>` for planned tasks. After verifying the completed task, commit it to that branch, push the branch to `origin`, and open a pull request into `main`. This workflow is authorized for task changes. Do not merge a pull request, deploy, or change production data without explicit approval.
-8. Summarize the changes, verification results, remaining steps, and the pull request link.
-
-## Architecture and implementation
-- Backend: Fastify.
-- ORM: Prisma. Treat the existing Prisma schema and migrations as authoritative for the current database structure.
-- Frontend: follow the framework and patterns actually present in the repository; do not assume a framework without checking.
-- Use the project's existing language, package manager, directory conventions, validation approach, and libraries where practical.
-- Keep business logic out of presentation components and database access out of unrelated layers.
-- Validate inputs at appropriate boundaries and return consistent, actionable errors.
-- Do not add dependencies, infrastructure, services, or complex abstractions unless they solve a demonstrated need.
-- Favor mobile-friendly workflows and localize user-facing text for Azerbaijani (default) and English.
-- Use English for folder names, file names, and route paths.
-- Use Tailwind CSS for frontend styling and Lucide React for interface icons throughout the project. Follow the tokens and conventions in `DESIGN.md`.
-- Use AZN and explicit units (including grams and gold purity) wherever relevant. Never silently round, convert, or reinterpret financial or weight data.
-
-## Data integrity and security
-- Treat every jewelry item and inventory movement as business-critical data.
-- Sales, returns, exchanges involving old gold, and stock adjustments must maintain consistent records and prevent accidental duplication or negative inventory when the business rules prohibit it.
-- Use database transactions for multi-step operations that must succeed or fail together.
-- Prefer decimal-safe handling for money and measured weights; avoid floating-point arithmetic where exact values matter.
-- Never delete or overwrite historical financial/inventory records as a shortcut; follow documented correction and audit rules.
-- Do not make destructive schema changes, reset databases, or run production migrations without explicit approval.
-- Keep credentials and secrets out of source code, documentation, and logs. Use environment variables and maintain `.env.example` without real values.
-- Enforce authorization server-side, not only by hiding UI controls.
-
-## Design implementation
-- Build every new page from the shared Mizan patterns. Use `PageHeading` and role-appropriate actions, `Surface` for grouped content, the shared controls and table styles, and the existing authenticated shell or public authentication layout. Adapt the pattern to the page's purpose and available data.
-- Use the owner's reference screenshots and the live Mizan prototype linked in `DESIGN.md` as the visual acceptance baseline for every UI task. Before editing, identify the matching route and state and compare its shell, layout, typography, spacing, controls, and responsive behavior with the current app.
-- Before opening a UI pull request, capture the implemented screen at the closest available reference viewport and at a mobile width. Compare it side by side with the reference, fix visible mismatches within scope, and record the checked states and deliberate differences in the PR. If the live prototype is unavailable, use the supplied screenshots and report any state that could not be compared.
-- Use [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) when designing, implementing, or reviewing frontend UI. Read the relevant sections of `DESIGN.md` first, then use the skill for supplemental guidance on accessibility, responsive layouts, navigation, and form feedback.
-- If the skill is unavailable locally, read its upstream `SKILL.md` and the relevant references. Use Mizan's approved design decisions when skill recommendations differ.
-- Follow `DESIGN.md` as the source of truth for palette selection, theme-dependent logos, component appearance, spacing, typography, and animations.
-- Theme switching must change only the documented visual properties; do not alter business behavior or unrelated layout logic.
-- Reuse established components and design tokens. Avoid arbitrary new colors, fonts, weights, shadows, or motion styles.
-- Preserve accessibility: keyboard navigation, visible focus states, sufficient contrast, semantic controls, and reduced-motion preferences where supported.
-- Check both mobile and desktop layouts when modifying shared UI.
-
-## Communication and decision rules
-- Ask focused questions only when an answer materially affects behavior, security, data, architecture, or visual direction.
-- Clearly distinguish confirmed requirements from assumptions and suggestions.
-- Explain risky changes and propose a safer alternative when possible.
-- Keep responses concise and practical for a solo developer.
-- Do not silently expand MVP scope or implement future SaaS/multi-tenant features unless requested.
-
-## Session continuity
-- At the beginning of a task, read only the documentation and code relevant to that task; do not repeatedly load entire documents without need.
-- If `TASKS.md` exists, consult it for active priorities and update it only when task status actually changes.
-- If a significant architectural or business decision is approved, document it in the appropriate existing project document; use `DECISIONS.md` only if the repository adopts it.
-- Do not assume a previous chat's context is available. Rely on repository files and explicit instructions.
-
-## Execution efficiency
-- Prefer native/inline execution in the current session. Use subagents for substantial independent work, high-risk reviews, or reviews explicitly required by an applicable skill. Give them focused requirements and file/diff context instead of the full conversation.
-- Reuse unchanged skill and repository content already available in context. Read again when it changed, context is missing or uncertain, or a skill explicitly requires a current read.
-- Before UI implementation, inspect the exact approved route/state reference and existing components. Reuse established patterns and the relevant sections of DESIGN.md to prevent visual rework.
-- Keep planning and decisions in existing project documents where practical. Create additional planning documents only for an uncovered need or an applicable mandatory skill requirement. Avoid repeated scope questions when the approved material already answers them.
-- Batch independent reads, narrow searches and output to relevant findings, and summarize successful checks. Preserve actionable failure output.
-- Use Windows-compatible PowerShell commands and literal paths. Avoid Bash brace expansion and shell quoting assumptions. Keep dependent steps sequential and check exit codes before continuing.
-
-## Superpowers integration
-- Use installed Superpowers skills when they are available and relevant, including brainstorming, writing plans, test-driven development, systematic debugging, and verification.
-- Do not claim a skill was invoked unless it was actually available and used.
-- Superpowers workflows complement these instructions; they do not override the project requirements, the approved design system, or explicit developer decisions.
-- These efficiency preferences do not waive mandatory skill instructions. If a skill requires additional planning, a fresh read, or a review, follow it and briefly report the specific requirement when it adds overhead.
+Mizan — Codex Agent Instructions
+Role and priorities
+You are assisting the sole developer of Mizan, a jewelry-store inventory and sales management application. Favor reliable, maintainable, straightforward implementations over unnecessary abstraction. Work incrementally and preserve existing functionality and data. Optimize unnecessary model/tool usage without reducing correctness, security, or visual fidelity.
+Sources of truth
+- PROJECT_CONTEXT.md: confirmed product scope, business rules, architecture and feature requirements. Consult relevant sections when behavior changes.
+- DESIGN.md: visual tokens, components, states, responsive behavior and motion. Read the relevant sections for UI work.
+- Approved Mizan v43 Figma, linked in DESIGN.md: visual reference for approved frames and their corresponding states. The approved prototype/screenshots supplement interactions and screens not represented in Figma.
+- Existing code, tests, Prisma schema and migrations: authoritative for the current implementation and database structure. Report consequential conflicts between implementation and approved requirements before changing behavior.
+- docs/superpowers/plans/2026-11-17-mizan-first-milestone.md and linked approved design: current milestone scope and task sequence. Reuse them rather than replanning approved work.
+- This file governs agent workflow; do not invent requirements absent from approved sources.
+Development workflow
+1. Define the requested change and inspect only relevant code and documentation before editing. Reuse context already available in the session.
+2. Follow approved decisions, design and milestone plan. For a well-scoped task, implement directly. Revisit brainstorming or seek approval only for material unresolved decisions, subject to mandatory installed skill requirements.
+3. Prefer small, reviewable changes and shared components. Avoid unrelated refactors, speculative features and infrastructure.
+4. Add or update appropriate tests, especially for inventory, financial calculations, authentication and permissions. Use applicable debugging and test-driven workflows when required.
+5. During iteration, run targeted checks for affected code and behavior. Before completion run the full relevant checks supported by the repository (format/lint/type checks/tests/build as applicable), and repeat checks only when subsequent changes could invalidate them. Preserve security and mandatory verification gates. State what was and was not run.
+6. For each implementation task create a branch from current main (task/<number>-<short-description> for planned tasks). Once verified, commit, push and open a PR to main. Do not merge, deploy or modify production data without explicit approval.
+7. Summarize the change, verified results, remaining issues, and PR link concisely.
+Architecture and implementation
+- Backend: Fastify; ORM: Prisma. Follow the existing schema and migrations.
+- Inspect the frontend framework, package manager, language, directory conventions, validation strategy and libraries actually in use; do not assume them.
+- Keep business logic out of presentation components and database access out of unrelated layers. Validate inputs at boundaries and provide consistent actionable errors.
+- Avoid adding dependencies, infrastructure or abstractions without demonstrated benefit.
+- Use Tailwind CSS and Lucide React for frontend UI, with the existing Mizan brand SVG and DESIGN.md tokens.
+- Use English for folder names, file names and route paths. Localize user-facing text in Azerbaijani by default, with English support. Prioritize mobile-friendly workflows.
+- Use AZN and explicit units (grams, gold purity, etc.). Never silently round, convert or reinterpret financial or weight values.
+Data integrity and security
+- Treat each jewelry item and inventory movement as business-critical data.
+- Sales, returns, old-gold exchanges and stock adjustments must preserve consistent records and prevent duplicate or invalid inventory movements.
+- Use database transactions for multi-step operations that must succeed or fail together. Use decimal-safe calculations for money and weights rather than imprecise floating-point arithmetic.
+- Do not delete or overwrite historical inventory/financial records as a shortcut; follow documented audit/correction rules.
+- Never reset a database, perform destructive schema changes or apply production migrations without explicit approval.
+- Keep secrets out of code, docs and logs; use environment variables and maintain .env.example without credentials.
+- Enforce permissions server-side, not solely through hidden UI controls.
+Figma-driven design implementation
+- Use the approved Mizan v43 Figma reference linked in DESIGN.md. When Figma MCP is available, inspect only relevant approved frames, states, components, variables and layout details. A link alone does not guarantee MCP access; if unavailable, use documented specifications and supplied screenshots rather than pretending to inspect frames.
+- For an existing screen with an approved Figma frame, that frame is the visual acceptance reference. DESIGN.md remains authoritative for shared design tokens, accessibility, theme behavior and documented global rules. Use the live prototype for behavior and states missing from Figma. Report material discrepancies instead of silently overriding one source.
+- For a new screen without an exact Figma frame, derive the UI from the closest approved patterns and the screen's functional requirements: typography, spacing, navigation, glass surfaces, page headings, controls, tables, forms, states and motion. Do not invent a separate style or copy an unrelated layout literally.
+- Before UI implementation, inspect the relevant reference route/state and current UI. Reuse PageHeading/`PageHeader`, Surface, the shared authenticated/public shell, controls, tables and existing components according to repository conventions; do not recreate equivalents unnecessarily.
+- Extract stable reusable patterns into existing tokens/components and, when needed, concise relevant sections of DESIGN.md. Reuse extracted specifications on later tasks; do not repeatedly fetch the full Figma file or reread unchanged frames unless the design changed, details are missing or a comparison requires it.
+- Respect all five documented palettes, theme-dependent brand marks, Manrope typography, component states, responsiveness and motion. Theme switching changes documented visual properties only, not business behavior or unrelated layout.
+- Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
+- Before a UI PR, check implemented views at the closest reference desktop viewport and a mobile width. Compare the correct page and state with approved frames/screenshots, fix relevant visible differences and report deliberate deviations and unverified states. Check both widths when changing shared UI.
+- UI UX Pro Max is supplemental for accessibility, responsive structure, navigation and feedback; use it only when applicable and available, without letting generic suggestions replace the approved Mizan visual language. If mandatory locally configured skill instructions require a read, comply; avoid unrelated upstream reference reads.
+Execution efficiency and token discipline
+- Keep Sol/native inline execution as the preferred workflow for scoped development. Model/reasoning selection is controlled by the developer; these instructions do not force a model change.
+- Use subagents only for substantial independent work, high-risk review, or an applicable mandatory skill gate. Give a reviewer focused requirements, changed files and diff; do not inherit the entire conversation when a fresh, focused review is possible.
+- Reuse already approved plans, decisions and available conversation context. Do not reopen resolved scope, ask repeated questions or produce a new plan/document for routine tasks unless an applicable skill requires it.
+- Read the smallest relevant code, document and skill sections; avoid repeatedly reading unchanged content. Re-read when changed, missing from context, uncertain or explicitly required by an applicable skill.
+- Batch independent file reads/searches; constrain tool output to relevant findings and errors. Avoid verbose progress output, repeated full-repository scans and repeated builds after small visual changes.
+- Compare UI with the exact reference before coding to prevent avoidable redesign-and-retest cycles.
+- Use focused checks while iterating, then a single full relevant verification pass before PR; rerun affected checks when later changes invalidate results. Never skip necessary financial, security, migration or data-integrity checks merely to save tokens.
+- Use Windows-compatible PowerShell commands and literal paths; avoid Bash-only expansion/quoting assumptions. Run dependent commands sequentially and inspect exit codes.
+- Keep final reporting brief: changed files/behavior, tests performed, risks/unverified states and PR URL. Do not claim measured token savings without actual usage data.
+Communication and session continuity
+- Ask focused questions only when answers materially affect behavior, security, data, architecture or approved visual direction. Distinguish confirmed facts from assumptions.
+- Explain consequential risks; do not silently extend the MVP to future SaaS or multi-tenant functionality.
+- On a new session, consult only documentation relevant to the task; do not assume previous chat context persists. Check TASKS.md if present and relevant, updating it only when task status changes.
+- Record approved significant decisions in an existing appropriate document; use DECISIONS.md only if adopted by the repository.
+Superpowers integration
+- Apply installed Superpowers skills only when available and relevant. Prefer native/inline execution for approved scoped tasks.
+- These efficiency preferences do not waive mandatory skill instructions. If applicable skills require brainstorming, plan documents, fresh reads, TDD or a fresh-context review, follow those requirements and briefly identify the overhead.
+- Do not claim a skill or review ran unless it actually did. Superpowers supplements rather than replaces the approved project requirements and design.
