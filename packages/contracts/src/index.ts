@@ -3,3 +3,4 @@ export * from "./money.js";
 export * from "./onboarding.js";
 export * from "./memberships.js";
 export * from "./settings.js";
+export * from "./products.js";

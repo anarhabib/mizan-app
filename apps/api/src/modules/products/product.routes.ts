@@ -1,0 +1,122 @@
+﻿import type { FastifyInstance, FastifyRequest } from "fastify";
+import { parseProductCreate } from "@mizan/contracts";
+import { AccessError } from "../access/access.errors.js";
+import { resolveAccessContext, uuidPattern } from "../access/access.service.js";
+import { authenticate } from "../../plugins/auth.js";
+import type { AccessOptions } from "../../plugins/request-context.js";
+import {
+  confirmPhoto,
+  createProduct,
+  getProduct,
+  listProducts,
+  startPhotoUpload,
+  type ProductOptions,
+} from "./product.service.js";
+
+type Query = {
+  organizationId?: string;
+  storeId?: string;
+  q?: string;
+  status?: string;
+  after?: string;
+};
+type ProductQuery = { Querystring: Query };
+type ProductId = ProductQuery & { Params: { id: string } };
+
+export function registerProductRoutes(
+  app: FastifyInstance,
+  access?: AccessOptions,
+  products?: ProductOptions,
+) {
+  function options() {
+    if (!products) throw new AccessError("AUTH_UNAVAILABLE");
+    return products;
+  }
+
+  const preHandler =
+    access && products
+      ? [
+          authenticate(access.db, access.verifyToken),
+          async (request: FastifyRequest<ProductQuery>) => {
+            const { organizationId, storeId } = request.query;
+            if (
+              typeof organizationId !== "string" ||
+              typeof storeId !== "string"
+            )
+              throw new AccessError("ACCESS_DENIED");
+            if (!request.identity) throw new AccessError("UNAUTHENTICATED");
+            request.access = await resolveAccessContext(
+              access.db,
+              request.identity,
+              organizationId,
+              storeId,
+            );
+          },
+        ]
+      : async () => {
+          throw new AccessError("AUTH_UNAVAILABLE");
+        };
+
+  app.post<ProductQuery>(
+    "/products",
+    { preHandler },
+    async (request, reply) => {
+      const parsed = parseProductCreate(request.body);
+      if ("field" in parsed)
+        throw new AccessError("INVALID_PRODUCT", parsed.field);
+      const detail = await createProduct(
+        options().db,
+        request.access!,
+        parsed.input,
+      );
+      return reply.code(201).send(detail);
+    },
+  );
+  app.get<ProductQuery>("/products", { preHandler }, (request) => {
+    const { q, status, after } = request.query;
+    if (
+      q !== undefined &&
+      (typeof q !== "string" || q.length > 160 || q.includes("\0"))
+    )
+      throw new AccessError("INVALID_PRODUCT", "q");
+    if (status !== undefined && status !== "IN_STOCK" && status !== "SOLD")
+      throw new AccessError("INVALID_PRODUCT", "status");
+    if (
+      after !== undefined &&
+      (typeof after !== "string" ||
+        !after.length ||
+        after.length > 80 ||
+        after.includes("\0"))
+    )
+      throw new AccessError("INVALID_PRODUCT", "after");
+    return listProducts(options().db, request.access!, {
+      q: q?.trim(),
+      status,
+      after,
+    });
+  });
+  app.get<ProductId>("/products/:id", { preHandler }, (request) =>
+    getProduct(options(), request.access!, request.params.id),
+  );
+  app.post<ProductId>("/products/:id/photo-upload", { preHandler }, (request) =>
+    startPhotoUpload(options(), request.access!, request.params.id),
+  );
+  app.post<ProductId & { Body: { uploadId?: unknown } | null }>(
+    "/products/:id/photo-confirm",
+    { preHandler },
+    (request) => {
+      if (
+        typeof request.body?.uploadId !== "string" ||
+        !uuidPattern.test(request.body.uploadId) ||
+        Object.keys(request.body).length !== 1
+      )
+        throw new AccessError("INVALID_PRODUCT");
+      return confirmPhoto(
+        options(),
+        request.access!,
+        request.params.id,
+        request.body.uploadId,
+      );
+    },
+  );
+}

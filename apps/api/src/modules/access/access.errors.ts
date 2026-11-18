@@ -5,9 +5,31 @@ export type AccessFailure =
   | "INVITATION_UNAVAILABLE"
   | "INVALID_MEMBERSHIP"
   | "INVALID_SETTINGS"
-  | "PURITY_CONFLICT";
+  | "PURITY_CONFLICT"
+  | "INVALID_PRODUCT"
+  | "PRODUCT_NOT_FOUND"
+  | "PRODUCT_CODE_CONFLICT"
+  | "PHOTO_CONFLICT"
+  | "PHOTO_UNAVAILABLE";
 
 const details = {
+  INVALID_PRODUCT: {
+    statusCode: 400,
+    message: "Məhsul məlumatlarını yoxlayın.",
+  },
+  PRODUCT_NOT_FOUND: { statusCode: 404, message: "Məhsul tapılmadı." },
+  PRODUCT_CODE_CONFLICT: {
+    statusCode: 409,
+    message: "Məhsul kodu artıq istifadə olunur.",
+  },
+  PHOTO_CONFLICT: {
+    statusCode: 409,
+    message: "Fotoşəkli təsdiqləmək və ya yükləmək mümkün olmadı.",
+  },
+  PHOTO_UNAVAILABLE: {
+    statusCode: 503,
+    message: "Fotoşəkil xidməti müvəqqəti əlçatan deyil.",
+  },
   INVALID_SETTINGS: {
     statusCode: 400,
     message: "Parametr məlumatlarını yoxlayın.",
@@ -41,7 +63,10 @@ const details = {
 export class AccessError extends Error {
   readonly statusCode: number;
 
-  constructor(readonly code: AccessFailure) {
+  constructor(
+    readonly code: AccessFailure,
+    readonly field?: string,
+  ) {
     super(details[code].message);
     this.statusCode = details[code].statusCode;
   }

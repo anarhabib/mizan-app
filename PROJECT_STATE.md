@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Tasks 1–6 are on `main`. Task 7 is implemented on `task/7-design-foundation`.
+- Tasks 1–7 are on `main`. Task 8 is implemented on `task/8-product-inventory-api`.
 - `apps/web` provides owner registration, sign-in, and workspace selection at `/register` and `/workspace`. Azerbaijani is the default and English can be selected. Translations live in `apps/web/features/language/messages.ts`; the browser remembers the selected language.
 - `packages/contracts` provides exact decimal input, currency precision, and half-up settlement rounding. `packages/database/prisma/schema.prisma` defines the private `mizan` schema. The initial Prisma migration applied to local Supabase PostgreSQL.
 - `apps/api/src/plugins/auth.ts` verifies Supabase-issued tokens through JWKS or Supabase Auth's user endpoint for legacy signing. `apps/api/src/plugins/request-context.ts` attaches context only after verifying current membership and store assignment in PostgreSQL. Access errors do not expose whether an unauthorized scope exists.
@@ -41,6 +41,14 @@
 - `apps/web/app/(auth)/sign-in/page.tsx` uses the existing Supabase password flow and adds localized validation feedback and password visibility. Browser checks use local Auth and API fixtures. Live sign-in and settings mutations were outside those checks.
 - Task 7 passed 10 web tests, lint, web type checking, the production web build, and formatting for changed web files. The browser checks covered workspace and settings at 320, 375, 430, 768, 1024, and 1440 px, including mobile scroll compaction, Escape dismissal, and focus restoration. Repository-wide formatting still flags 19 pre-existing files.
 
+## Task 8
+
+- `apps/api/src/modules/products` implements product creation, inventory lookup and detail, plus signed photo upload and confirmation. `packages/contracts/src/products.ts` defines the inputs and responses. Every product route accepts `organizationId` and `storeId` in its query and checks the caller's assignment.
+- Product creation records the opening movement in the same transaction and enforces organization-wide code uniqueness. Inventory lists return up to 50 items ordered by code. Use `q` for code/name search, `status` for availability, and the returned `nextCursor` as `after` to continue. Detail and creation responses show acquisition cost only to authorized users.
+- Migration `202611180003_product_photo_metadata` adds content type and size to the existing object key. The photo upload route returns `uploadUrl` and `uploadId`. Send the file with PUT and its image content type, then POST `{ uploadId }` to confirm it. Each attempt gets a new scoped key, and confirming the same successful attempt again is safe. For local photos, provision the private bucket and configure the optional API credential as described in `README.md`.
+- Acquisition costs accept an explicitly selected supported currency with ISO minor-unit validation so the form can use the organization's configured default.
+- Workspace build, type checks, lint, Prisma validation, and formatting for the changed TypeScript files passed. All 50 tests passed, including disposable PostgreSQL integration and real local Supabase Storage. Unconfirmed uploads can remain in the private bucket.
+
 ## Next step
 
-Review the Task 7 pull request. Task 8 adds the product and inventory API.
+Review and merge the Task 8 pull request. Task 9 adds the product and inventory interface on updated `main`.

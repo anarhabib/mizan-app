@@ -170,6 +170,8 @@ model Product {
   acquisitionCost     Decimal             @db.Decimal(20, 4)
   acquisitionCurrency String              @db.Char(3)
   photoObjectKey      String?
+  photoContentType    String?
+  photoSize           Int?
   note                String?
   status              ProductStatus       @default(IN_STOCK)
   createdAt           DateTime            @default(now())
