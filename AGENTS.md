@@ -43,6 +43,8 @@ You are assisting the sole developer of Mizan, a jewelry-store inventory and sal
 - Enforce authorization server-side, not only by hiding UI controls.
 
 ## Design implementation
+- Use [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/main/.claude/skills/ui-ux-pro-max) when designing, implementing, or reviewing frontend UI. Read the relevant sections of `DESIGN.md` first, then use the skill for supplemental guidance on accessibility, responsive layouts, navigation, and form feedback.
+- If the skill is unavailable locally, read its upstream `SKILL.md` and the relevant references. Use Mizan's approved design decisions when skill recommendations differ.
 - Follow `DESIGN.md` as the source of truth for palette selection, theme-dependent logos, component appearance, spacing, typography, and animations.
 - Theme switching must change only the documented visual properties; do not alter business behavior or unrelated layout logic.
 - Reuse established components and design tokens. Avoid arbitrary new colors, fonts, weights, shadows, or motion styles.

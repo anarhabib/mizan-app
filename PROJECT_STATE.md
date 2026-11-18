@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Tasks 1–9 are on `main`. Task 9 merged in PR #4 (`bf5794f`). Task 10 starts from that merge on `task/10-sales-trade-in-api`.
+- Tasks 1–10 are on `main`. Task 10 merged in PR #5 (`7712eed`).
 - `apps/web` provides owner registration, sign-in, and workspace selection at `/register` and `/workspace`. Azerbaijani is the default and English can be selected. Translations live in `apps/web/features/language/messages.ts`; the browser remembers the selected language.
 - `packages/contracts` provides exact decimal input, currency precision, and half-up settlement rounding. `packages/database/prisma/schema.prisma` defines the private `mizan` schema. The initial Prisma migration applied to local Supabase PostgreSQL.
 - `apps/api/src/plugins/auth.ts` verifies Supabase-issued tokens through JWKS or Supabase Auth's user endpoint for legacy signing. `apps/api/src/plugins/request-context.ts` attaches context only after verifying current membership and store assignment in PostgreSQL. Access errors do not expose whether an unauthorized scope exists.
@@ -15,6 +15,8 @@
 - Supabase Studio, Mailpit, and Auth responded during smoke testing. Docker Desktop published the ports on all interfaces even with a loopback-configured bridge network. The development PostgreSQL data is retained when stopping the stack.
 
 ## Execution decisions
+
+- Frontend work uses UI UX Pro Max alongside `DESIGN.md`. The workflow and upstream source are in `AGENTS.md`. Local installation is pending, and the published guidance is available through GitHub.
 
 - Start each new task from `main` on its own branch. Once verified, commit and push the branch and open a PR into `main`. Merging requires separate approval.
 - Prisma owns the application schema and migrations. The private `mizan` schema stays outside the Supabase Data API's exposed schemas.
@@ -57,7 +59,7 @@
 
 ## Next step
 
-Task 11 builds the sales and trade-in interface on top of the Task 10 API after review and merge.
+Task 11 builds the sales and trade-in interface on top of the merged Task 10 API.
 
 ## Task 10
 
