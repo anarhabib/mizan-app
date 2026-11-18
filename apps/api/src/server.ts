@@ -5,6 +5,7 @@ import {
   createVerifiedEmailLookup,
 } from "./plugins/auth.js";
 import { createInvitationSender } from "./modules/memberships/invitation-mail.js";
+import { createProductPhotoStorage } from "./modules/products/product.storage.js";
 
 const port = Number(process.env.PORT ?? "3001");
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -14,6 +15,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 const databaseUrl = process.env.DATABASE_URL;
 const supabaseUrl = process.env.SUPABASE_URL;
 const apiKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+const storageKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if ((!databaseUrl || !supabaseUrl) && (databaseUrl || supabaseUrl || apiKey)) {
   throw new Error(
     "Set both DATABASE_URL and SUPABASE_URL to enable protected API routes",
@@ -40,6 +42,15 @@ const app = await buildApp({
   onboardingDb: db,
   memberships,
   settingsDb: db,
+  products: db
+    ? {
+        db,
+        storage:
+          supabaseUrl && storageKey
+            ? createProductPhotoStorage(supabaseUrl, storageKey)
+            : undefined,
+      }
+    : undefined,
 });
 if (db) app.addHook("onClose", async () => db.$disconnect());
 

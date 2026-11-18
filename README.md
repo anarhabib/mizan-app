@@ -34,7 +34,7 @@ Set `DATABASE_URL` and `SUPABASE_URL` in the API process environment to enable a
 
 `GET /api/v1/organizations/:organizationId/stores/:storeId/access` accepts a Supabase user token using `Authorization: Bearer <token>`. An allowed request returns the user's ID, scoped role, and organization settings. Missing or invalid credentials return 401. An unavailable or unassigned store returns the same 403 response, including when an existing assignment or membership has been deactivated. The route returns 503 when the API is started without authentication configuration.
 
-To include API access, onboarding, invitation, and settings integration tests, apply the migrations to a disposable local test database, run `pnpm build`, and set `MIZAN_TEST_DATABASE_URL` in the shell before running `pnpm test`. These tests can leave fixtures in that disposable database.
+To include API access, onboarding, invitation, settings, and product integration tests, apply the migrations to a disposable local test database, run `pnpm build`, and set `MIZAN_TEST_DATABASE_URL` in the shell before running `pnpm test`. These tests can leave fixtures in that disposable database.
 
 ## Owner signup and language
 
@@ -52,3 +52,9 @@ To include API access, onboarding, invitation, and settings integration tests, a
 ## Organization settings
 
 Open **Organization settings** from an owner workspace. The default currency is set during onboarding. Owners can change salesperson cost visibility, manage purity grades, and enter exact purchase rates per gram for each currency and purity. Changing a rate creates a history entry. Deactivating a grade removes it from new rate entry while keeping its history.
+
+## Local product photos
+
+Run `pnpm exec supabase seed buckets` to provision the private `product-photos` bucket from `supabase/config.toml` in an existing local stack. Set `SUPABASE_SERVICE_ROLE_KEY` only in the API process to enable signed photo operations. Product creation and lookup work without Storage credentials.
+
+To run the live photo test, set `MIZAN_TEST_STORAGE_ORIGIN` and `MIZAN_TEST_STORAGE_SERVICE_ROLE_KEY` for the local stack, then run `pnpm --filter @mizan/api test products.integration.test.ts`.

@@ -3,6 +3,7 @@ import type { OnboardingDatabase } from "./modules/onboarding/onboarding.service
 import type { MembershipOptions } from "./modules/memberships/membership.routes.js";
 import type { OrganizationDatabase } from "./modules/access/organization-owner.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
+import type { ProductOptions } from "./modules/products/product.service.js";
 import {
   requestContextRoutes,
   type AccessOptions,
@@ -14,6 +15,7 @@ export interface BuildAppOptions {
   onboardingDb?: OnboardingDatabase;
   memberships?: MembershipOptions;
   settingsDb?: OrganizationDatabase;
+  products?: ProductOptions;
 }
 
 export async function buildApp(
@@ -29,6 +31,7 @@ export async function buildApp(
     onboardingDb: options.onboardingDb,
     memberships: options.memberships,
     settingsDb: options.settingsDb,
+    products: options.products,
   });
   return app;
 }

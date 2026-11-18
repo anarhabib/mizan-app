@@ -9,6 +9,8 @@ import { registerOnboardingRoutes } from "../modules/onboarding/onboarding.route
 import type { OnboardingDatabase } from "../modules/onboarding/onboarding.service.js";
 import type { OrganizationDatabase } from "../modules/access/organization-owner.js";
 import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
+import { registerProductRoutes } from "../modules/products/product.routes.js";
+import type { ProductOptions } from "../modules/products/product.service.js";
 import {
   registerMembershipRoutes,
   type MembershipOptions,
@@ -38,7 +40,11 @@ export const requestContextRoutes: FastifyPluginAsync<{
   onboardingDb?: OnboardingDatabase;
   memberships?: MembershipOptions;
   settingsDb?: OrganizationDatabase;
-}> = async (app, { access, onboardingDb, memberships, settingsDb }) => {
+  products?: ProductOptions;
+}> = async (
+  app,
+  { access, onboardingDb, memberships, settingsDb, products },
+) => {
   app.decorateRequest("identity", null);
   app.decorateRequest("access", null);
 
@@ -54,9 +60,11 @@ export const requestContextRoutes: FastifyPluginAsync<{
       });
     }
     if (error.statusCode === 401) reply.header("WWW-Authenticate", "Bearer");
-    return reply
-      .code(error.statusCode)
-      .send({ code: error.code, message: error.message });
+    return reply.code(error.statusCode).send({
+      code: error.code,
+      message: error.message,
+      ...(error.field && { field: error.field }),
+    });
   });
   app.addHook("onRequest", async (_request, reply) => {
     reply.header("Cache-Control", "private, no-store");
@@ -64,6 +72,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerOnboardingRoutes(app, access, onboardingDb);
   registerMembershipRoutes(app, access, memberships);
   registerSettingsRoutes(app, access, settingsDb);
+  registerProductRoutes(app, access, products);
 
   app.get<{ Params: ScopeParams }>(
     "/organizations/:organizationId/stores/:storeId/access",

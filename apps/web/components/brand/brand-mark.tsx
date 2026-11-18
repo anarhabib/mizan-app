@@ -7,12 +7,12 @@ export function BrandMark({
 }) {
   return (
     <span
-      className={`inline-grid size-[31px] shrink-0 place-items-center rounded-[10px] min-[761px]:size-[39px] ${variant === "dark" ? "bg-mizan-deep text-mizan-pale [--mizan-mark-pivot:var(--color-mizan-edge)]" : "bg-mizan-pale text-mizan-deep [--mizan-mark-pivot:var(--color-mizan-accent)]"} ${className}`}
+      className={`inline-grid size-7.75 shrink-0 place-items-center rounded-[10px] min-[761px]:size-9.75 ${variant === "dark" ? "bg-mizan-deep text-mizan-pale [--mizan-mark-pivot:var(--color-mizan-edge)]" : "bg-mizan-pale text-mizan-deep [--mizan-mark-pivot:var(--color-mizan-accent)]"} ${className}`}
     >
       <svg
         viewBox="0 0 256 256"
         aria-hidden="true"
-        className="size-6 min-[761px]:size-[30px]"
+        className="size-6 min-[761px]:size-7.5"
       >
         <g transform="translate(0 24)">
           <path

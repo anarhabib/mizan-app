@@ -38,7 +38,8 @@ export function Sidebar({
       {dark && (
         <div className="flex min-w-0 items-center gap-2.5">
           <BrandMark />
-          <div className="min-w-0 break-words">
+          glass-header.tsx
+          <div className="min-w-0 wrap-break-word">
             <strong className="block">Mizan</strong>
             {identity && (
               <span className="text-xs text-mizan-dark-muted">{identity}</span>

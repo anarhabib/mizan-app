@@ -120,7 +120,7 @@ export function AppShell({
 
   return (
     <div className="mizan-shell box-border min-h-dvh px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] min-[761px]:pr-4 min-[761px]:pb-4">
-      <aside className="mizan-glass-dark fixed inset-y-4 left-4 hidden box-border w-[199px] overflow-y-auto rounded-[26px] p-3 min-[761px]:block min-[1001px]:w-[231px]">
+      <aside className="mizan-glass-dark fixed inset-y-4 left-4 hidden box-border w-49.75 overflow-y-auto rounded-[26px] p-3 min-[761px]:block min-[1001px]:w-57.75">
         <Sidebar
           destinations={destinations}
           pathname={pathname}
