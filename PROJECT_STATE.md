@@ -83,6 +83,6 @@ Task 12 covers end-to-end milestone verification, backup, and handoff after the 
 ## App-wide design
 
 - Existing routes now share `components/ui/page-heading.tsx`, light-glass panels, and grouped forms. `components/ui/form-controls.module.css` replaces the authentication-specific stylesheet. Workspace, settings, membership management, product creation/details, sale details, and public account pages use these patterns.
-- `features/auth/auth-card.tsx` provides the public branded layout for home, sign-in, registration, setup, and invitations. The authenticated shell owns one main landmark. Future pages follow the shared patterns documented in `AGENTS.md` and `DESIGN.md`.
+- `features/auth/auth-card.tsx` provides the public branded layout for sign-in, registration, setup, and invitations. The home page follows approved Figma frame `2:172`, using the wide public header, dark hero, shared brand geometry, and feature panels. Feature copy describes shipped inventory, photo, and settlement workflows. The authenticated shell owns one main landmark.
 - Static review identified and corrected a mobile input font-size regression. Browser verification uses local fixtures, with captures for existing routes at 320 and 1890 px. Live account and settings mutations remain part of milestone end-to-end verification.
 - The production web build with TypeScript checks, workspace lint, and all 18 web tests passed. Browser checks passed for desktop and mobile routes, sale flows, overflow, main landmarks, and the 16 px sign-in input baseline.
