@@ -4,6 +4,7 @@ import type { MembershipOptions } from "./modules/memberships/membership.routes.
 import type { OrganizationDatabase } from "./modules/access/organization-owner.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
 import type { ProductOptions } from "./modules/products/product.service.js";
+import type { SalesDatabase } from "./modules/sales/sale.service.js";
 import {
   requestContextRoutes,
   type AccessOptions,
@@ -16,6 +17,7 @@ export interface BuildAppOptions {
   memberships?: MembershipOptions;
   settingsDb?: OrganizationDatabase;
   products?: ProductOptions;
+  salesDb?: SalesDatabase;
 }
 
 export async function buildApp(
@@ -32,6 +34,7 @@ export async function buildApp(
     memberships: options.memberships,
     settingsDb: options.settingsDb,
     products: options.products,
+    salesDb: options.salesDb,
   });
   return app;
 }

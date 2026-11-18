@@ -42,6 +42,7 @@ const app = await buildApp({
   onboardingDb: db,
   memberships,
   settingsDb: db,
+  salesDb: db,
   products: db
     ? {
         db,

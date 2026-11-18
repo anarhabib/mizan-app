@@ -6,6 +6,9 @@ export type AccessFailure =
   | "INVALID_MEMBERSHIP"
   | "INVALID_SETTINGS"
   | "PURITY_CONFLICT"
+  | "INVALID_SALE"
+  | "SALE_CONFLICT"
+  | "SALE_NOT_FOUND"
   | "INVALID_PRODUCT"
   | "PRODUCT_NOT_FOUND"
   | "PRODUCT_CODE_CONFLICT"
@@ -13,6 +16,12 @@ export type AccessFailure =
   | "PHOTO_UNAVAILABLE";
 
 const details = {
+  INVALID_SALE: { statusCode: 400, message: "Satış məlumatlarını yoxlayın." },
+  SALE_CONFLICT: {
+    statusCode: 409,
+    message: "Satışı tamamlamaq mümkün olmadı.",
+  },
+  SALE_NOT_FOUND: { statusCode: 404, message: "Satış tapılmadı." },
   INVALID_PRODUCT: {
     statusCode: 400,
     message: "Məhsul məlumatlarını yoxlayın.",

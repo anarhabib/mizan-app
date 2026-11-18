@@ -11,6 +11,8 @@ import type { OrganizationDatabase } from "../modules/access/organization-owner.
 import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
 import { registerProductRoutes } from "../modules/products/product.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
+import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
+import type { SalesDatabase } from "../modules/sales/sale.service.js";
 import {
   registerMembershipRoutes,
   type MembershipOptions,
@@ -41,9 +43,10 @@ export const requestContextRoutes: FastifyPluginAsync<{
   memberships?: MembershipOptions;
   settingsDb?: OrganizationDatabase;
   products?: ProductOptions;
+  salesDb?: SalesDatabase;
 }> = async (
   app,
-  { access, onboardingDb, memberships, settingsDb, products },
+  { access, onboardingDb, memberships, settingsDb, products, salesDb },
 ) => {
   app.decorateRequest("identity", null);
   app.decorateRequest("access", null);
@@ -73,6 +76,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerMembershipRoutes(app, access, memberships);
   registerSettingsRoutes(app, access, settingsDb);
   registerProductRoutes(app, access, products);
+  registerSaleRoutes(app, access, salesDb);
 
   app.get<{ Params: ScopeParams }>(
     "/organizations/:organizationId/stores/:storeId/access",
