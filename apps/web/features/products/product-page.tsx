@@ -13,7 +13,11 @@ import {
 
 export type ProductSearch = Promise<Partial<ProductScope> & ProductFilters>;
 
-export async function productPage(searchParams: ProductSearch) {
+export async function productPage(
+  searchParams: ProductSearch,
+  path = "/products",
+  title?: Record<"en" | "az", string>,
+) {
   const [query, locale, session] = await Promise.all([
     searchParams,
     currentLocale(),
@@ -25,17 +29,14 @@ export async function productPage(searchParams: ProductSearch) {
   const copy = productCopy[locale];
   const fallback = (
     <section className="grid gap-4">
-      <h1>{copy.title}</h1>
+      <h1>{title?.[locale] ?? copy.title}</h1>
       {contexts.length ? (
         <nav aria-label={messages[locale].selectStore}>
           <h2>{messages[locale].selectStore}</h2>
           <ul className="grid gap-2">
             {contexts.map((context: NonNullable<typeof scope>) => (
               <li key={context.organizationId + ":" + context.storeId}>
-                <Link
-                  className="underline"
-                  href={productHref("/products", context)}
-                >
+                <Link className="underline" href={productHref(path, context)}>
                   {context.organizationName} / {context.storeName}
                 </Link>
               </li>

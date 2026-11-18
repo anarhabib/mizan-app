@@ -21,6 +21,10 @@ Use this file for interface structure, styling, and interaction. Use `PROJECT_CO
 
 ## 2. Reference material
 
+The owner's screenshots and live prototype set the visual baseline for shipped screens. At wide desktop widths, Products and Sales use a compact light-glass filter strip followed by a rounded table with tinted column headings and ruled rows. New Sale uses a wider stock table on the left and a narrower light-glass cart and settlement panel on the right. Use a single column on compact screens and preserve access to table content through scrolling within the table.
+
+Use the prototype's visual treatment with the fields supported by the current milestone. Sales history presents recorded sales with a read-only completion status. Product prices, customer selection, non-cash payment methods, and returns follow their own product and data requirements.
+
 - [Interactive Mizan prototype](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/)
 - [Dashboard](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/?view=overview) · [Products](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/?view=products) · [Sales](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/?view=sales) · [Settings](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/?view=settings)
 - [Five approved mobile palettes side by side](https://chatgpt.com/library?file_id=libfile_d60f1ad8d63881919af6df9e5015785a&account_id=personal)

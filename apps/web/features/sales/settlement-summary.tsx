@@ -14,7 +14,7 @@ export function money(locale: Locale, amount: string, currency: string) {
     localized +
     (fraction ? (locale === "az" ? "," : ".") + fraction : "") +
     " " +
-    currency
+    (locale === "az" && currency === "AZN" ? "₼" : currency)
   );
 }
 

@@ -6,6 +6,7 @@ import { resolveAccessContext } from "../access/access.service.js";
 import {
   getSale,
   getSaleOptions,
+  listSales,
   recordSale,
   type SalesDatabase,
 } from "./sale.service.js";
@@ -52,6 +53,16 @@ export function registerSaleRoutes(
 
   app.get<Scope>("/sales/options", { preHandler }, (request) =>
     getSaleOptions(db!, request.access!),
+  );
+
+  app.get<{
+    Querystring: Scope["Querystring"] & {
+      q?: string;
+      date?: string;
+      after?: string;
+    };
+  }>("/sales", { preHandler }, (request) =>
+    listSales(db!, request.access!, request.query),
   );
 
   app.get<Scope & { Params: { id: string } }>(

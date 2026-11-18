@@ -163,6 +163,27 @@ test.skipIf(!db)(
       });
       expect(history.statusCode).toBe(200);
       expect(history.json()).toEqual(created);
+      const inventoryHistory = (search: string, actor = "owner") =>
+        app.inject({
+          method: "GET",
+          url: `/api/v1/sales?${query}&${search}`,
+          headers: { authorization: `Bearer ${actor}` },
+        });
+      expect((await inventoryHistory("q=R-1")).json()).toMatchObject({
+        items: [
+          { id: created.id, product: { name: "Ring" }, saleAmount: "200" },
+        ],
+      });
+      expect(
+        (await inventoryHistory("q=" + created.id.slice(0, 8))).json(),
+      ).toMatchObject({
+        items: [{ id: created.id }],
+      });
+      expect((await inventoryHistory("q=Renamed")).json()).toMatchObject({
+        items: [],
+      });
+      expect((await inventoryHistory("date=2026-02-31")).statusCode).toBe(400);
+      expect((await inventoryHistory("q=R-1", "other")).statusCode).toBe(403);
 
       const options = await app.inject({
         method: "GET",

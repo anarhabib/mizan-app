@@ -1,4 +1,4 @@
-import type { ProductDetail } from "@mizan/contracts";
+import type { ProductDetail, ProductList } from "@mizan/contracts";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../../../../features/auth/session";
 import { productHref } from "../../../../features/products/product-copy";
@@ -18,10 +18,14 @@ export default async function NewSalePage({
 }: {
   searchParams: ProductSearch;
 }) {
-  const { scope, locale, fallback } = await productPage(searchParams);
+  const { scope, locale, fallback } = await productPage(
+    searchParams,
+    "/sales/new",
+    { az: saleCopy.az.title, en: saleCopy.en.title },
+  );
   if (!scope) return fallback;
   const { productId } = (await searchParams) as { productId?: string };
-  const [options, product] = await Promise.all([
+  const [options, product, stock] = await Promise.all([
     apiRequest(productHref("/sales/options", scope) as `/sales${string}`),
     typeof productId === "string"
       ? productRequest<ProductDetail>(
@@ -29,6 +33,7 @@ export default async function NewSalePage({
           scope,
         )
       : undefined,
+    productRequest<ProductList>("/products", scope, { status: "IN_STOCK" }),
   ]);
   if (options.status === 401 || product?.status === 401) redirect("/sign-in");
   if (!options.data)
@@ -40,6 +45,7 @@ export default async function NewSalePage({
       scope={scope}
       options={options.data as SaleOptions}
       initialProduct={product?.data}
+      initialStock={stock.data}
       missingProduct={!!product && !product.data}
     />
   );

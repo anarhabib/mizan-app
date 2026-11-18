@@ -81,7 +81,15 @@ export const productCopy = {
 
 export type ProductScope = { organizationId: string; storeId: string };
 export type ProductOptions = { defaultCurrency: string; purities: number[] };
-export type ProductFilters = { q?: string; status?: string; after?: string };
+export type ProductFilters = {
+  q?: string;
+  status?: string;
+  after?: string;
+  date?: string;
+  category?: string;
+  purity?: string;
+  facets?: string;
+};
 
 export function productHref(
   path: string,

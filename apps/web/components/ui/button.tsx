@@ -4,7 +4,7 @@ export const focusClass =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mizan-focus";
 
 export const actionClass =
-  "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-[13px] border border-transparent px-3.5 py-2 text-sm font-bold no-underline " +
+  "inline-flex box-border min-h-11 min-w-11 items-center justify-center gap-2 rounded-[13px] border border-transparent px-3.5 py-2 text-sm font-bold no-underline " +
   focusClass;
 
 const variants = {

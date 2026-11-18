@@ -15,6 +15,22 @@ export interface SaleCreateInput {
   };
 }
 
+export interface SaleList {
+  items: Array<
+    Pick<
+      SaleResult,
+      | "id"
+      | "createdAt"
+      | "actorId"
+      | "currency"
+      | "saleAmount"
+      | "product"
+      | "balance"
+    > & { paymentCurrency: string | null }
+  >;
+  nextCursor?: string;
+}
+
 export interface SaleResult {
   id: string;
   actorId: string;

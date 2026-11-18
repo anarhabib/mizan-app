@@ -1,12 +1,20 @@
 import Link from "next/link";
-import { Ellipsis, Gem, Settings, Store, Users } from "lucide-react";
+import {
+  Ellipsis,
+  LayoutGrid,
+  Package,
+  Settings,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { actionClass, Button } from "../ui/button";
 import { messages, type Locale } from "../../features/language/messages";
 import type { Destination } from "./sidebar";
 
 const icons = {
-  "/workspace": Store,
-  "/products": Gem,
+  "/workspace": LayoutGrid,
+  "/products": Package,
+  "/sales": TrendingUp,
   "/settings": Settings,
   "/settings/users": Users,
 };
@@ -31,24 +39,28 @@ export function MobileDock({
       aria-label={messages[locale].navigation}
       className={`mizan-dock fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 mx-auto box-border flex w-[calc(100%-1rem)] items-center gap-0.5 rounded-[19px] px-1 motion-safe:transition-[height,max-width] min-[761px]:hidden ${compact ? "h-12.75 max-w-82" : "h-16.25 max-w-115"}`}
     >
-      {destinations.map(({ path, href, label, shortLabel }) => {
-        const Icon = icons[path];
-        const active = pathname === path;
-        return (
-          <Link
-            key={path}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            aria-label={shortLabel ?? label}
-            className={`${actionClass} ${itemClass} ${active ? "bg-mizan-selected text-mizan-deep" : "text-mizan-muted"}`}
-          >
-            <Icon size={18} aria-hidden />
-            {!compact && (
-              <span className="max-w-full truncate">{shortLabel ?? label}</span>
-            )}
-          </Link>
-        );
-      })}
+      {destinations
+        .filter(({ path }) => path !== "/settings/users")
+        .map(({ path, href, label, shortLabel }) => {
+          const Icon = icons[path];
+          const active = pathname === path;
+          return (
+            <Link
+              key={path}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              aria-label={shortLabel ?? label}
+              className={`${actionClass} ${itemClass} ${active ? "bg-mizan-selected text-mizan-deep" : "text-mizan-muted"}`}
+            >
+              <Icon size={18} aria-hidden />
+              {!compact && (
+                <span className="max-w-full truncate">
+                  {shortLabel ?? label}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       <Button
         variant="secondary"
         onClick={openMenu}

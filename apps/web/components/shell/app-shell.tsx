@@ -7,6 +7,7 @@ import { chooseContext } from "../../features/context/context-picker";
 import { messages, type Locale } from "../../features/language/messages";
 import { membershipCopy } from "../../features/memberships/membership-copy";
 import { productCopy } from "../../features/products/product-copy";
+import { saleCopy } from "../../features/sales/sale-copy";
 import { settingsCopy } from "../../features/settings/settings-copy";
 import { Dialog } from "../ui/dialog";
 import { GlassHeader } from "./glass-header";
@@ -27,7 +28,9 @@ export function AppShell({
   const pathname = usePathname();
   const navigationPath = pathname.startsWith("/products/")
     ? "/products"
-    : pathname;
+    : pathname.startsWith("/sales/")
+      ? "/sales"
+      : pathname;
   const params = useSearchParams();
   const route = pathname + "?" + params.toString();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,11 +100,18 @@ export function AppShell({
     },
   ];
   if (contexts.length)
-    destinations.push({
-      path: "/products",
-      href: "/products" + workspaceQuery,
-      label: productCopy[locale].title,
-    });
+    destinations.push(
+      {
+        path: "/products",
+        href: "/products" + workspaceQuery,
+        label: productCopy[locale].title,
+      },
+      {
+        path: "/sales",
+        href: "/sales" + workspaceQuery,
+        label: saleCopy[locale].history,
+      },
+    );
   if (
     owners.length &&
     !(pathname === "/workspace" && selected?.role === "SALESPERSON")
@@ -129,17 +139,19 @@ export function AppShell({
   const openMenu = () => setMenuOpen(true);
 
   return (
-    <div className="mizan-shell box-border min-h-dvh px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] min-[761px]:pr-4 min-[761px]:pb-4">
-      <aside className="mizan-glass-dark fixed inset-y-4 left-4 hidden box-border w-49.75 overflow-y-auto rounded-[26px] p-3 min-[761px]:block min-[1001px]:w-57.75">
+    <div className="mizan-shell box-border min-h-dvh px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] min-[761px]:pt-3.5 min-[761px]:pr-4 min-[761px]:pb-4">
+      <aside className="mizan-glass-dark fixed inset-y-3.5 left-2 hidden box-border w-49.75 overflow-y-auto rounded-[26px] p-3 min-[761px]:block min-[1001px]:w-57.75">
         <Sidebar
           destinations={destinations}
           pathname={navigationPath}
           locale={locale}
           identity={identity}
+          organization={selected?.organizationName}
+          workspaceHref={"/workspace" + workspaceQuery}
           dark
         />
       </aside>
-      <div className="mx-auto max-w-[1540px]">
+      <div>
         <GlassHeader
           title={current?.label ?? copy.store}
           shortTitle={current?.shortLabel}
@@ -155,7 +167,9 @@ export function AppShell({
           compact={compact}
           openMenu={openMenu}
         />
-        <div className="min-w-0 pt-4">{children}</div>
+        <div className="mx-auto min-w-0 max-w-[1520px] pt-4 min-[761px]:px-5 min-[761px]:pt-7 min-[1200px]:px-10">
+          {children}
+        </div>
       </div>
       <MobileDock
         destinations={destinations}
