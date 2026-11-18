@@ -235,41 +235,19 @@ body {
 }
 
 .language-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.language-picker button {
   min-height: 44px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #8eb69b;
-  border-radius: 12px;
-  background: #f2f8f4;
-  color: #051f20;
+  max-width: 100%;
+  padding-inline: 0.625rem;
+  border: 1px solid var(--color-mizan-edge);
+  border-radius: 10px;
+  background: var(--color-mizan-surface);
+  color: var(--color-mizan-ink);
   font: inherit;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
-.language-picker button[aria-pressed="true"] {
-  background: #daf1de;
-  font-weight: 700;
-}
-
-.language-picker button:focus-visible {
-  outline: 2px solid #245347;
+.language-picker:focus-visible {
+  outline: 2px solid var(--color-mizan-focus);
   outline-offset: 2px;
-}
-
-.language-picker-compact {
-  flex-wrap: nowrap;
-  gap: 0;
-}
-
-.language-picker-compact button {
-  min-width: 44px;
-  padding: 0 0.5rem;
-  border-color: transparent;
-  background: transparent;
-  font-size: 0.75rem;
 }

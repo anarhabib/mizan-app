@@ -1,3 +1,5 @@
+"use client";
+
 import { changeLanguage } from "./language-action";
 import { messages, type Locale } from "./messages";
 
@@ -9,31 +11,22 @@ export function LanguagePicker({
   compact?: boolean;
 }) {
   return (
-    <form
-      action={changeLanguage}
-      className={
-        compact ? "language-picker language-picker-compact" : "language-picker"
-      }
-      aria-label={messages[locale].language}
-    >
-      <button
+    <form action={changeLanguage}>
+      <select
+        key={locale}
         name="language"
-        value="az"
-        lang="az"
-        aria-label="Azərbaycanca"
-        aria-pressed={locale === "az"}
+        aria-label={messages[locale].language}
+        className="language-picker"
+        defaultValue={locale}
+        onChange={(event) => event.currentTarget.form?.requestSubmit()}
       >
-        {compact ? "AZ" : "Azərbaycanca"}
-      </button>
-      <button
-        name="language"
-        value="en"
-        lang="en"
-        aria-label="English"
-        aria-pressed={locale === "en"}
-      >
-        {compact ? "EN" : "English"}
-      </button>
+        <option value="az" lang="az" aria-label="Azərbaycanca">
+          {compact ? "AZ" : "Azərbaycanca"}
+        </option>
+        <option value="en" lang="en" aria-label="English">
+          {compact ? "EN" : "English"}
+        </option>
+      </select>
     </form>
   );
 }

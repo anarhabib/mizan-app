@@ -101,12 +101,11 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
 }, testInfo) => {
   const owner = `owner-${run}@example.test`;
   await page.goto("/");
-  await page.getByRole("button", { name: "English", exact: true }).click();
+  await page.getByRole("combobox").selectOption("en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("combobox")).toHaveValue("en");
   await page.goto("/register");
-  await expect(
-    page.getByRole("button", { name: "English", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.locator('select[name="language"]')).toHaveCount(0);
   await credentials(page, owner, true);
   await expect(page.locator('[name="organizationName"]')).toBeVisible();
   await page.locator('[name="organizationName"]').fill(`Milestone ${run}`);
@@ -179,9 +178,9 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await expect(
       seller.getByText("Acquisition cost", { exact: true }),
     ).toHaveCount(0);
-    await expect(
-      seller.getByRole("banner").getByRole("button", { name: "English" }),
-    ).toHaveCount(0);
+    await expect(seller.getByRole("banner").getByRole("combobox")).toHaveCount(
+      0,
+    );
     await seller.getByRole("link", { name: "Settings", exact: true }).click();
     await expect(
       seller.getByRole("heading", { name: "Language", exact: true }),
@@ -189,9 +188,11 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await expect(
       seller.locator('[name="salespersonCanViewAcquisitionCost"]'),
     ).toHaveCount(0);
-    await seller.locator('button[name="language"][value="az"]').click();
+    const language = seller.locator('select[name="language"]');
+    await language.selectOption("az");
     await expect(seller.locator("html")).toHaveAttribute("lang", "az");
-    await seller.getByRole("button", { name: "English", exact: true }).click();
+    await expect(language).toHaveValue("az");
+    await language.selectOption("en");
     await expect(seller.locator("html")).toHaveAttribute("lang", "en");
     await seller.goto(`/products/${first}?${scope}`);
     // Removing the assignment must invalidate this already authenticated session.

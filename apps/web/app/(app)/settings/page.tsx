@@ -57,10 +57,8 @@ export default async function SettingsPage({
           </a>
         }
       />
-      <Surface className="grid justify-items-start gap-3 p-4 sm:p-6">
-        <h2 className="m-0 text-base font-extrabold">
-          {messages[locale].language}
-        </h2>
+      <Surface className="flex w-fit max-w-full flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1">
+        <h2 className="m-0 text-sm font-bold">{messages[locale].language}</h2>
         <LanguagePicker locale={locale} />
       </Surface>
       {data && selected ? (
