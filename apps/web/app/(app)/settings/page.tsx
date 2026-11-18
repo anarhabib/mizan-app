@@ -7,7 +7,10 @@ import { PageHeading } from "../../../components/ui/page-heading";
 import { apiRequest, requestContexts } from "../../../features/auth/session";
 import { currentLocale } from "../../../features/language/preference";
 import { OrganizationSettingsForm } from "../../../features/settings/organization-settings-form";
-import { PurityRateManager } from "../../../features/settings/purity-rate-manager";
+import {
+  PurchaseRates,
+  PurityGrades,
+} from "../../../features/settings/purity-rate-manager";
 import { settingsCopy } from "../../../features/settings/settings-copy";
 import { SettingsSection } from "../../../features/settings/settings-section";
 
@@ -57,21 +60,30 @@ export default async function SettingsPage({
       />
       {data && selected ? (
         <div
-          className={styles.controls + " items-start min-[1100px]:grid-cols-2"}
+          className="grid items-start gap-3 min-[1100px]:grid-cols-2"
           key={`${selected}:${locale}`}
         >
-          <OrganizationSettingsForm
-            organizationId={selected}
-            locale={locale}
-            settings={data.settings}
-          />
-          <PurityRateManager
-            organizationId={selected}
-            locale={locale}
-            defaultCurrency={data.settings.defaultCurrency}
-            purities={data.purities}
-            rates={data.rates}
-          />
+          <div className={styles.controls}>
+            <OrganizationSettingsForm
+              organizationId={selected}
+              locale={locale}
+              settings={data.settings}
+            />
+            <PurityGrades
+              organizationId={selected}
+              locale={locale}
+              purities={data.purities}
+            />
+          </div>
+          <div className={styles.controls}>
+            <PurchaseRates
+              organizationId={selected}
+              locale={locale}
+              defaultCurrency={data.settings.defaultCurrency}
+              purities={data.purities}
+              rates={data.rates}
+            />
+          </div>
         </div>
       ) : session.status !== 200 || (result && result.status !== 403) ? (
         <p role="alert">{copy.failure}</p>

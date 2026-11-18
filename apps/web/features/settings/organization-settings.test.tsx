@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
 import { OrganizationSettingsForm } from "./organization-settings-form";
-import { PurityRateManager } from "./purity-rate-manager";
+import { PurchaseRates, PurityGrades } from "./purity-rate-manager";
 
 vi.mock("./settings-actions", () => ({ updateSettings: vi.fn() }));
 
@@ -23,7 +23,7 @@ test("shows the organization currency and the saved cost visibility setting", ()
 
 test("excludes inactive grades from rate entry and keeps their history visible", () => {
   const html = renderToStaticMarkup(
-    <PurityRateManager
+    <PurchaseRates
       organizationId="test"
       locale="az"
       defaultCurrency="AZN"
@@ -49,4 +49,16 @@ test("excludes inactive grades from rate entry and keeps their history visible",
   expect(html).toContain("32,80 USD");
   expect(html).toContain("610");
   expect(html).toContain("Tarixçə");
+});
+
+test("offers reactivation for an already inactive grade in Azerbaijani", () => {
+  const html = renderToStaticMarkup(
+    <PurityGrades
+      organizationId="test"
+      locale="az"
+      purities={[{ value: 375, active: false }]}
+    />,
+  );
+  expect(html).toContain('name="intent" value="reactivate"');
+  expect(html).toContain("Aktiv et");
 });

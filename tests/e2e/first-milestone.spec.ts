@@ -154,9 +154,22 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await grade.getByRole("button", { name: "Deactivate", exact: true }).click();
   await expect(grade.getByText("Inactive", { exact: false })).toBeVisible();
   await expect(rateForm.locator('option[value="375"]')).toHaveCount(0);
-  await grade.getByRole("button", { name: "Reactivate", exact: true }).click();
   await expect(
-    grade.getByRole("button", { name: "Deactivate", exact: true }),
+    grade.getByRole("button", { name: "Reactivate", exact: true }),
+  ).toBeVisible();
+  await page
+    .context()
+    .addCookies([{ name: "mizan-language", value: "az", url: origin }]);
+  await page.reload();
+  await page.locator("summary").filter({ hasText: "Qızıl əyarları" }).click();
+  await grade.getByRole("button", { name: "Aktiv et", exact: true }).click();
+  await expect(
+    grade.getByRole("button", { name: "Deaktiv et", exact: true }),
+  ).toBeVisible();
+  await english(page);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Organization settings", exact: true }),
   ).toBeVisible();
   await expect(rateForm.locator('option[value="375"]')).toHaveCount(1);
 
@@ -352,14 +365,39 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/settings?${scope}`);
     const header = page.getByRole("banner");
-    const settingsColumns = await page
-      .locator("main summary")
-      .evaluateAll(([permissions, purities]) => {
-        const first = permissions.getBoundingClientRect();
-        const second = purities.getBoundingClientRect();
-        return first.top === second.top && first.left < second.left;
+    await expect
+      .poll(() =>
+        page.locator("main summary").evaluateAll(([permissions, , rates]) => {
+          const first = permissions.getBoundingClientRect();
+          const second = rates.getBoundingClientRect();
+          return (
+            Math.abs(first.top - second.top) < 1 && first.left < second.left
+          );
+        }),
+      )
+      .toBe(width === 1440);
+    if (width === 1440) {
+      const rateHistory = page
+        .locator("summary")
+        .filter({ hasText: "Rate history" });
+      const topBefore = await rateHistory.evaluate(
+        (item) => item.getBoundingClientRect().top,
+      );
+      const purities = page
+        .locator("summary")
+        .filter({ hasText: "Gold purity grades" });
+      await purities.click();
+      await expect(
+        grade.getByRole("button", { name: "Deactivate", exact: true }),
+      ).toBeVisible();
+      expect(
+        await rateHistory.evaluate((item) => item.getBoundingClientRect().top),
+      ).toBe(topBefore);
+      await page.screenshot({
+        path: testInfo.outputPath("1440-settings-purity-open.png"),
       });
-    expect(settingsColumns).toBe(width === 1440);
+      await purities.click();
+    }
     const height = width === 320 ? "54px" : "60px";
     await expect(header).toHaveCSS("height", height);
     await expect(header).toHaveCSS(

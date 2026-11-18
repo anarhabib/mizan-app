@@ -12,7 +12,62 @@ const currencies = Intl.supportedValuesOf("currency");
 const listItem =
   "min-w-0 rounded-xl border border-solid border-mizan-edge bg-mizan-field p-3";
 
-export function PurityRateManager({
+export function PurityGrades({
+  organizationId,
+  locale,
+  purities,
+}: {
+  organizationId: string;
+  locale: Locale;
+  purities: PurityGrade[];
+}) {
+  const copy = settingsCopy[locale];
+  const [gradeInput, setGradeInput] = useState("");
+  const shared = { organizationId, locale };
+  return (
+    <SettingsSection
+      title={copy.purities}
+      icon={<Gem aria-hidden="true" size={20} />}
+    >
+      <SettingsForm {...shared} intent="purity" label={copy.add}>
+        <label>
+          {copy.purity}
+          <input
+            name="purity"
+            inputMode="numeric"
+            pattern="[1-9][0-9]{0,2}"
+            maxLength={3}
+            required
+            value={gradeInput}
+            onChange={(event) => setGradeInput(event.target.value)}
+          />
+        </label>
+      </SettingsForm>
+      <ul>
+        {purities.map(({ value, active }) => (
+          <li
+            key={value}
+            className={`flex flex-wrap items-center justify-between gap-2 ${listItem}`}
+          >
+            <span>
+              <strong>{value} ‰</strong> ·{" "}
+              {active ? copy.active : copy.inactive}
+            </span>
+            <SettingsForm
+              {...shared}
+              intent={active ? "deactivate" : "reactivate"}
+              label={active ? copy.deactivate : copy.reactivate}
+            >
+              <input type="hidden" name="purity" value={value} />
+            </SettingsForm>
+          </li>
+        ))}
+      </ul>
+    </SettingsSection>
+  );
+}
+
+export function PurchaseRates({
   organizationId,
   locale,
   defaultCurrency,
@@ -28,7 +83,6 @@ export function PurityRateManager({
   const copy = settingsCopy[locale];
   const fields = useId();
   const active = purities.filter((grade) => grade.active);
-  const [gradeInput, setGradeInput] = useState("");
   const [rateInput, setRateInput] = useState("");
   const [selectedPurity, selectPurity] = useState<number | undefined>(
     active[0]?.value,
@@ -45,45 +99,6 @@ export function PurityRateManager({
   const shared = { organizationId, locale };
   return (
     <>
-      <SettingsSection
-        title={copy.purities}
-        icon={<Gem aria-hidden="true" size={20} />}
-      >
-        <SettingsForm {...shared} intent="purity" label={copy.add}>
-          <label>
-            {copy.purity}
-            <input
-              name="purity"
-              inputMode="numeric"
-              pattern="[1-9][0-9]{0,2}"
-              maxLength={3}
-              required
-              value={gradeInput}
-              onChange={(event) => setGradeInput(event.target.value)}
-            />
-          </label>
-        </SettingsForm>
-        <ul>
-          {purities.map(({ value, active }) => (
-            <li
-              key={value}
-              className={`flex flex-wrap items-center justify-between gap-2 ${listItem}`}
-            >
-              <span>
-                <strong>{value} ‰</strong> ·{" "}
-                {active ? copy.active : copy.inactive}
-              </span>
-              <SettingsForm
-                {...shared}
-                intent={active ? "deactivate" : "reactivate"}
-                label={active ? copy.deactivate : copy.reactivate}
-              >
-                <input type="hidden" name="purity" value={value} />
-              </SettingsForm>
-            </li>
-          ))}
-        </ul>
-      </SettingsSection>
       <SettingsSection
         title={copy.rates}
         icon={<Coins aria-hidden="true" size={20} />}

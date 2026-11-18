@@ -65,7 +65,7 @@ Review the remaining Task 12 verification limits below before pilot use. Task 12
 
 - `apps/web/components/shell/glass-header.tsx` stays 54 px tall on mobile and 60 px on desktop. `app-shell.tsx` tracks whether the page is scrolled, and `apps/web/app/globals.css` increases the glass background opacity from 44% to 64% with a 12 px backdrop blur. The mobile dock compacts independently.
 - Management and public headers offer a compact flag dropdown. The mobile dock and drawer share the header glass. Owner Settings use collapsed sections, and the web money formatter rounds display values to two decimal places while calculations and stored precision are preserved.
-- Owner Settings use two columns at 1100 px and wider. The purity section can reactivate an existing grade through the owner-only settings API. The latest configured rate for that grade and currency becomes available again, and existing rate and sale records retain their original values.
+- Owner Settings use two independent columns at 1100 px and wider. Permissions and grades stack separately from rate entry and history, so expanding a section does not move the other column. An inactive grade has an Aktiv et / Reactivate action. Reactivation restores the latest configured rate for that grade and currency, and existing rate and sale records retain their original values.
 - `tests/e2e/first-milestone.spec.ts` covers stable height and the background change at 320 and 1440 px with reduced motion.
 
 ## Task 12
