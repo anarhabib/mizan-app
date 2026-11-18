@@ -1,4 +1,5 @@
 export interface SaleCreateInput {
+  expectedCurrency?: string;
   productId: string;
   saleAmount: string;
   tradeIns?: Array<{

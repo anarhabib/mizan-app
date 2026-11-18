@@ -39,6 +39,11 @@ function decimal(
 
 export function parseSaleInput(body: unknown, currency: string) {
   const input = object(body, "sale");
+  if (
+    input.expectedCurrency !== undefined &&
+    input.expectedCurrency !== currency
+  )
+    throw new AccessError("SALE_CONFLICT", "currency");
   const scale = currencyMinorUnits(currency);
   const lines = input.tradeIns === undefined ? [] : input.tradeIns;
   if (!Array.isArray(lines) || lines.length > 100)

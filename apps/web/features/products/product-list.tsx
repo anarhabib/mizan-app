@@ -4,6 +4,7 @@ import { Button, actionClass } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
 import { StatusBadge } from "../../components/ui/status-badge";
 import type { Locale } from "../language/messages";
+import { saleCopy } from "../sales/sale-copy";
 import {
   productCopy,
   productHref,
@@ -28,12 +29,22 @@ export function ProductList({
     <section className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1>{copy.title}</h1>
-        <Link
-          className={actionClass + " bg-mizan-selected"}
-          href={productHref("/products/new", scope)}
-        >
-          {copy.add}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className={
+              actionClass + " bg-mizan-primary text-mizan-primary-text"
+            }
+            href={productHref("/sales/new", scope)}
+          >
+            {saleCopy[locale].title}
+          </Link>
+          <Link
+            className={actionClass + " bg-mizan-selected"}
+            href={productHref("/products/new", scope)}
+          >
+            {copy.add}
+          </Link>
+        </div>
       </div>
       <form action="/products" className="flex flex-wrap items-end gap-2">
         <input

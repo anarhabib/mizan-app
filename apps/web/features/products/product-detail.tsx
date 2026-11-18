@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { MoneyInput, ProductDetail as Product } from "@mizan/contracts";
 import { StatusBadge } from "../../components/ui/status-badge";
+import { actionClass } from "../../components/ui/button";
 import type { Locale } from "../language/messages";
+import { saleCopy } from "../sales/sale-copy";
 import { productCopy, productHref, type ProductScope } from "./product-copy";
 import { ProductPhoto } from "./product-photo";
 
@@ -53,6 +55,31 @@ export function ProductDetail({
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="wrap-break-word">{product.name}</h1>
         <StatusBadge>{copy[product.status]}</StatusBadge>
+        {product.status === "IN_STOCK" && (
+          <Link
+            className={
+              actionClass + " bg-mizan-primary text-mizan-primary-text"
+            }
+            href={
+              productHref("/sales/new", scope) +
+              "&productId=" +
+              encodeURIComponent(product.id)
+            }
+          >
+            {saleCopy[locale].title}
+          </Link>
+        )}
+        {product.sale && (
+          <Link
+            className={actionClass + " bg-mizan-selected"}
+            href={productHref(
+              "/sales/" + encodeURIComponent(product.sale.id),
+              scope,
+            )}
+          >
+            {copy.sale}
+          </Link>
+        )}
       </div>
       <div className="grid items-start gap-4 sm:grid-cols-2">
         <ProductPhoto locale={locale} product={product} scope={scope} />

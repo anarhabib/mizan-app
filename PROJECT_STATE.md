@@ -59,10 +59,16 @@
 
 ## Next step
 
-Task 11 builds the sales and trade-in interface on top of the merged Task 10 API.
+Task 12 covers end-to-end milestone verification, backup, and handoff after Task 11 merges.
 
 ## Task 10
 
 - `apps/api/src/modules/sales` provides scoped sale creation and retrieval, plus `GET /api/v1/sales/options` for the default currency and current trade-in rates. `packages/contracts/src/sales.ts` defines the request and response. Creation requires `Idempotency-Key` and records the sale, stock status, and inventory movements in one transaction.
 - Prices and trade-ins use the organization's default currency. The store retains original cash and gives change in the default currency. A submitted foreign payment must cover the rounded balance. A negative balance is paid out in the default currency. Migration `202611180004_sale_payment` adds cash tender and change snapshots to `Sale`.
 - Prisma migration and validation, the API and contracts builds, API type checking, and workspace lint passed. The API suite passed 19 tests on disposable PostgreSQL, including concurrent requests, rollback on invalid settlement, and immutable sale snapshots. The optional live Supabase Storage test was skipped.
+
+## Task 11
+
+- `apps/web/app/(app)/sales/new` and `apps/web/features/sales` provide Azerbaijani and English sale entry, in-stock lookup and inventory prefill, optional old-gold lines and overrides, cash tender and change, and confirmation. The result at `/sales/[id]` reloads the persisted sale, and sold product details link to it.
+- The preview calculates with decimal strings and integer arithmetic. An uncertain submission retains the same payload and idempotency key while the confirmation is closed or retried. The optional `expectedCurrency` field rejects a stale default currency before inventory changes and accepts an exact retry against the saved currency.
+- The contracts and API builds, web production build with TypeScript checks, workspace lint, and formatting for changed sources passed. The web suite passed 18 tests and the API suite passed 19 tests against disposable PostgreSQL. The optional live Storage test was skipped. Browser checks used local fixtures at 320 and 1440 px for ordinary sales, foreign cash with a trade-in, cash payouts, unavailable prefill, retry, and result reload.
