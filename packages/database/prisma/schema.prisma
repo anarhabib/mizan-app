@@ -202,6 +202,11 @@ model Sale {
   defaultAcceptedTradeInTotal Decimal             @db.Decimal(32, 4)
   settlement                  Decimal             @db.Decimal(32, 4)
   defaultSettlement           Decimal             @db.Decimal(32, 4)
+  paymentCurrency             String?             @db.Char(3)
+  paymentAmount               Decimal?            @db.Decimal(20, 4)
+  paymentExchangeRate         Decimal?            @db.Decimal(24, 8)
+  convertedPayment            Decimal?            @db.Decimal(32, 4)
+  changeAmount                Decimal?            @db.Decimal(32, 4)
   productCode                 String
   productName                 String
   productCategory             String

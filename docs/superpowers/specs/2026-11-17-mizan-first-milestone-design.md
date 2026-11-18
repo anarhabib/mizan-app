@@ -142,7 +142,9 @@ The API performs this calculation using decimal-safe arithmetic. The salesperson
 
 A sale contains one uniquely coded jewelry item in this milestone. The salesperson selects an in-stock item, confirms its identifying details, enters the actual sale amount, and optionally adds one or more old-gold trade-in lines. Each trade-in line records purity, weight, the applied configured rate, calculated value, final accepted value, and whether it was overridden.
 
-A transaction may use a currency other than the organization's default. All monetary lines within that transaction use the selected transaction currency. The salesperson manually enters the exchange rate between the transaction currency and the organization default currency. The sale stores the transaction currency, original amounts, exchange rate, and converted default-currency amounts as an immutable historical snapshot. The UI and history show both the original amount and its default-currency equivalent. Automatic exchange-rate retrieval is deferred.
+Price the sale, value old-gold trade-ins, and calculate the balance in the organization's default currency. A customer can pay in a foreign currency. The store retains the cash in the currency received, and the salesperson enters the exchange rate to calculate its default-currency equivalent. The sale history preserves the original payment amount and currency, the exchange rate, and the converted amount. Automatic exchange-rate retrieval is deferred.
+
+When the converted payment exceeds the balance due, the store gives the difference as cash change in the organization's default currency. Record the change with the payment in the same sale. For example, if the balance due is 170 AZN and the customer pays 110 USD at 1.70 AZN per USD, record 110 USD received, its 187 AZN equivalent, and 17 AZN in change.
 
 The settlement summary shows:
 
@@ -225,7 +227,8 @@ Automated tests must cover business-critical API behavior, including:
 - product-code uniqueness and decimal validation;
 - successful ordinary sale;
 - successful trade-in sale and saved calculation snapshots;
-- foreign-currency sale with preserved manual exchange rate and default-currency equivalent;
+- foreign-currency payment with the original amount and currency, manual exchange rate, and default-currency equivalent;
+- change recorded in the default currency when foreign cash exceeds the balance due;
 - allowed salesperson override;
 - duplicate submission and concurrent-sale prevention;
 - full rollback on failure.

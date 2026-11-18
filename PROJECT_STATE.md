@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Tasks 1–8 are on `main`. Task 9 is implemented on `task/9-product-inventory-interface`.
+- Tasks 1–9 are on `main`. Task 9 merged in PR #4 (`bf5794f`). Task 10 starts from that merge on `task/10-sales-trade-in-api`.
 - `apps/web` provides owner registration, sign-in, and workspace selection at `/register` and `/workspace`. Azerbaijani is the default and English can be selected. Translations live in `apps/web/features/language/messages.ts`; the browser remembers the selected language.
 - `packages/contracts` provides exact decimal input, currency precision, and half-up settlement rounding. `packages/database/prisma/schema.prisma` defines the private `mizan` schema. The initial Prisma migration applied to local Supabase PostgreSQL.
 - `apps/api/src/plugins/auth.ts` verifies Supabase-issued tokens through JWKS or Supabase Auth's user endpoint for legacy signing. `apps/api/src/plugins/request-context.ts` attaches context only after verifying current membership and store assignment in PostgreSQL. Access errors do not expose whether an unauthorized scope exists.
@@ -57,4 +57,10 @@
 
 ## Next step
 
-Review and merge the Task 9 pull request. Task 10 implements the transaction-safe sales and trade-in API on updated `main`.
+Task 11 builds the sales and trade-in interface on top of the Task 10 API after review and merge.
+
+## Task 10
+
+- `apps/api/src/modules/sales` provides scoped sale creation and retrieval, plus `GET /api/v1/sales/options` for the default currency and current trade-in rates. `packages/contracts/src/sales.ts` defines the request and response. Creation requires `Idempotency-Key` and records the sale, stock status, and inventory movements in one transaction.
+- Prices and trade-ins use the organization's default currency. The store retains original cash and gives change in the default currency. A submitted foreign payment must cover the rounded balance. A negative balance is paid out in the default currency. Migration `202611180004_sale_payment` adds cash tender and change snapshots to `Sale`.
+- Prisma migration and validation, the API and contracts builds, API type checking, and workspace lint passed. The API suite passed 19 tests on disposable PostgreSQL, including concurrent requests, rollback on invalid settlement, and immutable sale snapshots. The optional live Supabase Storage test was skipped.

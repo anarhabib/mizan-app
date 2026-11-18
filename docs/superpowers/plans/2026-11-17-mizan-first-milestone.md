@@ -261,7 +261,7 @@
 - Test: `apps/api/test/sale-concurrency.integration.test.ts`
 
 **Interfaces:**
-- Produces: `calculateSettlement(input): SettlementSnapshot`; `POST /api/v1/sales` with required `Idempotency-Key`; `GET /api/v1/sales/:id`; immutable `SaleResult` including original/default currency values, trade-ins, payment or payout, and sold item snapshot.
+- Produces: `calculateSettlement`; `POST /api/v1/sales` with required `Idempotency-Key`; `GET /api/v1/sales/:id`; `GET /api/v1/sales/options`; immutable `SaleResult` including default-currency balance and trade-ins, original cash tender, converted amount, change or payout, and sold item snapshot.
 
 - [ ] **Step 1: Write settlement tests for default currency, foreign currency/manual rate, 3/4/8-place inputs, final half-up rounding, multiple trade-in lines, salesperson override, positive payment, zero balance, and cash payout.**
 - [ ] **Step 2: Run settlement tests; expect failure before the calculator exists.**
@@ -285,10 +285,10 @@
 - Consumes: Task 10 sales contracts/endpoints and Task 9 product lookup.
 - Produces: responsive ordinary/old-gold sale flow with idempotent submission and persisted result display.
 
-- [ ] **Step 1: Write tests for prefilled product, unavailable item, default/foreign currency, exchange-rate requirement, calculated and overridden trade-in value, payment/zero/payout summaries, disabled double submission, confirmation, and recoverable errors preserving input.**
+- [ ] **Step 1: Write tests for prefilled product, unavailable item, foreign cash tender and exchange-rate requirement, default-currency change, calculated and overridden trade-in value, payment/zero/payout summaries, disabled double submission, confirmation, and recoverable errors preserving input.**
 - [ ] **Step 2: Run sale web tests; expect failure before components exist.**
 - [ ] **Step 3: Implement the sale form and settlement preview using server-compatible decimal strings and a client-generated idempotency key per logical submission.**
-- [ ] **Step 4: Implement accessible confirmation and result views showing original and default currency, rate, trade-in calculation/override, actor, date, item status, and payment or payout.**
+- [ ] **Step 4: Implement accessible confirmation and result views showing tender and its default-currency equivalent, exchange rate, change, trade-in calculation/override, actor, date, item status, and payment or payout.**
 - [ ] **Step 5: Run tests and manually exercise ordinary sale, trade-in payment, and trade-in cash payout at mobile and desktop widths.**
 - [ ] **Step 6: Run web checks.**
 - [ ] **Step 7: Commit with `feat: add sales and trade-in workflow`.**

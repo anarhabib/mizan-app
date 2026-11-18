@@ -16,7 +16,7 @@ Mizan is a management app for small jewelry stores. A family-owned jewelry store
 | Architecture | pnpm monorepo with separate Next.js web and Fastify API applications; modular monolith |
 | Tenancy | Organization and store scoped from the first milestone, with Owner and Salesperson roles |
 | Initial deployment | One family-owned store at one location |
-| Localization | Azerbaijani (default) and English interface options, organization default ISO currency with optional transaction override, weight in grams |
+| Localization | Azerbaijani (default) and English interface options, organization default ISO currency with optional foreign-currency payment, weight in grams |
 | Inventory | Track each piece of jewelry individually with its own product record and unique code |
 | Acquisition cost | Enter each item's initial acquisition cost manually |
 | Selling price | The selling price can change. Show the estimated selling price on the product record and the actual sale amount on the transaction |
