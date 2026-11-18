@@ -28,7 +28,7 @@ export function MobileDock({
   return (
     <nav
       aria-label={messages[locale].navigation}
-      className={`mizan-dock fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 mx-auto box-border flex w-[calc(100%-1rem)] items-center gap-0.5 rounded-[19px] px-1 motion-safe:transition-[height,max-width] min-[761px]:hidden ${compact ? "h-[51px] max-w-[328px]" : "h-[65px] max-w-[460px]"}`}
+      className={`mizan-dock fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 mx-auto box-border flex w-[calc(100%-1rem)] items-center gap-0.5 rounded-[19px] px-1 motion-safe:transition-[height,max-width] min-[761px]:hidden ${compact ? "h-12.75 max-w-82" : "h-16.25 max-w-115"}`}
     >
       {destinations.map(({ path, href, label, shortLabel }) => {
         const Icon = icons[path];

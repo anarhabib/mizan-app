@@ -22,7 +22,7 @@ export function GlassHeader({
   openMenu: () => void;
 }) {
   return (
-    <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 h-[54px] min-[761px]:h-[60px]">
+    <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 h-13.5 min-[761px]:h-15">
       <header
         className={`mizan-header box-border flex items-center justify-between gap-2 rounded-[19px] px-1.5 motion-safe:transition-[height] min-[761px]:px-4 ${compact ? "h-12" : "h-full"}`}
       >
