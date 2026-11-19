@@ -14,7 +14,7 @@ Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuratio
 
 Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and `pnpm build` from the workspace root to verify changes.
 
-The frontend uses Tailwind CSS and Lucide React with the Zümrüd design tokens. On Windows, put the supported Node executable first on PATH before running the web build. Next.js starts a separate process for CSS compilation.
+The previous frontend has been removed. Tailwind CSS remains the frontend styling choice; icons, colors, and header styling will follow the next approved design.
 
 ## Database changes
 

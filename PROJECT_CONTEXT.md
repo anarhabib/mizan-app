@@ -26,10 +26,9 @@ Mizan is a management app for small jewelry stores. A family-owned jewelry store
 ## Design References
 
 - [Interactive Mizan demo](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/)
-- [Preview of the five approved palettes](https://chatgpt.com/library?file_id=libfile_d60f1ad8d63881919af6df9e5015785a&account_id=personal)
 - [App screen preview](https://chatgpt.com/library?file_id=libfile_e6773243cbd481918c532f72612ddb2f&account_id=personal)
 
-Prioritize mobile screens and use a left sidebar on desktop. Use DESIGN.md and the current app as the reference for the product form, inventory list, product details, and sales screen. Palette switching changes the colors, including the logo colors, while preserving the layout and functionality. Use DESIGN.md for color values, typography, and brand guidance. Whether all five palettes ship in the first milestone is still open.
+Prioritize mobile screens and use a left sidebar on desktop. The previous frontend and DESIGN.md have been removed. The previous icon library, color palettes, palette switching, and glass headers are no longer requirements. Establish a new approved visual direction before rebuilding the frontend.
 
 ## First Implementation Task
 

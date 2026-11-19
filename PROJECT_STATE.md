@@ -2,6 +2,11 @@
 
 - The Next.js frontend and design document were removed at the user’s request. The API, contracts, and database packages remain. API tests: 13 passed; 7 database integration tests skipped.
 
+## Frontend design requirements
+
+- Removed the previous icon library, palette, palette-switching, and glass-header requirements from active guidance in AGENTS.md, PROJECT_CONTEXT.md, and README.md. No frontend source remains to change.
+- Frontend entries below and documents in docs/archive/ describe the removed implementation and are historical, not current visual requirements. A new visual direction remains to be approved.
+
 ## Current status
 
 - Tasks 1–12 are merged into `main`. The first milestone handoff merged in PR #11.
@@ -28,7 +33,7 @@
 - Next.js web app, Fastify API, Prisma, and local Supabase services in a pnpm monorepo.
 - SaaS-ready organization/store scoping with Owner and Salesperson roles.
 - Email invitations, configurable permissions/purities/rates, multi-currency sales, old-gold trade-ins, and cash payouts are in the first milestone.
-- Zümrüd is the only initial palette.
+- The previous palette requirement has been retired.
 
 ## Important documents
 
