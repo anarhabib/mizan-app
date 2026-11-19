@@ -26,7 +26,7 @@ export function Button({
     <button
       {...props}
       type={type}
-      className={`${actionClass} ${variants[variant]} cursor-pointer font-[inherit] disabled:cursor-default disabled:opacity-65 motion-safe:transition-transform motion-safe:enabled:hover:-translate-y-0.5 motion-safe:enabled:active:translate-y-px ${className}`}
+      className={`${actionClass} ${variants[variant]} cursor-pointer font-[inherit] disabled:cursor-default disabled:opacity-65 motion-safe:transition-transform motion-safe:enabled:active:translate-y-px ${className}`}
     />
   );
 }

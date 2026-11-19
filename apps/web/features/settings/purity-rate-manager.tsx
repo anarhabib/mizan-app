@@ -74,13 +74,11 @@ export function PurityGrades({
 export function PurchaseRates({
   organizationId,
   locale,
-  defaultCurrency,
   purities,
   rates,
 }: {
   organizationId: string;
   locale: Locale;
-  defaultCurrency: string;
   purities: PurityGrade[];
   rates: OldGoldRate[];
 }) {
@@ -91,7 +89,7 @@ export function PurchaseRates({
   const [selectedPurity, selectPurity] = useState<number | undefined>(
     active[0]?.value,
   );
-  const [currency, selectCurrency] = useState(defaultCurrency);
+  const [currency, selectCurrency] = useState("AZN");
   const purity = active.some(({ value }) => value === selectedPurity)
     ? selectedPurity
     : active[0]?.value;

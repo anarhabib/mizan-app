@@ -26,7 +26,6 @@ test("excludes inactive grades from rate entry and keeps their history visible",
     <PurchaseRates
       organizationId="test"
       locale="az"
-      defaultCurrency="AZN"
       purities={[
         { value: 585, active: true },
         { value: 610, active: false },

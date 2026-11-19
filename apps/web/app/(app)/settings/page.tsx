@@ -80,7 +80,6 @@ export default async function SettingsPage({
             <PurchaseRates
               organizationId={selected}
               locale={locale}
-              defaultCurrency={data.settings.defaultCurrency}
               purities={data.purities}
               rates={data.rates}
             />
