@@ -20,7 +20,7 @@ Architecture and implementation
 - Inspect the frontend framework, package manager, language, directory conventions, validation strategy and libraries actually in use; do not assume them.
 - Keep business logic out of presentation components and database access out of unrelated layers. Validate inputs at boundaries and provide consistent actionable errors.
 - Avoid adding dependencies, infrastructure or abstractions without demonstrated benefit.
-- Use Tailwind CSS and Lucide React for frontend UI, with the existing Mizan brand SVG and DESIGN.md tokens.
+- Use Tailwind CSS for frontend UI with the existing Mizan brand SVG. Choose icons and visual styling according to the current approved design.
 - Use English for folder names, file names and route paths. Localize user-facing text in Azerbaijani by default, with English support. Prioritize mobile-friendly workflows.
 - Use AZN and explicit units (grams, gold purity, etc.). Never silently round, convert or reinterpret financial or weight values.
 Data integrity and security
@@ -33,7 +33,7 @@ Data integrity and security
 - Enforce permissions server-side, not solely through hidden UI controls.
 UI implementation
 - Use DESIGN.md and the existing UI as the visual reference. Review the relevant route before editing. Reuse the shared page heading, Surface, shells, controls, and tables. Document stable reusable patterns in DESIGN.md.
-- Respect all five documented palettes, theme-dependent brand marks, Manrope typography, component states, responsiveness and motion. Theme switching changes documented visual properties only, not business behavior or unrelated layout.
+- Preserve Manrope typography, component states, responsiveness and motion. The previous icon library, palettes, and glass headers are no longer requirements.
 - Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
 - Before a UI PR, check implemented views at the closest reference desktop viewport and a mobile width. Compare the rendered route and state with DESIGN.md and established UI patterns, fix relevant visible differences and report deliberate deviations and unverified states. Check both widths when changing shared UI.
 Execution efficiency and token discipline
