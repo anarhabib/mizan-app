@@ -43,7 +43,7 @@ export default async function Home() {
           <BrandMark variant="light" />
           Mizan
         </Link>
-        <LanguagePicker locale={locale} compact />
+        <LanguagePicker locale={locale} />
       </header>
       <section className="mizan-landing-hero mt-8 flex min-w-0 flex-col items-start gap-8 rounded-[28px] border border-mizan-accent bg-mizan-hero p-6 text-mizan-pale sm:p-10 min-[1000px]:flex-row min-[1000px]:items-center min-[1000px]:gap-12 min-[1000px]:p-18">
         <div className="min-w-0 flex-1">

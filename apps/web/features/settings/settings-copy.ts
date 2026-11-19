@@ -1,7 +1,6 @@
 import type { Locale } from "../language/messages";
 
 const az = {
-  title: "Biznes parametrləri",
   back: "İş sahəsinə qayıt",
   choose: "Biznes seçin",
   currency: "Əsas valyuta",
@@ -14,6 +13,7 @@ const az = {
   active: "Aktiv",
   inactive: "Deaktiv",
   deactivate: "Deaktiv et",
+  reactivate: "Aktiv et",
   rates: "Köhnə qızıl alış qiymətləri",
   amount: "Bir qram üçün alış qiyməti",
   addRate: "Qiyməti saxla",
@@ -31,7 +31,6 @@ const az = {
   denied: "Bu biznesin parametrlərinə giriş icazəniz yoxdur.",
 };
 const en: typeof az = {
-  title: "Organization settings",
   back: "Back to workspace",
   choose: "Choose a business",
   currency: "Default currency",
@@ -44,6 +43,7 @@ const en: typeof az = {
   active: "Active",
   inactive: "Inactive",
   deactivate: "Deactivate",
+  reactivate: "Reactivate",
   rates: "Old-gold purchase rates",
   amount: "Purchase rate per gram",
   addRate: "Save rate",

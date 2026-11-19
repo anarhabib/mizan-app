@@ -78,7 +78,7 @@ export function changePurity(
   organizationId: string,
   ownerId: string,
   value: number,
-  action: "add" | "deactivate",
+  action: "add" | "deactivate" | "reactivate",
 ) {
   return ownerChange(db, organizationId, ownerId, async (tx) => {
     const scope = { organizationId, value };
@@ -90,7 +90,11 @@ export function changePurity(
       return tx.purityGrade.create({ data: scope, select });
     }
     if (!existing) throw new AccessError("PURITY_CONFLICT");
-    return tx.purityGrade.update({ where, data: { active: false }, select });
+    return tx.purityGrade.update({
+      where,
+      data: { active: action === "reactivate" },
+      select,
+    });
   });
 }
 

@@ -177,6 +177,20 @@ test.skipIf(!db)(
       expect(historical.rates).toEqual(
         activeRates.map((entry: object) => ({ ...entry, current: false })),
       );
+      expect(
+        (await update("purities/610/reactivate", {}, "seller")).statusCode,
+      ).toBe(403);
+      expect((await update("purities/611/reactivate", {})).statusCode).toBe(
+        409,
+      );
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const response = await update("purities/610/reactivate", {});
+        expect(response.statusCode).toBe(200);
+        expect(response.json()).toEqual({ value: 610, active: true });
+      }
+      const restored = (await directory()).json();
+      expect(restored.purities).toContainEqual({ value: 610, active: true });
+      expect(restored.rates).toEqual(activeRates);
     } finally {
       await app.close();
     }

@@ -59,7 +59,17 @@
 
 ## Next step
 
-Review the Task 12 pull request and the remaining verification limits below before pilot use.
+Review the remaining Task 12 verification limits below before pilot use. Task 12 merged in PR #11.
+
+## Management header
+
+- Shared buttons use color feedback on hover and retain the press motion. The purchase-rate form starts with AZN selected and allows the owner to choose another currency.
+- Onboarding, product, sales, and Settings currency dropdowns use options supplied by the web server. Sale previews also use server-supplied currency precision. Settings rate history renders its formatted dates on the server so differing browser ICU data does not cause hydration errors.
+
+- `apps/web/components/shell/glass-header.tsx` stays 54 px tall on mobile and 60 px on desktop. `app-shell.tsx` tracks whether the page is scrolled, and `apps/web/app/globals.css` increases the glass background opacity from 44% to 64% with a 12 px backdrop blur. The mobile dock compacts independently.
+- Management and public headers offer a compact flag dropdown. The mobile dock and drawer share the header glass. The web money formatter rounds display values to two decimal places while calculations and stored precision are preserved.
+- Owner Settings use two independent columns at 1100 px and wider. Permissions and grades stack separately from rate entry and history in always-visible glass panels. Purity grades use divided rows, separate active and inactive badges, and different action styles. Reactivation restores the latest configured rate for that grade and currency, and existing rate and sale records retain their original values.
+- `tests/e2e/first-milestone.spec.ts` covers stable height and the background change at 320 and 1440 px with reduced motion.
 
 ## Task 12
 

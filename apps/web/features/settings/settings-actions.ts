@@ -32,8 +32,11 @@ export async function updateSettings(
   } else if (intent === "purity" && purity !== null) {
     path = `${base}/purities`;
     payload = { value: purity };
-  } else if (intent === "deactivate" && purity !== null) {
-    path = `${base}/purities/${purity}/deactivate`;
+  } else if (
+    (intent === "deactivate" || intent === "reactivate") &&
+    purity !== null
+  ) {
+    path = `${base}/purities/${purity}/${intent}`;
     payload = {};
   } else if (intent === "rate") {
     const amount = form.get("amountPerGram");

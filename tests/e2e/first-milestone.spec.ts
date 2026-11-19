@@ -99,11 +99,39 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   page,
   browser,
 }, testInfo) => {
+  const hydrationErrors: string[] = [];
+  const recordHydrationError = (message: string) => {
+    if (/hydration|Minified React error #(418|423|425)\b/i.test(message))
+      hydrationErrors.push(message);
+  };
+  page.on("pageerror", (error) => recordHydrationError(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") recordHydrationError(message.text());
+  });
+  await page.addInitScript(() => {
+    const supportedValuesOf = Intl.supportedValuesOf.bind(Intl);
+    Intl.supportedValuesOf = (key) =>
+      key === "currency"
+        ? [...supportedValuesOf(key).filter((code) => code !== "AZN"), "ZZZ"]
+        : supportedValuesOf(key);
+  });
   const owner = `owner-${run}@example.test`;
-  await english(page);
+  await page.goto("/");
+  await expect(page.getByRole("combobox")).toHaveCSS("width", "44px");
+  await expect(page.getByRole("combobox").locator("option")).toHaveText([
+    "Azərbaycanca",
+    "English",
+  ]);
+  await page.getByRole("combobox").selectOption("en");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("combobox")).toHaveValue("en");
   await page.goto("/register");
+  await expect(page.locator("header").getByRole("combobox")).toHaveValue("en");
   await credentials(page, owner, true);
   await expect(page.locator('[name="organizationName"]')).toBeVisible();
+  await expect(page.locator('select[name="defaultCurrency"]')).toHaveValue(
+    "AZN",
+  );
   await page.locator('[name="organizationName"]').fill(`Milestone ${run}`);
   await page.locator('[name="storeName"]').fill("Baku acceptance store");
   await page.getByRole("button", { name: "Create store", exact: true }).click();
@@ -111,16 +139,53 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   const scope = new URL(page.url()).searchParams.toString();
 
   await page.goto(`/settings?${scope}`);
+  await expect(
+    page.getByRole("main").locator('select[name="language"]'),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[name="salespersonCanViewAcquisitionCost"]'),
+  ).toBeVisible();
+  await expect(page.getByRole("main").locator("details")).toHaveCount(0);
   await page.locator('[name="salespersonCanViewAcquisitionCost"]').uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status").first()).toHaveText("Change saved.");
   const rateForm = page
     .locator("form")
     .filter({ has: page.locator('[name="amountPerGram"]') });
+  await expect(rateForm.locator('select[name="currency"]')).toHaveValue("AZN");
+  await expect(rateForm.locator('option[value="ZZZ"]')).toHaveCount(0);
   await rateForm.locator('[name="purity"]').selectOption("585");
   await rateForm.locator('[name="amountPerGram"]').fill("100.0000");
   await rateForm.getByRole("button", { name: "Save rate" }).click();
   await expect(rateForm.getByRole("status")).toHaveText("Change saved.");
+  await expect(page.getByText(/585 ‰ · 100\.00 AZN$/)).toBeVisible();
+  const grade = page.getByRole("listitem").filter({ hasText: "375 ‰" });
+  await grade.getByRole("button", { name: "Deactivate", exact: true }).click();
+  await expect(grade.getByText("Inactive", { exact: false })).toBeVisible();
+  await expect(rateForm.locator('option[value="375"]')).toHaveCount(0);
+  await expect(
+    grade.getByRole("button", { name: "Reactivate", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath("settings-inactive-grade.png"),
+  });
+  await page
+    .context()
+    .addCookies([{ name: "mizan-language", value: "az", url: origin }]);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Qızıl əyarları" }),
+  ).toBeVisible();
+  await grade.getByRole("button", { name: "Aktiv et", exact: true }).click();
+  await expect(
+    grade.getByRole("button", { name: "Deaktiv et", exact: true }),
+  ).toBeVisible();
+  await english(page);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Settings", exact: true }),
+  ).toBeVisible();
+  await expect(rateForm.locator('option[value="375"]')).toHaveCount(1);
 
   const first = await addProduct(page, scope, `R-${run}`);
   await page.reload();
@@ -174,6 +239,12 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     await expect(
       seller.getByText("Acquisition cost", { exact: true }),
     ).toHaveCount(0);
+    const language = seller.getByRole("banner").getByRole("combobox");
+    await language.selectOption("az");
+    await expect(seller.locator("html")).toHaveAttribute("lang", "az");
+    await expect(language).toHaveValue("az");
+    await language.selectOption("en");
+    await expect(seller.locator("html")).toHaveAttribute("lang", "en");
     // Removing the assignment must invalidate this already authenticated session.
     await page.goto(`/settings/users?${scope}`);
     const member = page
@@ -208,6 +279,12 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     .getByRole("button")
     .click();
   await page.locator("#sale-amount").fill("150.00");
+  await page.getByRole("checkbox", { name: "Enter cash tender" }).check();
+  await expect(page.locator("#sale-cash-currency")).toHaveValue("AZN");
+  await expect(
+    page.locator("#sale-cash-currency option").filter({ hasText: /^ZZZ$/ }),
+  ).toHaveCount(0);
+  await page.locator("#cash-received").fill("150.00");
   await page
     .getByRole("button", { name: "Complete sale", exact: true })
     .click();
@@ -303,6 +380,87 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     page.getByRole("row").filter({ hasText: `T-${run}` }),
   ).toHaveCount(1);
 
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/settings?${scope}`);
+    const header = page.getByRole("banner");
+    await expect
+      .poll(() =>
+        page.locator("main h2").evaluateAll(([permissions, , rates]) => {
+          const first = permissions.getBoundingClientRect();
+          const second = rates.getBoundingClientRect();
+          return (
+            Math.abs(first.top - second.top) < 1 && first.left < second.left
+          );
+        }),
+      )
+      .toBe(width === 1440);
+    await expect(
+      page.getByRole("heading", { name: "Rate history" }),
+    ).toBeVisible();
+    const height = width === 320 ? "54px" : "60px";
+    await expect(header).toHaveCSS("height", height);
+    await expect(header).toHaveCSS(
+      "backdrop-filter",
+      "blur(12px) saturate(1.75)",
+    );
+    await expect(header).toHaveCSS(
+      "background-color",
+      "rgba(251, 253, 251, 0.44)",
+    );
+    await expect
+      .poll(() =>
+        page.getByRole("main").evaluate((main) => {
+          main.style.minHeight = "200vh";
+          window.scrollTo(0, 200);
+          return window.scrollY;
+        }),
+      )
+      .toBe(200);
+    await expect(header).toHaveCSS("height", height);
+    await expect(header).toHaveCSS(
+      "background-color",
+      "rgba(251, 253, 251, 0.64)",
+    );
+    if (width === 320) {
+      const dock = page.getByRole("navigation", {
+        name: "Navigation",
+        exact: true,
+      });
+      await expect(dock).toHaveCSS(
+        "background-color",
+        "rgba(251, 253, 251, 0.64)",
+      );
+      await header
+        .getByRole("button", { name: "Navigation", exact: true })
+        .click();
+      const drawer = page.getByRole("dialog", {
+        name: "Navigation",
+        exact: true,
+      });
+      await expect(drawer).toHaveCSS(
+        "backdrop-filter",
+        "blur(12px) saturate(1.75)",
+      );
+      await expect(drawer).toHaveCSS(
+        "background-color",
+        "rgba(251, 253, 251, 0.64)",
+      );
+      await page.keyboard.press("Escape");
+      await expect(drawer).toBeHidden();
+    }
+    await page.screenshot({
+      path: testInfo.outputPath(`${width}-header-scrolled.png`),
+    });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(header).toHaveCSS(
+      "background-color",
+      "rgba(251, 253, 251, 0.44)",
+    );
+  }
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
   for (const width of [320, 375, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ["/products", "/sales", "/sales/new", "/settings"]) {
@@ -365,6 +523,7 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await expect(
     page.getByRole("heading", { name: "Sale recorded" }),
   ).toBeVisible();
+  expect(hydrationErrors).toEqual([]);
 });
 
 test("expired invitations, duplicate sale submissions and already-sold products", async ({

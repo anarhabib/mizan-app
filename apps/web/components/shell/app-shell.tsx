@@ -8,7 +8,6 @@ import { messages, type Locale } from "../../features/language/messages";
 import { membershipCopy } from "../../features/memberships/membership-copy";
 import { productCopy } from "../../features/products/product-copy";
 import { saleCopy } from "../../features/sales/sale-copy";
-import { settingsCopy } from "../../features/settings/settings-copy";
 import { Dialog } from "../ui/dialog";
 import { GlassHeader } from "./glass-header";
 import { MobileDock } from "./mobile-dock";
@@ -34,6 +33,7 @@ export function AppShell({
   const params = useSearchParams();
   const route = pathname + "?" + params.toString();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [compact, setCompact] = useState(false);
 
   useEffect(() => {
@@ -41,6 +41,7 @@ export function AppShell({
     let movement = 0;
     const update = () => {
       const current = window.scrollY;
+      setScrolled(current > 0);
       const delta = current - previous;
       previous = current;
       if (!delta) return;
@@ -56,6 +57,7 @@ export function AppShell({
     };
     desktop.addEventListener("change", closeOnDesktop);
     const reset = requestAnimationFrame(() => {
+      setScrolled(window.scrollY > 0);
       setCompact(false);
       setMenuOpen(false);
     });
@@ -120,8 +122,7 @@ export function AppShell({
       {
         path: "/settings",
         href: "/settings" + settingsQuery,
-        label: settingsCopy[locale].title,
-        shortLabel: copy.settingsNav,
+        label: copy.settingsNav,
       },
       {
         path: "/settings/users",
@@ -164,7 +165,7 @@ export function AppShell({
                 : copy.salesperson
               : undefined
           }
-          compact={compact}
+          scrolled={scrolled}
           openMenu={openMenu}
         />
         <main className="mx-auto min-w-0 max-w-[1520px] pt-4 min-[761px]:px-5 min-[761px]:pt-7 min-[1200px]:px-10">
@@ -176,6 +177,7 @@ export function AppShell({
         pathname={navigationPath}
         locale={locale}
         compact={compact}
+        scrolled={scrolled}
         openMenu={openMenu}
       />
       <Dialog
@@ -183,6 +185,7 @@ export function AppShell({
         closeLabel={copy.close}
         open={menuOpen}
         placement="side"
+        scrolled={scrolled}
         onClose={() => setMenuOpen(false)}
       >
         <Sidebar

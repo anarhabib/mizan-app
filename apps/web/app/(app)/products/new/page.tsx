@@ -14,6 +14,7 @@ import {
   type ProductSearch,
 } from "../../../../features/products/product-page";
 import { productRequest } from "../../../../lib/api-client";
+import { currencies } from "../../../../lib/currencies";
 
 export default async function NewProductPage({
   searchParams,
@@ -43,6 +44,7 @@ export default async function NewProductPage({
       <Surface className="w-full max-w-4xl box-border p-4 sm:p-5">
         {result.data ? (
           <ProductForm
+            currencies={currencies}
             key={scope.storeId}
             locale={locale}
             options={result.data}

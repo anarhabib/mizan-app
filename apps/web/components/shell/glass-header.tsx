@@ -1,4 +1,4 @@
-import { ChevronDown, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { BrandMark } from "../brand/brand-mark";
 import { Button } from "../ui/button";
 import { LanguagePicker } from "../../features/language/language-picker";
@@ -10,7 +10,7 @@ export function GlassHeader({
   role,
   dateLabel,
   locale,
-  compact,
+  scrolled,
   openMenu,
 }: {
   title: string;
@@ -18,13 +18,14 @@ export function GlassHeader({
   role?: string;
   dateLabel: string;
   locale: Locale;
-  compact: boolean;
+  scrolled: boolean;
   openMenu: () => void;
 }) {
   return (
     <div className="sticky top-[max(0.5rem,env(safe-area-inset-top))] z-10 h-13.5 min-[761px]:h-15">
       <header
-        className={`mizan-header box-border flex items-center justify-between gap-2 rounded-[19px] px-1.5 motion-safe:transition-[height] min-[761px]:px-4 ${compact ? "h-12" : "h-full"}`}
+        className="mizan-header box-border flex h-full items-center justify-between gap-2 rounded-[19px] px-1.5 motion-safe:transition-colors min-[761px]:px-4"
+        data-scrolled={scrolled}
       >
         <div className="flex min-w-0 items-center gap-1.5">
           <Button
@@ -51,34 +52,26 @@ export function GlassHeader({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <LanguagePicker locale={locale} />
           <time className="hidden text-xs text-mizan-muted min-[1001px]:block">
             {dateLabel}
           </time>
-          <div className="min-[761px]:hidden">
-            <LanguagePicker locale={locale} compact />
-          </div>
-          <details className="relative hidden border-l border-mizan-edge/40 pl-4 min-[761px]:block">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 rounded-xl px-1 text-xs font-bold focus-visible:outline-2 focus-visible:outline-mizan-focus">
-              {role && (
-                <span
-                  aria-hidden
-                  className="grid size-8 place-items-center rounded-full bg-mizan-pale text-[10px] font-extrabold text-mizan-deep"
-                >
-                  {role
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((word) => word[0])
-                    .join("")
-                    .toLocaleUpperCase(locale)}
-                </span>
-              )}
-              {role ?? messages[locale].language}
-              <ChevronDown size={13} aria-hidden />
-            </summary>
-            <div className="mizan-glass-light absolute top-full right-0 mt-2 w-max rounded-xl p-2">
-              <LanguagePicker locale={locale} />
-            </div>
-          </details>
+          {role && (
+            <span className="hidden items-center gap-2.5 border-l border-mizan-edge/40 pl-4 text-xs font-bold min-[761px]:flex">
+              <span
+                aria-hidden
+                className="grid size-8 place-items-center rounded-full bg-mizan-pale text-[10px] font-extrabold text-mizan-deep"
+              >
+                {role
+                  .split(" ")
+                  .slice(0, 2)
+                  .map((word) => word[0])
+                  .join("")
+                  .toLocaleUpperCase(locale)}
+              </span>
+              {role}
+            </span>
+          )}
         </div>
       </header>
     </div>

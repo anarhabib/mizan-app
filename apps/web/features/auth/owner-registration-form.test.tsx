@@ -21,6 +21,7 @@ const other = { ...context, storeId: "other", storeName: "Gəncə" };
 test("renders labeled required setup fields and preserves submitted values after an error", () => {
   const html = renderToStaticMarkup(
     <OwnerSetupFields
+      currencies={["AZN", "USD"]}
       values={{
         organizationName: "Zərgər",
         storeName: "Bakı",
@@ -58,7 +59,9 @@ test("automatically selects one context, requires a choice for several and ignor
 test("renders English when selected and defaults to Azerbaijani for unsupported locales", () => {
   expect(parseLocale("en")).toBe("en");
   expect(parseLocale("unsupported")).toBe("az");
-  const html = renderToStaticMarkup(<OwnerSetupFields locale="en" />);
+  const html = renderToStaticMarkup(
+    <OwnerSetupFields locale="en" currencies={["AZN"]} />,
+  );
   expect(html).toContain("Business name");
   expect(html).toContain("Default currency");
   expect(html).not.toContain("Biznesin adı");

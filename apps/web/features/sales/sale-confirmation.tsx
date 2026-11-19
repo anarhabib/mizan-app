@@ -4,7 +4,8 @@ import type { Locale } from "../language/messages";
 import { productCopy } from "../products/product-copy";
 import { ProductIdentity } from "./product-lookup";
 import { saleCopy } from "./sale-copy";
-import { money, Rows, SettlementSummary } from "./settlement-summary";
+import { Rows, SettlementSummary } from "./settlement-summary";
+import { money } from "../../lib/format-money";
 import type { ProductListItem, SaleCreateInput } from "@mizan/contracts";
 import type { previewSale } from "./settlement";
 

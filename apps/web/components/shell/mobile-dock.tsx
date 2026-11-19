@@ -24,12 +24,14 @@ export function MobileDock({
   pathname,
   locale,
   compact,
+  scrolled,
   openMenu,
 }: {
   destinations: Destination[];
   pathname: string;
   locale: Locale;
   compact: boolean;
+  scrolled: boolean;
   openMenu: () => void;
 }) {
   const itemClass =
@@ -37,7 +39,8 @@ export function MobileDock({
   return (
     <nav
       aria-label={messages[locale].navigation}
-      className={`mizan-dock fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 mx-auto box-border flex w-[calc(100%-1rem)] items-center gap-0.5 rounded-[19px] px-1 motion-safe:transition-[height,max-width] min-[761px]:hidden ${compact ? "h-12.75 max-w-82" : "h-16.25 max-w-115"}`}
+      data-scrolled={scrolled}
+      className={`mizan-dock fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 mx-auto box-border flex w-[calc(100%-1rem)] items-center gap-0.5 rounded-[19px] px-1 motion-safe:transition-[height,max-width,background-color] min-[761px]:hidden ${compact ? "h-12.75 max-w-82" : "h-16.25 max-w-115"}`}
     >
       {destinations
         .filter(({ path }) => path !== "/settings/users")

@@ -28,12 +28,11 @@ import { SettlementSummary } from "./settlement-summary";
 import { previewSale, saleDecimal } from "./settlement";
 import { selectClass, TradeInLines, type TradeDraft } from "./trade-in-lines";
 
-const currencies = Intl.supportedValuesOf("currency");
-
 export function SaleForm({
   locale,
   scope,
   options,
+  currencyScales,
   initialProduct,
   initialStock,
   missingProduct,
@@ -41,6 +40,7 @@ export function SaleForm({
   locale: Locale;
   scope: ProductScope;
   options: SaleOptions;
+  currencyScales: Readonly<Record<string, number>>;
   initialProduct?: ProductListItem;
   initialStock?: ProductList;
   missingProduct?: boolean;
@@ -69,7 +69,9 @@ export function SaleForm({
   const { currency } = options;
   const currencyChanged = draftCurrency !== currency;
   const cashCurrency = chosenCurrency || currency;
-  const scale = currencyMinorUnits(currency);
+  const minorUnits = (code: string) =>
+    currencyScales[code] ?? currencyMinorUnits(code);
+  const scale = minorUnits(currency);
   let draft: Omit<SaleCreateInput, "productId"> | undefined;
   let preview: SaleReview["preview"] | undefined;
   let cashDue = false;
@@ -89,13 +91,19 @@ export function SaleForm({
       };
     });
     const saleAmount = saleDecimal(amount, scale, 16);
-    const base = previewSale(currency, saleAmount, valuedLines);
+    const base = previewSale(
+      currency,
+      saleAmount,
+      valuedLines,
+      undefined,
+      minorUnits,
+    );
     cashDue = !base.balance.startsWith("-") && /[1-9]/.test(base.balance);
     const payment =
       tender && cashDue
         ? {
             currency: cashCurrency,
-            amount: saleDecimal(cash, currencyMinorUnits(cashCurrency), 16),
+            amount: saleDecimal(cash, minorUnits(cashCurrency), 16),
             exchangeRate:
               cashCurrency !== currency
                 ? saleDecimal(exchange, 8, 12)
@@ -103,7 +111,7 @@ export function SaleForm({
           }
         : undefined;
     preview = payment
-      ? previewSale(currency, saleAmount, valuedLines, payment)
+      ? previewSale(currency, saleAmount, valuedLines, payment, minorUnits)
       : base;
     draft = {
       expectedCurrency: currency,
@@ -313,7 +321,7 @@ export function SaleForm({
                             setExchange("");
                           }}
                         >
-                          {currencies.map((code) => (
+                          {Object.keys(currencyScales).map((code) => (
                             <option key={code}>{code}</option>
                           ))}
                         </select>

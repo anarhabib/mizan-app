@@ -209,6 +209,17 @@ body {
   .mizan-dialog {
     backdrop-filter: blur(29px) saturate(165%);
   }
+  .mizan-header[data-scrolled],
+  .mizan-dock[data-scrolled],
+  .mizan-dialog[data-scrolled] {
+    background-color: rgb(251 253 251 / 44%);
+    backdrop-filter: blur(12px) saturate(175%);
+  }
+  .mizan-header[data-scrolled="true"],
+  .mizan-dock[data-scrolled="true"],
+  .mizan-dialog[data-scrolled="true"] {
+    background-color: rgb(251 253 251 / 64%);
+  }
   .mizan-glass-dark {
     background: #205b4e;
     backdrop-filter: blur(36px) saturate(145%);
@@ -228,28 +239,24 @@ body {
 }
 
 .language-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.language-picker button {
-  min-height: 44px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #8eb69b;
-  border-radius: 12px;
-  background: #f2f8f4;
-  color: #051f20;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: transparent;
   font: inherit;
   cursor: pointer;
 }
 
-.language-picker button[aria-pressed="true"] {
-  background: #daf1de;
-  font-weight: 700;
+.language-picker option {
+  background: Canvas;
+  color: CanvasText;
 }
 
-.language-picker button:focus-visible {
-  outline: 2px solid #245347;
+.language-picker:focus-visible {
+  outline: 2px solid var(--color-mizan-focus);
   outline-offset: 2px;
 }

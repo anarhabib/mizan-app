@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Shield } from "lucide-react";
 import type { OrganizationSettings } from "@mizan/contracts";
 import type { Locale } from "../language/messages";
-import { SettingsForm, settingsPanel } from "./settings-form";
+import { SettingsForm } from "./settings-form";
+import { SettingsSection } from "./settings-section";
 import { settingsCopy } from "./settings-copy";
 
 export function OrganizationSettingsForm({
@@ -20,11 +21,10 @@ export function OrganizationSettingsForm({
     settings.salespersonCanViewAcquisitionCost,
   );
   return (
-    <div className={settingsPanel}>
-      <h2 className="flex items-center gap-2">
-        <Shield aria-hidden="true" size={20} />
-        {copy.permissions}
-      </h2>
+    <SettingsSection
+      title={copy.permissions}
+      icon={<Shield aria-hidden="true" size={20} />}
+    >
       <p className="text-mizan-muted">
         {copy.currency}: <strong>{settings.defaultCurrency}</strong>
       </p>
@@ -44,6 +44,6 @@ export function OrganizationSettingsForm({
           <span>{copy.showCost}</span>
         </label>
       </SettingsForm>
-    </div>
+    </SettingsSection>
   );
 }

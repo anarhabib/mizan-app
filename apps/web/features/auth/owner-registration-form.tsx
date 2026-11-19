@@ -9,7 +9,6 @@ import {
 } from "./owner-actions";
 import { messages, type Locale } from "../language/messages";
 
-const currencies = Intl.supportedValuesOf("currency");
 const defaultValues = {
   organizationName: "",
   storeName: "",
@@ -17,10 +16,12 @@ const defaultValues = {
 };
 
 export function OwnerSetupFields({
+  currencies,
   values = defaultValues,
   error,
   locale = "az",
 }: {
+  currencies: readonly string[];
   values?: OnboardingRequest;
   error?: string;
   locale?: Locale;
@@ -65,11 +66,18 @@ export function OwnerSetupFields({
   );
 }
 
-export function OwnerSetupForm({ locale }: { locale: Locale }) {
+export function OwnerSetupForm({
+  locale,
+  currencies,
+}: {
+  locale: Locale;
+  currencies: readonly string[];
+}) {
   const [state, dispatch, pending] = useActionState(submitOwnerSetup, {});
   return (
     <form action={dispatch}>
       <OwnerSetupFields
+        currencies={currencies}
         key={JSON.stringify(state.values)}
         values={state.values}
         error={state.error}

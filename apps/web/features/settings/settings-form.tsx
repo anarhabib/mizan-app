@@ -5,20 +5,19 @@ import { updateSettings } from "./settings-actions";
 import { settingsCopy } from "./settings-copy";
 import { Button } from "../../components/ui/button";
 
-export const settingsPanel =
-  "mizan-glass-light grid gap-4 rounded-[19px] p-4 sm:rounded-[26px] sm:p-5";
-
 export function SettingsForm({
   organizationId,
   locale,
   intent,
   label,
+  buttonVariant,
   children,
 }: {
   organizationId: string;
   locale: Locale;
   intent: string;
   label: string;
+  buttonVariant?: "primary" | "secondary";
   children?: ReactNode;
 }) {
   const [state, dispatch, pending] = useActionState(
@@ -29,7 +28,7 @@ export function SettingsForm({
     <form action={dispatch}>
       <input type="hidden" name="intent" value={intent} />
       {children}
-      <Button type="submit" className="justify-self-start" disabled={pending}>
+      <Button type="submit" variant={buttonVariant} disabled={pending}>
         {pending ? settingsCopy[locale].saving : label}
       </Button>
       {state.error && <p role="alert">{state.error}</p>}
