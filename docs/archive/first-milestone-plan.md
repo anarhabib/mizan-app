@@ -1,6 +1,6 @@
 # Mizan First Milestone Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+Historical plan. See the [roadmap](../ROADMAP.md) for current milestone status.
 
 **Goal:** Deliver a locally runnable, SaaS-ready Mizan vertical slice covering owner onboarding, salesperson invitation, tenant-safe inventory, and transaction-safe ordinary and old-gold sales.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Node.js LTS, pnpm workspaces, TypeScript, Next.js App Router, Fastify, TypeBox, Prisma, Supabase local development, PostgreSQL, Vitest, Playwright, Docker.
 
-**Spec:** `docs/superpowers/specs/2026-11-17-mizan-first-milestone-design.md`
+**Spec:** [first-milestone specification](first-milestone-spec.md)
 
 ## Global Constraints
 
