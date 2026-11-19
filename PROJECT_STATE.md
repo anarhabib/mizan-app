@@ -1,5 +1,7 @@
 # Mizan project state
 
+- The Next.js frontend and design document were removed at the user’s request. The API, contracts, and database packages remain. API tests: 13 passed; 7 database integration tests skipped.
+
 ## Current status
 
 - Tasks 1–12 are merged into `main`. The first milestone handoff merged in PR #11.
@@ -16,7 +18,6 @@
 
 ## Execution decisions
 
-- Frontend work uses UI UX Pro Max alongside `DESIGN.md`. The workflow and upstream source are in `AGENTS.md`. Local installation is pending, and the published guidance is available through GitHub.
 
 - Start each new task from `main` on its own branch. Once verified, commit and push the branch and open a PR into `main`. Merging requires separate approval.
 - Prisma owns the application schema and migrations. The private `mizan` schema stays outside the Supabase Data API's exposed schemas.
