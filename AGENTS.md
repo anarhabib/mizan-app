@@ -15,6 +15,7 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 ## Stack (do not re-inspect)
 - pnpm monorepo. Use pnpm only, never npm or yarn. Backend: Fastify + Prisma. Frontend: `apps/web` (package name `web`).
 - Frontend stack: Vite, React 19 with React Compiler, TypeScript, TanStack Router (file-based), TanStack Query, Tailwind CSS v4, shadcn/ui, react-i18next, react-hook-form + Zod, decimal.js, Vitest.
+- Shared packages: `@mizan/contracts` holds shared API contracts; `apps/web` should import its types and schemas (instead of redefining them) once `docs/API_NOTES.md` confirms it is browser-safe. `@mizan/database` (Prisma) is backend-only: never import it, or anything from `packages/database`, in `apps/web`.
 - Never read or search `.next/` or `node_modules/`.
 - Backend input validation: check how existing routes validate (Fastify's built-in JSON Schema counts) before proposing anything. Do not add a validation library to the backend without approval.
 - Read `package.json` only when adding or changing a dependency.
