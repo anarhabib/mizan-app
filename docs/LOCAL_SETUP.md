@@ -112,13 +112,13 @@ The Playwright acceptance suite creates real accounts, invitations, products, an
 For the isolated stack used in Task 12, prepare a separate configuration without resetting the development stack.
 
 ```powershell
-New-Item -ItemType Directory -Force .superpowers/task12/supabase | Out-Null
+New-Item -ItemType Directory -Force .local/acceptance/supabase | Out-Null
 $mizanTestConfig = Get-Content supabase/config.toml -Raw
 $mizanTestConfig = $mizanTestConfig.Replace('mizan-app', 'mizan-task12').Replace('543', '553').Replace('3000', '3100')
-Set-Content .superpowers/task12/supabase/config.toml $mizanTestConfig
-pnpm.cmd exec supabase start --workdir .superpowers/task12
+Set-Content .local/acceptance/supabase/config.toml $mizanTestConfig
+pnpm.cmd exec supabase start --workdir .local/acceptance
 if ($LASTEXITCODE -ne 0) { throw 'Acceptance stack startup failed' }
-$mizanAcceptance = pnpm.cmd exec supabase status --workdir .superpowers/task12 --output json | ConvertFrom-Json
+$mizanAcceptance = pnpm.cmd exec supabase status --workdir .local/acceptance --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw 'Acceptance stack status failed' }
 $env:DATABASE_URL = $mizanAcceptance.DB_URL
 $env:MIZAN_TEST_DATABASE_URL = $env:DATABASE_URL
@@ -139,7 +139,7 @@ pnpm.cmd exec playwright install chromium
 if ($LASTEXITCODE -ne 0) { throw 'Chromium installation failed' }
 ```
 
-Start the API with `pnpm.cmd --filter @mizan/api start` and the web server with `pnpm.cmd --filter @mizan/web exec next start --hostname 127.0.0.1 --port 3100` in separate terminals with that same environment. In another configured terminal run `pnpm.cmd exec playwright test`. Stop both application processes afterward and run `pnpm.cmd exec supabase stop --workdir .superpowers/task12` to retain test data. Acceptance evidence and unverified states are recorded in `PROJECT_STATE.md`.
+Start the API with `pnpm.cmd --filter @mizan/api start` and the web server with `pnpm.cmd --filter @mizan/web exec next start --hostname 127.0.0.1 --port 3100` in separate terminals with that same environment. In another configured terminal run `pnpm.cmd exec playwright test`. Stop both application processes afterward and run `pnpm.cmd exec supabase stop --workdir .local/acceptance` to retain test data. Acceptance evidence and unverified states are recorded in `PROJECT_STATE.md`.
 
 ## Troubleshooting and shutdown
 

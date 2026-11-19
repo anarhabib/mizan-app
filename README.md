@@ -2,7 +2,7 @@
 
 Mizan is an inventory and sales app for jewelry stores, available in Azerbaijani and English. The workspace has a Next.js web app, a Fastify API, and separate packages for API contracts and the database.
 
-Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuration, migrations, service addresses, and verification commands. Use [the backup and restore procedure](docs/BACKUP_RESTORE.md) to preserve local data and exercise isolated recovery. Current milestone acceptance evidence is in [PROJECT_STATE.md](PROJECT_STATE.md).
+Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuration, migrations, service addresses, and verification commands. Use [the backup and restore procedure](docs/BACKUP_RESTORE.md) to preserve local data and exercise isolated recovery. See the [roadmap](docs/ROADMAP.md) for upcoming milestones. Current milestone acceptance evidence is in [PROJECT_STATE.md](PROJECT_STATE.md).
 
 ## Local development
 

@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Tasks 1–11 are on `main`. Task 11 merged in PR #7 (`c0db717`).
+- Tasks 1–12 are merged into `main`. The first milestone handoff merged in PR #11.
 - `apps/web` provides owner registration, sign-in, and workspace selection at `/register` and `/workspace`. Azerbaijani is the default and English can be selected. Translations live in `apps/web/features/language/messages.ts`; the browser remembers the selected language.
 - `packages/contracts` provides exact decimal input, currency precision, and half-up settlement rounding. `packages/database/prisma/schema.prisma` defines the private `mizan` schema. The initial Prisma migration applied to local Supabase PostgreSQL.
 - `apps/api/src/plugins/auth.ts` verifies Supabase-issued tokens through JWKS or Supabase Auth's user endpoint for legacy signing. `apps/api/src/plugins/request-context.ts` attaches context only after verifying current membership and store assignment in PostgreSQL. Access errors do not expose whether an unauthorized scope exists.
@@ -31,8 +31,10 @@
 
 ## Important documents
 
-- Design: `docs/superpowers/specs/2026-11-17-mizan-first-milestone-design.md`
-- Plan: `docs/superpowers/plans/2026-11-17-mizan-first-milestone.md`
+- Roadmap: `docs/ROADMAP.md`
+
+- Design: `docs/archive/first-milestone-spec.md`
+- Plan: `docs/archive/first-milestone-plan.md`
 - Product context: `PROJECT_CONTEXT.md`
 - Visual system: `DESIGN.md`
 
@@ -76,7 +78,7 @@ Review the remaining Task 12 verification limits below before pilot use. Task 12
 - `tests/e2e/first-milestone.spec.ts` and `playwright.config.ts` provide two real-service acceptance scenarios. They exercise owner registration/setup, settings, Mailpit invitation capture, new/existing account acceptance, hidden acquisition cost, revoked access, product persistence/search, invalid decimals, duplicate codes, ordinary sales, trade-in payouts, history, expired invitations, concurrent duplicate submissions, and already-sold items. SQL assertions verify exact persisted money, weights, rates, and single stock movements. `tsconfig.e2e.json` extends the root type check to the acceptance suite.
 - The browser regression caught a confirmation-focus bug in `apps/web/features/sales/sale-form.tsx`. The native modal now keeps its trigger enabled while open, allowing Escape to restore focus. Native modal inertness, frozen review data, and the in-flight/idempotency guards continue protecting submissions.
 - Verification on November 18, 2026 used Node 24 and a clean separate Supabase project, `mizan-task12`, on ports 55321–55325, with web/API on 3100/3101. No existing development database was reset. Workspace build, lint, type checking (including E2E), and 58 workspace tests passed. Three database schema tests passed. The separately configured live Storage suite passed both tests. Both Playwright scenarios passed, including the focus regression and exact financial assertions.
-- Captures cover Products, Sales, New Sale, and Settings at 320, 375, 430, 768, 1024, and 1440 px with no document overflow and one main landmark. Keyboard checks cover confirmation Escape/return focus/reopening and history search. Azerbaijani Products was checked at 320 px under reduced motion. Desktop New Sale was compared with approved Figma frame `3:3635`; the supported settlement fields and shipped navigation differ from the prototype's demo fields. Mobile has no exact approved frame in the inspected file. Screen-reader behavior, complete reduced-motion animation inspection, and email-confirmation-enabled signup remain unverified.
+- Captures cover Products, Sales, New Sale, and Settings at 320, 375, 430, 768, 1024, and 1440 px with no document overflow and one main landmark. Keyboard checks cover confirmation Escape/return focus/reopening and history search. Azerbaijani Products was checked at 320 px under reduced motion. Desktop New Sale was compared with the historical desktop reference; the supported settlement fields and shipped navigation differ from the prototype's demo fields. Mobile has no exact approved frame in the inspected file. Screen-reader behavior, complete reduced-motion animation inspection, and email-confirmation-enabled signup remain unverified.
 - `docs/LOCAL_SETUP.md`, `docs/BACKUP_RESTORE.md`, README links, and `.env.example` document setup, test configuration, service URLs, and recovery. A full local PostgreSQL custom archive and `/mnt` Storage file snapshot were created. The business schema restored into isolated PostgreSQL 17 after explicitly creating `mizan`. Documented representative SQL and all 14 table row hashes matched, including 33 organizations, 36 products, 22 sales, 9 trade-ins, and 59 movements. Real acceptance accounts had zero missing Auth identity links. These counts include retained integration fixtures and repeated acceptance runs.
 - Private drill artifacts remain ignored under `.superpowers/task12/`. The 410,046-byte archive SHA-256 is `281169D323656F8F506B83F7EA5A3767B83A3BA0772BE3844ED912DDF0156965`. A full Supabase Auth/Storage restore and signed-photo access after that restore remain unverified. The documented recovery objective is at most 24 hours of data loss, requiring daily backups before pilot use.
 - Changed-source formatting and `git diff --check` passed. Repository `pnpm format:check` reports 45 existing CRLF checkout files; their normalized contents match the base commit. Deferred minor items are routine `format:check` coverage for the new root/E2E files (checked explicitly here), and wrapping of English Sales status/action text at 1440 px. The owner's updated `AGENTS.md` instructions are included at their request. Task 12 is submitted in [PR #11](https://github.com/anarhabib/mizan-app/pull/11).
@@ -103,11 +105,11 @@ Review the remaining Task 12 verification limits below before pilot use. Task 12
 ## App-wide design
 
 - Existing routes now share `components/ui/page-heading.tsx`, light-glass panels, and grouped forms. `components/ui/form-controls.module.css` replaces the authentication-specific stylesheet. Workspace, settings, membership management, product creation/details, sale details, and public account pages use these patterns.
-- `features/auth/auth-card.tsx` provides the public branded layout for sign-in, registration, setup, and invitations. The home page follows approved Figma frame `2:172`, using the wide public header, dark hero, shared brand geometry, and feature panels. Feature copy describes shipped inventory, photo, and settlement workflows. The authenticated shell owns one main landmark.
+- `features/auth/auth-card.tsx` provides the public branded layout for sign-in, registration, setup, and invitations. The home page uses the wide public header, dark hero, shared brand geometry, and feature panels. Feature copy describes shipped inventory, photo, and settlement workflows. The authenticated shell owns one main landmark.
 - Static review identified and corrected a mobile input font-size regression. Browser verification uses local fixtures, with captures for existing routes at 320 and 1890 px. Live account and settings mutations remain part of milestone end-to-end verification.
 - The production web build with TypeScript checks, workspace lint, and all 18 web tests passed. Browser checks passed for desktop and mobile routes, sale flows, overflow, main landmarks, and the 16 px sign-in input baseline.
 
 ## Workflow efficiency
 
 - AGENTS.md now prefers inline execution of approved milestone tasks, contextual reuse of unchanged material, focused iteration checks, and full relevant verification before completion. UI work checks the exact approved reference and existing components first.
-- Mandatory Superpowers planning, fresh-read, and review requirements remain applicable. The milestone plan and approved design remain the scope authorities. No execution-mode configuration change was needed.
+- The roadmap covers the single-store pilot through SaaS. DESIGN.md and the existing UI provide the visual reference. The completed milestone plan and specification are archived in docs/archive/. Pilot verification is next.

@@ -29,7 +29,7 @@ Mizan is a management app for small jewelry stores. A family-owned jewelry store
 - [Preview of the five approved palettes](https://chatgpt.com/library?file_id=libfile_d60f1ad8d63881919af6df9e5015785a&account_id=personal)
 - [App screen preview](https://chatgpt.com/library?file_id=libfile_e6773243cbd481918c532f72612ddb2f&account_id=personal)
 
-Prioritize mobile screens and use a left sidebar on desktop. Follow the demo for the product form, inventory list, product details, and sales screen. Palette switching changes the colors, including the logo colors, while preserving the layout and functionality. Use the prototype or supplied design files for exact color values, fonts, and logo assets. If Codex cannot open a link, the relevant screenshots can be added to the repository as local references. Whether all five palettes ship in the first milestone is still open.
+Prioritize mobile screens and use a left sidebar on desktop. Use DESIGN.md and the current app as the reference for the product form, inventory list, product details, and sales screen. Palette switching changes the colors, including the logo colors, while preserving the layout and functionality. Use DESIGN.md for color values, typography, and brand guidance. Whether all five palettes ship in the first milestone is still open.
 
 ## First Implementation Task
 
@@ -52,7 +52,7 @@ Prioritize mobile screens and use a left sidebar on desktop. Follow the demo for
 
 Build the backend API with Fastify. Use Prisma ORM for the database schema, migrations, queries, and transactions. The frontend calls the Fastify API. Keep database credentials on the server. Scope store data access to the authenticated user’s authorized store, even though the initial deployment serves one store.
 
-The approved foundation is Next.js with TypeScript for the web application, Fastify for the API, Prisma for database access and migrations, and local Supabase for PostgreSQL, Auth, Storage, and captured development email. The repository is a pnpm monorepo and the applications form a modular monolith. The detailed approved design is `docs/superpowers/specs/2026-11-17-mizan-first-milestone-design.md`.
+The approved foundation is Next.js with TypeScript for the web application, Fastify for the API, Prisma for database access and migrations, and local Supabase for PostgreSQL, Auth, Storage, and captured development email. The repository is a pnpm monorepo and the applications form a modular monolith. The detailed approved design is [the archived first-milestone specification](docs/archive/first-milestone-spec.md).
 
 At the end of the first task, document local setup, required environment variables, how to run the Fastify API, and how to apply Prisma migrations. Verify the acceptance criteria with test data and report any checks you could not run.
 

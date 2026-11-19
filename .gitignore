@@ -6,7 +6,9 @@ coverage/
 next-env.d.ts
 .env*
 !.env.example
-.superpowers/
+/.local/
+# Existing private backup and test artifacts.
+/.superpowers/
 playwright-report/
 test-results/
 supabase/.temp/
