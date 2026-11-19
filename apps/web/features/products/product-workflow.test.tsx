@@ -28,6 +28,7 @@ const product = {
 test("keeps invalid input and reports duplicate codes inline", () => {
   const html = renderToStaticMarkup(
     <ProductForm
+      currencies={["AZN", "USD"]}
       locale="en"
       scope={scope}
       options={{ defaultCurrency: "USD", purities: [585] }}

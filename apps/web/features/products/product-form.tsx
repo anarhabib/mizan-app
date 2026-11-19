@@ -23,12 +23,14 @@ export function ProductForm({
   locale,
   scope,
   options,
+  currencies,
   save,
   initial = {},
 }: {
   locale: Locale;
   scope: ProductScope;
   options: ProductOptions;
+  currencies: readonly string[];
   initial?: ProductFormState;
   save: (state: ProductFormState, data: FormData) => Promise<ProductFormState>;
 }) {
@@ -105,7 +107,7 @@ export function ProductForm({
             name="currency"
             defaultValue={state.values?.currency ?? options.defaultCurrency}
           >
-            {Intl.supportedValuesOf("currency").map((currency) => (
+            {currencies.map((currency) => (
               <option key={currency} value={currency}>
                 {currency}
               </option>

@@ -55,8 +55,9 @@ export function previewSale(
   amount: string,
   trades: Array<{ weight: string; rate: string; overrideAmount?: string }>,
   payment?: SaleCreateInput["payment"],
+  minorUnits = currencyMinorUnits,
 ) {
-  const scale = currencyMinorUnits(currency);
+  const scale = minorUnits(currency);
   const calculated = trades.map(({ weight, rate }) => tradeValue(weight, rate));
   const accepted = trades.map(({ overrideAmount }, index) =>
     overrideAmount === undefined
@@ -75,7 +76,7 @@ export function previewSale(
     scale,
   );
   const due = units(balance, scale);
-  const paymentScale = payment ? currencyMinorUnits(payment.currency) : scale;
+  const paymentScale = payment ? minorUnits(payment.currency) : scale;
   const rate =
     payment && payment.currency !== currency
       ? saleDecimal(payment.exchangeRate ?? "", 8, 12)

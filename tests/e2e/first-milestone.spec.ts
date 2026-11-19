@@ -99,6 +99,22 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   page,
   browser,
 }, testInfo) => {
+  const hydrationErrors: string[] = [];
+  const recordHydrationError = (message: string) => {
+    if (/hydration|Minified React error #(418|423|425)\b/i.test(message))
+      hydrationErrors.push(message);
+  };
+  page.on("pageerror", (error) => recordHydrationError(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") recordHydrationError(message.text());
+  });
+  await page.addInitScript(() => {
+    const supportedValuesOf = Intl.supportedValuesOf.bind(Intl);
+    Intl.supportedValuesOf = (key) =>
+      key === "currency"
+        ? [...supportedValuesOf(key).filter((code) => code !== "AZN"), "ZZZ"]
+        : supportedValuesOf(key);
+  });
   const owner = `owner-${run}@example.test`;
   await page.goto("/");
   await expect(page.getByRole("combobox")).toHaveCSS("width", "44px");
@@ -113,6 +129,9 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await expect(page.locator("header").getByRole("combobox")).toHaveValue("en");
   await credentials(page, owner, true);
   await expect(page.locator('[name="organizationName"]')).toBeVisible();
+  await expect(page.locator('select[name="defaultCurrency"]')).toHaveValue(
+    "AZN",
+  );
   await page.locator('[name="organizationName"]').fill(`Milestone ${run}`);
   await page.locator('[name="storeName"]').fill("Baku acceptance store");
   await page.getByRole("button", { name: "Create store", exact: true }).click();
@@ -133,6 +152,8 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   const rateForm = page
     .locator("form")
     .filter({ has: page.locator('[name="amountPerGram"]') });
+  await expect(rateForm.locator('select[name="currency"]')).toHaveValue("AZN");
+  await expect(rateForm.locator('option[value="ZZZ"]')).toHaveCount(0);
   await rateForm.locator('[name="purity"]').selectOption("585");
   await rateForm.locator('[name="amountPerGram"]').fill("100.0000");
   await rateForm.getByRole("button", { name: "Save rate" }).click();
@@ -258,6 +279,12 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     .getByRole("button")
     .click();
   await page.locator("#sale-amount").fill("150.00");
+  await page.getByRole("checkbox", { name: "Enter cash tender" }).check();
+  await expect(page.locator("#sale-cash-currency")).toHaveValue("AZN");
+  await expect(
+    page.locator("#sale-cash-currency option").filter({ hasText: /^ZZZ$/ }),
+  ).toHaveCount(0);
+  await page.locator("#cash-received").fill("150.00");
   await page
     .getByRole("button", { name: "Complete sale", exact: true })
     .click();
@@ -496,6 +523,7 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await expect(
     page.getByRole("heading", { name: "Sale recorded" }),
   ).toBeVisible();
+  expect(hydrationErrors).toEqual([]);
 });
 
 test("expired invitations, duplicate sale submissions and already-sold products", async ({

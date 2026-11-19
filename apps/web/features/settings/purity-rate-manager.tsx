@@ -1,17 +1,12 @@
 "use client";
 import { useId, useState } from "react";
-import { Coins, Gem, History } from "lucide-react";
-import type { OldGoldRate, PurityGrade } from "@mizan/contracts";
+import { Coins, Gem } from "lucide-react";
+import type { PurityGrade } from "@mizan/contracts";
 import type { Locale } from "../language/messages";
 import { SettingsForm } from "./settings-form";
 import { SettingsSection } from "./settings-section";
-import { money } from "../../lib/format-money";
 import { StatusBadge } from "../../components/ui/status-badge";
 import { settingsCopy } from "./settings-copy";
-
-const currencies = Intl.supportedValuesOf("currency");
-const listItem =
-  "min-w-0 rounded-xl border border-solid border-mizan-edge bg-mizan-field p-3";
 
 export function PurityGrades({
   organizationId,
@@ -74,13 +69,13 @@ export function PurityGrades({
 export function PurchaseRates({
   organizationId,
   locale,
+  currencies,
   purities,
-  rates,
 }: {
   organizationId: string;
   locale: Locale;
+  currencies: readonly string[];
   purities: PurityGrade[];
-  rates: OldGoldRate[];
 }) {
   const copy = settingsCopy[locale];
   const fields = useId();
@@ -93,97 +88,63 @@ export function PurchaseRates({
   const purity = active.some(({ value }) => value === selectedPurity)
     ? selectedPurity
     : active[0]?.value;
-  const date = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Baku",
-  });
   const shared = { organizationId, locale };
   return (
-    <>
-      <SettingsSection
-        title={copy.rates}
-        icon={<Coins aria-hidden="true" size={20} />}
-      >
-        {!active.length ? (
-          <p>{copy.noActive}</p>
-        ) : (
-          <SettingsForm {...shared} intent="rate" label={copy.addRate}>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${fields}-grade`}>{copy.purity}</label>
-                <select
-                  id={`${fields}-grade`}
-                  name="purity"
-                  required
-                  value={purity}
-                  onChange={(event) => selectPurity(Number(event.target.value))}
-                >
-                  {active.map(({ value }) => (
-                    <option key={value} value={value}>
-                      {value} ‰
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${fields}-currency`}>
-                  {copy.rateCurrency}
-                </label>
-                <select
-                  id={`${fields}-currency`}
-                  name="currency"
-                  required
-                  value={currency}
-                  onChange={(event) => selectCurrency(event.target.value)}
-                >
-                  {currencies.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <label>
-              {copy.amount}
-              <input
-                name="amountPerGram"
-                inputMode="decimal"
-                maxLength={19}
+    <SettingsSection
+      title={copy.rates}
+      icon={<Coins aria-hidden="true" size={20} />}
+    >
+      {!active.length ? (
+        <p>{copy.noActive}</p>
+      ) : (
+        <SettingsForm {...shared} intent="rate" label={copy.addRate}>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-2">
+              <label htmlFor={`${fields}-grade`}>{copy.purity}</label>
+              <select
+                id={`${fields}-grade`}
+                name="purity"
                 required
-                value={rateInput}
-                onChange={(event) => setRateInput(event.target.value)}
-              />
-            </label>
-          </SettingsForm>
-        )}
-      </SettingsSection>
-      <SettingsSection
-        title={copy.history}
-        icon={<History aria-hidden="true" size={18} />}
-      >
-        {rates.length === 0 ? (
-          <p>{copy.empty}</p>
-        ) : (
-          <ul>
-            {rates.map((rate) => (
-              <li key={rate.id} className={`grid gap-1 ${listItem}`}>
-                <strong className="wrap-anywhere tabular-nums">
-                  {rate.purity} ‰ ·{" "}
-                  {money(locale, rate.amountPerGram, rate.currency)}
-                </strong>
-                <span className="text-sm text-mizan-muted">
-                  {rate.current ? copy.current : copy.historical} ·{" "}
-                  <time dateTime={rate.effectiveAt}>
-                    {date.format(new Date(rate.effectiveAt))}
-                  </time>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SettingsSection>
-    </>
+                value={purity}
+                onChange={(event) => selectPurity(Number(event.target.value))}
+              >
+                {active.map(({ value }) => (
+                  <option key={value} value={value}>
+                    {value} ‰
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid min-w-0 gap-2">
+              <label htmlFor={`${fields}-currency`}>{copy.rateCurrency}</label>
+              <select
+                id={`${fields}-currency`}
+                name="currency"
+                required
+                value={currency}
+                onChange={(event) => selectCurrency(event.target.value)}
+              >
+                {currencies.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <label>
+            {copy.amount}
+            <input
+              name="amountPerGram"
+              inputMode="decimal"
+              maxLength={19}
+              required
+              value={rateInput}
+              onChange={(event) => setRateInput(event.target.value)}
+            />
+          </label>
+        </SettingsForm>
+      )}
+    </SettingsSection>
   );
 }

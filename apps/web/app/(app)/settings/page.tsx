@@ -14,6 +14,8 @@ import {
 } from "../../../features/settings/purity-rate-manager";
 import { settingsCopy } from "../../../features/settings/settings-copy";
 import { SettingsSection } from "../../../features/settings/settings-section";
+import { currencies } from "../../../lib/currencies";
+import { RateHistory } from "../../../features/settings/rate-history";
 
 export default async function SettingsPage({
   searchParams,
@@ -78,11 +80,12 @@ export default async function SettingsPage({
           </div>
           <div className={styles.controls}>
             <PurchaseRates
+              currencies={currencies}
               organizationId={selected}
               locale={locale}
               purities={data.purities}
-              rates={data.rates}
             />
+            <RateHistory locale={locale} rates={data.rates} />
           </div>
         </div>
       ) : session.status !== 200 || (result && result.status !== 403) ? (

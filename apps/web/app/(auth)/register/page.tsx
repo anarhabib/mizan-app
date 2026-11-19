@@ -8,6 +8,7 @@ import { signOut } from "../../../features/auth/owner-actions";
 import { apiRequest } from "../../../features/auth/session";
 import { currentLocale } from "../../../features/language/preference";
 import { messages } from "../../../features/language/messages";
+import { currencies } from "../../../lib/currencies";
 
 export default async function RegistrationPage({
   searchParams,
@@ -24,7 +25,7 @@ export default async function RegistrationPage({
   if (result.status === 200)
     return (
       <AuthCard locale={locale} title={copy.setup}>
-        <OwnerSetupForm key={locale} locale={locale} />
+        <OwnerSetupForm key={locale} locale={locale} currencies={currencies} />
         <form action={signOut}>
           <button className="auth-secondary">{copy.signOut}</button>
         </form>

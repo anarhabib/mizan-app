@@ -1,4 +1,8 @@
-import type { ProductDetail, ProductList } from "@mizan/contracts";
+import {
+  currencyMinorUnits,
+  type ProductDetail,
+  type ProductList,
+} from "@mizan/contracts";
 import { redirect } from "next/navigation";
 import { apiRequest } from "../../../../features/auth/session";
 import { productHref } from "../../../../features/products/product-copy";
@@ -12,6 +16,11 @@ import {
 } from "../../../../features/sales/sale-copy";
 import { SaleForm } from "../../../../features/sales/sale-form";
 import { productRequest } from "../../../../lib/api-client";
+import { currencies } from "../../../../lib/currencies";
+
+const currencyScales = Object.fromEntries(
+  currencies.map((currency) => [currency, currencyMinorUnits(currency)]),
+);
 
 export default async function NewSalePage({
   searchParams,
@@ -40,6 +49,7 @@ export default async function NewSalePage({
     return <p role="alert">{saleCopy[locale].optionsFailed}</p>;
   return (
     <SaleForm
+      currencyScales={currencyScales}
       key={scope.organizationId + ":" + scope.storeId + ":" + (productId ?? "")}
       locale={locale}
       scope={scope}
