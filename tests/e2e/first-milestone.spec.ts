@@ -125,18 +125,11 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   ).toHaveCount(0);
   await expect(
     page.locator('[name="salespersonCanViewAcquisitionCost"]'),
-  ).toBeHidden();
-  await page
-    .locator("summary")
-    .filter({ hasText: "Salesperson permissions" })
-    .click();
+  ).toBeVisible();
+  await expect(page.getByRole("main").locator("details")).toHaveCount(0);
   await page.locator('[name="salespersonCanViewAcquisitionCost"]').uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status").first()).toHaveText("Change saved.");
-  await page
-    .locator("summary")
-    .filter({ hasText: "Old-gold purchase rates" })
-    .click();
   const rateForm = page
     .locator("form")
     .filter({ has: page.locator('[name="amountPerGram"]') });
@@ -144,12 +137,7 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await rateForm.locator('[name="amountPerGram"]').fill("100.0000");
   await rateForm.getByRole("button", { name: "Save rate" }).click();
   await expect(rateForm.getByRole("status")).toHaveText("Change saved.");
-  await page.locator("summary").filter({ hasText: "Rate history" }).click();
   await expect(page.getByText(/585 ‰ · 100\.00 AZN$/)).toBeVisible();
-  await page
-    .locator("summary")
-    .filter({ hasText: "Gold purity grades" })
-    .click();
   const grade = page.getByRole("listitem").filter({ hasText: "375 ‰" });
   await grade.getByRole("button", { name: "Deactivate", exact: true }).click();
   await expect(grade.getByText("Inactive", { exact: false })).toBeVisible();
@@ -157,11 +145,16 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await expect(
     grade.getByRole("button", { name: "Reactivate", exact: true }),
   ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath("settings-inactive-grade.png"),
+  });
   await page
     .context()
     .addCookies([{ name: "mizan-language", value: "az", url: origin }]);
   await page.reload();
-  await page.locator("summary").filter({ hasText: "Qızıl əyarları" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Qızıl əyarları" }),
+  ).toBeVisible();
   await grade.getByRole("button", { name: "Aktiv et", exact: true }).click();
   await expect(
     grade.getByRole("button", { name: "Deaktiv et", exact: true }),
@@ -169,7 +162,7 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
   await english(page);
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Organization settings", exact: true }),
+    page.getByRole("heading", { name: "Settings", exact: true }),
   ).toBeVisible();
   await expect(rateForm.locator('option[value="375"]')).toHaveCount(1);
 
@@ -367,7 +360,7 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
     const header = page.getByRole("banner");
     await expect
       .poll(() =>
-        page.locator("main summary").evaluateAll(([permissions, , rates]) => {
+        page.locator("main h2").evaluateAll(([permissions, , rates]) => {
           const first = permissions.getBoundingClientRect();
           const second = rates.getBoundingClientRect();
           return (
@@ -376,28 +369,9 @@ test("owner, invited salespeople, inventory, settlements and persisted history",
         }),
       )
       .toBe(width === 1440);
-    if (width === 1440) {
-      const rateHistory = page
-        .locator("summary")
-        .filter({ hasText: "Rate history" });
-      const topBefore = await rateHistory.evaluate(
-        (item) => item.getBoundingClientRect().top,
-      );
-      const purities = page
-        .locator("summary")
-        .filter({ hasText: "Gold purity grades" });
-      await purities.click();
-      await expect(
-        grade.getByRole("button", { name: "Deactivate", exact: true }),
-      ).toBeVisible();
-      expect(
-        await rateHistory.evaluate((item) => item.getBoundingClientRect().top),
-      ).toBe(topBefore);
-      await page.screenshot({
-        path: testInfo.outputPath("1440-settings-purity-open.png"),
-      });
-      await purities.click();
-    }
+    await expect(
+      page.getByRole("heading", { name: "Rate history" }),
+    ).toBeVisible();
     const height = width === 320 ? "54px" : "60px";
     await expect(header).toHaveCSS("height", height);
     await expect(header).toHaveCSS(

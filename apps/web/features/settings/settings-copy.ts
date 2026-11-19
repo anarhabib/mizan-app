@@ -1,7 +1,6 @@
 import type { Locale } from "../language/messages";
 
 const az = {
-  title: "Biznes parametrləri",
   back: "İş sahəsinə qayıt",
   choose: "Biznes seçin",
   currency: "Əsas valyuta",
@@ -32,7 +31,6 @@ const az = {
   denied: "Bu biznesin parametrlərinə giriş icazəniz yoxdur.",
 };
 const en: typeof az = {
-  title: "Organization settings",
   back: "Back to workspace",
   choose: "Choose a business",
   currency: "Default currency",

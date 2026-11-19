@@ -10,12 +10,14 @@ export function SettingsForm({
   locale,
   intent,
   label,
+  buttonVariant,
   children,
 }: {
   organizationId: string;
   locale: Locale;
   intent: string;
   label: string;
+  buttonVariant?: "primary" | "secondary";
   children?: ReactNode;
 }) {
   const [state, dispatch, pending] = useActionState(
@@ -26,7 +28,7 @@ export function SettingsForm({
     <form action={dispatch}>
       <input type="hidden" name="intent" value={intent} />
       {children}
-      <Button type="submit" className="justify-self-start" disabled={pending}>
+      <Button type="submit" variant={buttonVariant} disabled={pending}>
         {pending ? settingsCopy[locale].saving : label}
       </Button>
       {state.error && <p role="alert">{state.error}</p>}

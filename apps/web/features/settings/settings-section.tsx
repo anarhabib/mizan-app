@@ -1,5 +1,5 @@
-import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
+import { Surface } from "../../components/ui/surface";
 
 export function SettingsSection({
   title,
@@ -11,17 +11,12 @@ export function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <details className="mizan-glass-light group rounded-[19px]">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-[19px] px-4 py-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-mizan-focus [&::-webkit-details-marker]:hidden">
-        {icon}
+    <Surface className="grid min-w-0 gap-4 p-4 sm:p-5">
+      <h2 className="m-0 flex items-center gap-2 text-lg leading-tight font-extrabold tracking-tight">
+        {icon && <span className="shrink-0">{icon}</span>}
         {title}
-        <ChevronDown
-          className="ml-auto shrink-0 group-open:rotate-180"
-          size={18}
-          aria-hidden="true"
-        />
-      </summary>
-      <div className="grid min-w-0 gap-4 px-4 pt-2 pb-4">{children}</div>
-    </details>
+      </h2>
+      {children}
+    </Surface>
   );
 }

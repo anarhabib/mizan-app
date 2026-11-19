@@ -6,6 +6,7 @@ import type { Locale } from "../language/messages";
 import { SettingsForm } from "./settings-form";
 import { SettingsSection } from "./settings-section";
 import { money } from "../../lib/format-money";
+import { StatusBadge } from "../../components/ui/status-badge";
 import { settingsCopy } from "./settings-copy";
 
 const currencies = Intl.supportedValuesOf("currency");
@@ -43,20 +44,23 @@ export function PurityGrades({
           />
         </label>
       </SettingsForm>
-      <ul>
+      <ul className="gap-0! divide-y divide-mizan-edge/40">
         {purities.map(({ value, active }) => (
           <li
             key={value}
-            className={`flex flex-wrap items-center justify-between gap-2 ${listItem}`}
+            className="flex min-w-0 flex-wrap items-center justify-between gap-2 py-2"
           >
-            <span>
-              <strong>{value} ‰</strong> ·{" "}
-              {active ? copy.active : copy.inactive}
+            <span className="flex flex-wrap items-center gap-2">
+              <strong className="tabular-nums">{value} ‰</strong>
+              <StatusBadge muted={!active}>
+                {active ? copy.active : copy.inactive}
+              </StatusBadge>
             </span>
             <SettingsForm
               {...shared}
               intent={active ? "deactivate" : "reactivate"}
               label={active ? copy.deactivate : copy.reactivate}
+              buttonVariant={active ? "secondary" : "primary"}
             >
               <input type="hidden" name="purity" value={value} />
             </SettingsForm>

@@ -5,6 +5,7 @@ import styles from "../../../components/ui/form-controls.module.css";
 import { actionClass } from "../../../components/ui/button";
 import { PageHeading } from "../../../components/ui/page-heading";
 import { apiRequest, requestContexts } from "../../../features/auth/session";
+import { messages } from "../../../features/language/messages";
 import { currentLocale } from "../../../features/language/preference";
 import { OrganizationSettingsForm } from "../../../features/settings/organization-settings-form";
 import {
@@ -49,7 +50,7 @@ export default async function SettingsPage({
   return (
     <section className="grid gap-4">
       <PageHeading
-        title={copy.title}
+        title={messages[locale].settingsNav}
         description={selected && owners.get(selected)}
         actions={
           <a className={actionClass + " mizan-table-action"} href="/workspace">
