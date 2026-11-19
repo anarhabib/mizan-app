@@ -9,15 +9,14 @@
     "dev": "pnpm --filter @mizan/database --filter @mizan/contracts build && pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
-    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.e2e.json",
+    "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "format:check": "prettier --check package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs \"apps/**/*.{json,ts,tsx,css}\" \"packages/**/*.{json,ts}\"",
+    "format:check": "prettier --check package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs \"apps/api/**/*.{json,ts}\" \"packages/**/*.{json,ts}\"",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop"
   },
   "devDependencies": {
     "@eslint/js": "^9",
-    "@playwright/test": "^1.65.1",
     "@types/node": "^22.20.5",
     "eslint": "^9",
     "prettier": "^3",

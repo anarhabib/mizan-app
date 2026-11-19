@@ -36,12 +36,11 @@ UI implementation
 - Respect all five documented palettes, theme-dependent brand marks, Manrope typography, component states, responsiveness and motion. Theme switching changes documented visual properties only, not business behavior or unrelated layout.
 - Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
 - Before a UI PR, check implemented views at the closest reference desktop viewport and a mobile width. Compare the rendered route and state with DESIGN.md and established UI patterns, fix relevant visible differences and report deliberate deviations and unverified states. Check both widths when changing shared UI.
-- UI UX Pro Max is supplemental for accessibility, responsive structure, navigation and feedback; use it only when applicable and available, without letting generic suggestions replace the approved Mizan visual language. If mandatory locally configured skill instructions require a read, comply; avoid unrelated upstream reference reads.
 Execution efficiency and token discipline
 - Keep Sol/native inline execution as the preferred workflow for scoped development. Model/reasoning selection is controlled by the developer; these instructions do not force a model change.
-- Use subagents only for substantial independent work, high-risk review, or an applicable mandatory skill gate. Give a reviewer focused requirements, changed files and diff; do not inherit the entire conversation when a fresh, focused review is possible.
-- Reuse already approved plans, decisions and available conversation context. Do not reopen resolved scope, ask repeated questions or produce a new plan/document for routine tasks unless an applicable skill requires it.
-- Read the smallest relevant code, document and skill sections; avoid repeatedly reading unchanged content. Re-read when changed, missing from context, uncertain or explicitly required by an applicable skill.
+- Use subagents only for substantial independent work, high-risk review. Give a reviewer focused requirements, changed files and diff; do not inherit the entire conversation when a fresh, focused review is possible.
+- Reuse already approved plans, decisions and available conversation context. Do not reopen resolved scope, ask repeated questions or produce a new plan/document for routine tasks.
+- Read the smallest relevant code and document sections; avoid repeatedly reading unchanged content. Re-read when changed, missing from context, uncertain or explicitly required by an applicable skill.
 - Batch independent file reads/searches; constrain tool output to relevant findings and errors. Avoid verbose progress output, repeated full-repository scans and repeated builds after small visual changes.
 - Review the existing UI and DESIGN.md before coding to prevent avoidable redesign-and-retest cycles.
 - Use focused checks while iterating, then a single full relevant verification pass before PR; rerun affected checks when later changes invalidate results. Never skip necessary financial, security, migration or data-integrity checks merely to save tokens.
