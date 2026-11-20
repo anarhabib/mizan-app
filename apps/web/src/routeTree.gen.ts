@@ -13,7 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SalesRouteImport } from './routes/sales'
-import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as TeamRouteImport } from './routes/team'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as InvitationsTokenRouteImport } from './routes/invitations.$token'
@@ -39,7 +39,7 @@ const SalesRoute = SalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
+const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => rootRouteImport,
@@ -67,10 +67,10 @@ const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRouteRoute
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
-  '/settings': typeof SettingsRoute
   '/team': typeof TeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
@@ -78,10 +78,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRouteRoute
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
-  '/settings': typeof SettingsRoute
   '/team': typeof TeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
@@ -90,10 +90,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/settings': typeof SettingsRouteRoute
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
-  '/settings': typeof SettingsRoute
   '/team': typeof TeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
@@ -103,10 +103,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/settings'
     | '/login'
     | '/products'
     | '/sales'
-    | '/settings'
     | '/team'
     | '/auth/callback'
     | '/invitations/$token'
@@ -114,10 +114,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/settings'
     | '/login'
     | '/products'
     | '/sales'
-    | '/settings'
     | '/team'
     | '/auth/callback'
     | '/invitations/$token'
@@ -125,10 +125,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/settings'
     | '/login'
     | '/products'
     | '/sales'
-    | '/settings'
     | '/team'
     | '/auth/callback'
     | '/invitations/$token'
@@ -137,10 +137,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SettingsRouteRoute: typeof SettingsRouteRoute
   LoginRoute: typeof LoginRoute
   ProductsRoute: typeof ProductsRoute
   SalesRoute: typeof SalesRoute
-  SettingsRoute: typeof SettingsRoute
   TeamRoute: typeof TeamRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   InvitationsTokenRoute: typeof InvitationsTokenRoute
@@ -181,7 +181,7 @@ declare module '@tanstack/react-router' {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
+      preLoaderRoute: typeof SettingsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/team': {
@@ -217,10 +217,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SettingsRouteRoute: SettingsRouteRoute,
   LoginRoute: LoginRoute,
   ProductsRoute: ProductsRoute,
   SalesRoute: SalesRoute,
-  SettingsRoute: SettingsRoute,
   TeamRoute: TeamRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   InvitationsTokenRoute: InvitationsTokenRoute,
