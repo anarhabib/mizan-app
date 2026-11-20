@@ -80,5 +80,5 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 ## Communication and session continuity
 
 - Ask focused questions only when the answer materially affects behavior, security, data, architecture or approved visual direction. Distinguish confirmed facts from assumptions and explain consequential risks.
-- On a new session, read only documentation relevant to the task; do not assume earlier chat context persists. Check `TASKS.md` if present and update it only when task status changes.
+- On a new session, read only documentation relevant to the task; do not assume earlier chat context persists. Check `TASKS.md` if present. When a task finishes, tick only the boxes for items you implemented and verified, in the same PR. Leave manual-test boxes (real phone, React DevTools profiler, slow-network or double-tap tests) unticked and list them in the PR description as "needs developer check". Do not add, remove or reword tasks.
 - Record significant approved decisions in an existing appropriate document; use `DECISIONS.md` only if the repository has adopted it.
