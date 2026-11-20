@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   ProductDetail,
+  SaleConfirmation,
   SaleCreateInput,
   SaleResult,
 } from "@mizan/contracts";
@@ -12,7 +13,12 @@ import {
   productKeys,
 } from "@/features/products";
 import { apiRequest, ApiError } from "@/shared/lib/api";
-import { saleKeys, salePath, type SaleScope } from "../api/queries";
+import {
+  saleDetailQuery,
+  saleKeys,
+  salePath,
+  type SaleScope,
+} from "../api/queries";
 import { saleAttempt, type SaleAttempt } from "../lib/attempt";
 import { saleError } from "../lib/form";
 
@@ -25,9 +31,13 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   const [needsCheck, setNeedsCheck] = useState(false);
   const [checkedInStock, setCheckedInStock] = useState(false);
   const [recoveredId, setRecoveredId] = useState<string>();
+  const [confirmation, setConfirmation] = useState<SaleConfirmation>();
 
-  async function refreshInventory(sale: NonNullable<ProductDetail["sale"]>) {
-    await cacheSoldProduct(client, scope, productId, sale);
+  async function refreshInventory(
+    sold: { id: string; sale: NonNullable<ProductDetail["sale"]> }[],
+  ) {
+    for (const { id, sale } of sold)
+      await cacheSoldProduct(client, scope, id, sale);
     const lists = client
       .getQueryCache()
       .findAll({ queryKey: saleKeys.lists(scope) });
@@ -35,37 +45,56 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
       ...lists.map(({ queryKey }) =>
         client.invalidateQueries({ queryKey, exact: true }),
       ),
-      client.invalidateQueries({
-        queryKey: productKeys.detail(scope, productId),
-        exact: true,
-      }),
+      ...sold.map(({ id }) =>
+        client.invalidateQueries({
+          queryKey: productKeys.detail(scope, id),
+          exact: true,
+        }),
+      ),
       invalidateProductInventory(client, scope),
     ]);
+  }
+
+  function refreshReceiptInventory(result: SaleResult) {
+    return refreshInventory(
+      result.items.map(({ product, saleAmount }) => ({
+        id: product.id,
+        sale: {
+          id: result.id,
+          createdAt: result.createdAt,
+          total: { amount: saleAmount, currency: result.currency },
+        },
+      })),
+    );
   }
 
   const mutation = useMutation({
     mutationKey: saleKeys.create(scope),
     retry: false,
     networkMode: "always",
-    mutationFn: async ({ key, payload }: SaleAttempt) => {
+    mutationFn: async ({
+      key,
+      payload,
+      token,
+    }: SaleAttempt & { token?: string }) => {
       const result = await apiRequest<SaleResult>(salePath(scope), {
         method: "POST",
-        headers: { "Idempotency-Key": key },
+        headers: {
+          "Idempotency-Key": key,
+          ...(token && { "Sale-Confirmation": token }),
+        },
         body: payload,
         signal: AbortSignal.timeout(30_000),
       });
-      if (!result?.id)
+      if (!result?.id || !Array.isArray(result.items) || !result.items.length)
         throw new ApiError(201, "INVALID_RESPONSE", "Missing sale result");
       return result;
     },
     onSuccess: async (result) => {
       attempt.current = undefined;
+      setConfirmation(undefined);
       client.setQueryData(saleKeys.detail(scope, result.id), result);
-      await refreshInventory({
-        id: result.id,
-        createdAt: result.createdAt,
-        total: { amount: result.saleAmount, currency: result.currency },
-      });
+      await refreshReceiptInventory(result);
     },
   });
 
@@ -85,7 +114,20 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
       if (product.status === "SOLD") {
         if (product.sale) {
           setRecoveredId(product.sale.id);
-          await refreshInventory(product.sale);
+          if (attempt.current?.payload.items) {
+            try {
+              const result = await client.fetchQuery({
+                ...saleDetailQuery(scope, product.sale.id),
+                networkMode: "always",
+                retry: false,
+              });
+              await refreshReceiptInventory(result);
+              return;
+            } catch {
+              // The product lookup still identifies the receipt.
+            }
+          }
+          await refreshInventory([{ id: productId, sale: product.sale }]);
         }
         return;
       }
@@ -111,7 +153,7 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
     }
   }
 
-  async function submit(payload: SaleCreateInput) {
+  async function submit(payload: SaleCreateInput, token?: string) {
     if (locked.current || requiresCheck.current || mutation.data) return;
     locked.current = true;
     setBusy(true);
@@ -119,14 +161,26 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
     try {
       const next = saleAttempt(attempt.current, payload);
       attempt.current = next;
-      await mutation.mutateAsync(next);
+      await mutation.mutateAsync({ ...next, token });
     } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.code === "SALE_CONFIRMATION_REQUIRED" &&
+        error.confirmation &&
+        typeof error.confirmation === "object" &&
+        "token" in error.confirmation &&
+        typeof error.confirmation.token === "string"
+      ) {
+        setConfirmation(error.confirmation as SaleConfirmation);
+        return;
+      }
       const mapped = saleError(
         error instanceof ApiError
           ? error
           : new ApiError(0, "UNKNOWN", "Sale failed"),
         payload.tradeIns?.length ?? 0,
       );
+      setConfirmation(undefined);
       if ("check" in mapped) await verifyProduct();
       if ("refresh" in mapped && mapped.refresh) {
         await client.invalidateQueries({
@@ -147,6 +201,12 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
     checkedInStock,
     resultId: mutation.data?.id,
     recoveredId,
+    confirmation,
+    cancelConfirmation: () => setConfirmation(undefined),
+    confirm: () => {
+      if (confirmation && attempt.current)
+        return submit(attempt.current.payload, confirmation.token);
+    },
     submit,
     checkAgain,
   };

@@ -145,6 +145,11 @@ test.skipIf(!db)(
         },
         product: { code: "R-1", weight: "2.333", status: "SOLD" },
         tradeIns: [{ acceptedValue: "30", appliedRate: "15" }],
+        profit: {
+          acquisitionCost: { amount: "70", currency: "AZN" },
+          grossProfit: "130",
+          marginPercent: "65",
+        },
       });
       const deletion = await app.inject({
         method: "DELETE",
@@ -249,6 +254,7 @@ test.skipIf(!db)(
         balance: "-20",
         payout: "20",
         payment: null,
+        profit: { grossProfit: "18", marginPercent: "90" },
         tradeIns: [
           { calculatedValue: "30", acceptedValue: "40", overridden: true },
         ],

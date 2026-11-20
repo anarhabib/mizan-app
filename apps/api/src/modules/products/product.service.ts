@@ -170,6 +170,7 @@ export async function deleteProduct(
           ...where,
           status: "IN_STOCK",
           sale: null,
+          saleItem: null,
           movements: { none: {} },
         },
       });

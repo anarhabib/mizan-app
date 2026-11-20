@@ -2,6 +2,7 @@ import {
   parseDecimal,
   parseMoney,
   parsePurity,
+  maxSaleItems,
   type SaleCreateInput,
 } from "@mizan/contracts";
 import type { FieldErrors, FieldPath, Resolver } from "react-hook-form";
@@ -12,6 +13,7 @@ export const maxTradeIns = 100;
 
 export type SaleFormValues = {
   saleAmount: string;
+  items?: { productId: string; label: string; saleAmount: string }[];
   tradeIns: { rateId: string; weight: string; overrideAmount: string }[];
   includePayment: boolean;
   payment: { currency: string; amount: string; exchangeRate: string };
@@ -53,8 +55,19 @@ export function buildSalePayload(
   productId: string,
   { currency, rates }: SaleOptions,
 ): { input: SaleCreateInput } | Invalid {
-  const saleAmount = amount(values.saleAmount, currency);
+  const saleAmount = amount(values.saleAmount, currency, true);
   if (saleAmount === undefined) return { field: "saleAmount" };
+  const items = [{ productId, saleAmount }];
+  const selected = new Set([productId]);
+  if ((values.items?.length ?? 0) >= maxSaleItems) return { field: "items" };
+  for (const [index, row] of (values.items ?? []).entries()) {
+    if (selected.has(row.productId)) return { field: "items" };
+    selected.add(row.productId);
+    const finalAmount = amount(row.saleAmount, currency, true);
+    if (finalAmount === undefined)
+      return { field: `items.${index}.saleAmount` };
+    items.push({ productId: row.productId, saleAmount: finalAmount });
+  }
   if (values.tradeIns.length > maxTradeIns) return { field: "tradeIns" };
 
   const tradeIns: NonNullable<SaleCreateInput["tradeIns"]> = [];
@@ -75,11 +88,10 @@ export function buildSalePayload(
     tradeIns.push({ purity, weight, rateId: rate.id, overrideAmount });
   }
 
-  const input: SaleCreateInput = {
-    productId,
-    expectedCurrency: currency,
-    saleAmount,
-  };
+  const input: SaleCreateInput =
+    items.length > 1
+      ? { items, expectedCurrency: currency }
+      : { productId, saleAmount, expectedCurrency: currency };
   if (tradeIns.length) input.tradeIns = tradeIns;
   if (values.includePayment) {
     const paymentCurrency = values.payment.currency.trim().toUpperCase();
@@ -115,7 +127,7 @@ export function saleResolver(
     const [group, index, field] = built.field.split(".");
     const errors = (
       field
-        ? { tradeIns: { [index]: { [field]: error } } }
+        ? { [group]: { [index]: { [field]: error } } }
         : index
           ? { [group]: { [index]: error } }
           : { [group]: error }

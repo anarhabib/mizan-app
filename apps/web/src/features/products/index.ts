@@ -5,5 +5,6 @@ export {
   cacheSoldProduct,
   invalidateProductInventory,
   productDetailQuery,
+  productListQuery,
   productKeys,
 } from "./api/queries";
