@@ -18,7 +18,7 @@ The first Supabase start downloads images. Existing development data stays in Do
 
 ## Configure the process environment
 
-`.env.example` lists supported variables. Fastify and the Prisma configuration read the process environment. A root `.env` file alone does not configure those processes. The following block reads local CLI credentials into this PowerShell session without printing them.
+`apps/api/.env.example` lists the API variables. Copy it to `apps/api/.env`; the API dev script loads that file automatically. Fastify and the Prisma configuration read the process environment. A root `.env` file alone does not configure those processes. The following block reads local CLI credentials into this PowerShell session without printing them.
 
 ```powershell
 $mizanLocal = pnpm.cmd exec supabase status --output json | ConvertFrom-Json
@@ -38,6 +38,12 @@ if (!$env:DATABASE_URL -or !$env:SUPABASE_PUBLISHABLE_KEY) {
 ```
 
 `SUPABASE_PUBLISHABLE_KEY` accepts the local anon key for legacy HS256 verification. `SUPABASE_SERVICE_ROLE_KEY` enables signed product photo operations and belongs only in server process environments. The frontend session configuration uses `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. `MIZAN_API_URL` is the web server's address for Fastify. `MIZAN_WEB_ORIGIN` is used for links, callbacks, and secure-cookie selection.
+
+## Cloud dev project
+
+Create a Supabase project for development. Use its **Session pooler** connection string for `DATABASE_URL`. Disable email confirmation in the project's Auth settings, then set the Site URL and allowed redirect URLs to `http://localhost:5173`. Create a **private** Storage bucket named `product-photos`, with a 5 MiB file size limit and JPEG, PNG, and WebP as the allowed MIME types.
+
+Against this project's database, run `pnpm.cmd --filter @mizan/database exec prisma migrate deploy` (Prisma `migrate deploy`; never run `migrate dev` or reset). Copy `apps/api/.env.example` to `apps/api/.env` and fill in the project values. Create `apps/web/.env.local` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the same project. Keep server-only keys and the database URL in `apps/api/.env` only.
 
 Apply migrations to the local development database and provision the private photo bucket.
 
