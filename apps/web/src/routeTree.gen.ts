@@ -14,7 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
-import { Route as TeamRouteImport } from './routes/team'
+import { Route as TeamRouteRouteImport } from './routes/team/route'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as InvitationsTokenRouteImport } from './routes/invitations.$token'
 import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
@@ -44,7 +44,7 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeamRoute = TeamRouteImport.update({
+const TeamRouteRoute = TeamRouteRouteImport.update({
   id: '/team',
   path: '/team',
   getParentRoute: () => rootRouteImport,
@@ -68,10 +68,10 @@ const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRouteRoute
+  '/team': typeof TeamRouteRoute
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
-  '/team': typeof TeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
@@ -79,10 +79,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRouteRoute
+  '/team': typeof TeamRouteRoute
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
-  '/team': typeof TeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
@@ -91,10 +91,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/settings': typeof SettingsRouteRoute
+  '/team': typeof TeamRouteRoute
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
-  '/team': typeof TeamRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
@@ -104,10 +104,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/settings'
+    | '/team'
     | '/login'
     | '/products'
     | '/sales'
-    | '/team'
     | '/auth/callback'
     | '/invitations/$token'
     | '/invitations/accept'
@@ -115,10 +115,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/settings'
+    | '/team'
     | '/login'
     | '/products'
     | '/sales'
-    | '/team'
     | '/auth/callback'
     | '/invitations/$token'
     | '/invitations/accept'
@@ -126,10 +126,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/settings'
+    | '/team'
     | '/login'
     | '/products'
     | '/sales'
-    | '/team'
     | '/auth/callback'
     | '/invitations/$token'
     | '/invitations/accept'
@@ -138,10 +138,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRouteRoute: typeof SettingsRouteRoute
+  TeamRouteRoute: typeof TeamRouteRoute
   LoginRoute: typeof LoginRoute
   ProductsRoute: typeof ProductsRoute
   SalesRoute: typeof SalesRoute
-  TeamRoute: typeof TeamRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   InvitationsTokenRoute: typeof InvitationsTokenRoute
   InvitationsAcceptRoute: typeof InvitationsAcceptRoute
@@ -188,7 +188,7 @@ declare module '@tanstack/react-router' {
       id: '/team'
       path: '/team'
       fullPath: '/team'
-      preLoaderRoute: typeof TeamRouteImport
+      preLoaderRoute: typeof TeamRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -218,10 +218,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRouteRoute: SettingsRouteRoute,
+  TeamRouteRoute: TeamRouteRoute,
   LoginRoute: LoginRoute,
   ProductsRoute: ProductsRoute,
   SalesRoute: SalesRoute,
-  TeamRoute: TeamRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   InvitationsTokenRoute: InvitationsTokenRoute,
   InvitationsAcceptRoute: InvitationsAcceptRoute,
