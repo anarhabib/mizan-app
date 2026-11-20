@@ -36,7 +36,9 @@ export function ProductList({
   inspect: (id: string, opener: HTMLElement) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<Omit<Filters, "q">>({});
+  const [filters, setFilters] = useState<Omit<Filters, "q">>({
+    status: "IN_STOCK",
+  });
 
   return (
     <div className="space-y-4">
