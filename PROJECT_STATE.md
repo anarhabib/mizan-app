@@ -1,5 +1,11 @@
 # Mizan project state
 
+## Task 4 — sales (November 20, 2026)
+
+- Added scoped sales history, search/date filters, cursor pagination and server receipts in `apps/web/src/features/sales` and `apps/web/src/routes/sales.tsx`. The in-stock product detail links to the sale form. `GET /sales/options` supplies the currency and current rates for active purities to both roles. Trading settings reads require an owner.
+- Sale submission preserves its key and payload for retries and checks fresh product detail after an ambiguous response. It shows any existing receipt and refreshes the store's exact sales-list and inventory queries after a sale. The form sends decimal strings and renders amounts returned by the server.
+- Contracts build, web build and typecheck, changed-file lint, and 102 web tests passed. Chromium checked history, details, creation and receipts at 390px and 1280px in light and dark with API fixtures. Fixtures covered repeated clicks, retry gating and key reuse, currency conflicts, and a committed sale with a lost response. Real-phone and live API retry checks remain open. A live settlement preview would require a backend endpoint.
+
 ## Task B1 — backend audit (November 20, 2026)
 
 - [Backend audit](docs/BACKEND_AUDIT.md) records server-side owner enforcement, acquisition-cost visibility, transaction and replay behavior, decimal arithmetic, and test coverage for the four backend services at `9f0fe02`. The audit required no implementation changes.

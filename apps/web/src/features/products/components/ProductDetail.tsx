@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { ProductDetail as Detail } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -24,7 +26,7 @@ export function ProductDetail({
   opener: HTMLElement;
   close: () => void;
 }) {
-  const { t } = useTranslation("products");
+  const { t } = useTranslation(["products", "sales"]);
   const detail = useQuery(productDetailQuery(scope, id));
   const upload = useUploadProductPhoto(scope, id);
 
@@ -45,6 +47,13 @@ export function ProductDetail({
       )}
       {detail.data && (
         <div className="grid gap-6">
+          {detail.data.status === "IN_STOCK" && (
+            <Button asChild className="min-h-11 justify-self-start lg:min-h-9">
+              <Link to="/sales" search={{ product: detail.data.id }}>
+                {t("sell", { ns: "sales" })}
+              </Link>
+            </Button>
+          )}
           <ProductPhoto
             product={detail.data}
             upload={upload}
