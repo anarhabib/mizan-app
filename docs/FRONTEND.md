@@ -22,6 +22,8 @@ apps/web/src/
 
 Features: `auth`, `workspace`, `products`, `sales`, `settings`, `team`.
 
+The current scaffold keeps CLI-managed primitives in `src/components/ui` and their utility in `src/lib/utils.ts` (aliases in `components.json`). Import these in shared wrappers; do not move or rewrite generated primitives. Application components live in `src/shared/ui`.
+
 - Features import other features only through `index.ts`. `shared` never imports from `features`.
 - Business logic lives in hooks or `lib`, not in presentational components.
 - Backend contract lives in `docs/API_NOTES.md`. Do not read backend code for endpoint shapes.

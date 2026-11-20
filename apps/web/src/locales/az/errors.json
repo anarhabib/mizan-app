@@ -1,0 +1,21 @@
+{
+  "generic": "Xəta baş verdi. Yenidən cəhd edin.",
+  "NETWORK_ERROR": "Şəbəkəyə qoşulmaq mümkün olmadı.",
+  "INVALID_ONBOARDING": "İş yeri məlumatlarını yoxlayın.",
+  "INVALID_MEMBERSHIP": "Üzvlük məlumatlarını yoxlayın.",
+  "INVALID_SETTINGS": "Tənzimləmələri yoxlayın.",
+  "INVALID_PRODUCT": "Məhsul məlumatlarını yoxlayın.",
+  "INVALID_SALE": "Satış məlumatlarını yoxlayın.",
+  "UNAUTHENTICATED": "Hesabınıza daxil olun.",
+  "ACCESS_DENIED": "Giriş icazəniz yoxdur.",
+  "PRODUCT_NOT_FOUND": "Məhsul tapılmadı.",
+  "SALE_NOT_FOUND": "Satış tapılmadı.",
+  "INVITATION_UNAVAILABLE": "Dəvət artıq əlçatan deyil.",
+  "PURITY_CONFLICT": "Bu əyar artıq mövcuddur.",
+  "PRODUCT_CODE_CONFLICT": "Bu məhsul kodu artıq mövcuddur.",
+  "PHOTO_CONFLICT": "Şəkil dəyişib. Yeniləyin.",
+  "SALE_CONFLICT": "Satış məlumatları dəyişib. Yeniləyin.",
+  "AUTH_UNAVAILABLE": "Giriş xidməti əlçatan deyil. Yenidən cəhd edin.",
+  "PHOTO_UNAVAILABLE": "Şəkil xidməti əlçatan deyil. Yenidən cəhd edin.",
+  "INTERNAL_ERROR": "Xəta baş verdi. Yenidən cəhd edin."
+}
