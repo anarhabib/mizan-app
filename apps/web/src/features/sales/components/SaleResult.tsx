@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SaleResult as Result } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { formatDateTime } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -11,14 +12,9 @@ import { saleDetailQuery, type SaleScope } from "../api/queries";
 
 export function SaleDate({ value }: { value: string }) {
   const { i18n } = useTranslation("sales");
-  const date = new Date(value);
-  const label = Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat(i18n.resolvedLanguage ?? "az", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
-  return <time dateTime={value}>{label}</time>;
+  return (
+    <time dateTime={value}>{formatDateTime(value, i18n.resolvedLanguage)}</time>
+  );
 }
 
 export function SaleDetail({ scope, id }: { scope: SaleScope; id: string }) {

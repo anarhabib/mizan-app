@@ -1,7 +1,17 @@
-import { InfiniteQueryObserver, QueryClient } from "@tanstack/react-query";
+import {
+  InfiniteQueryObserver,
+  QueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
+import type {
+  ProductDetail,
+  ProductList,
+  ProductListItem,
+} from "@mizan/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { putSignedPhoto } from "./mutations";
 import {
+  cacheSoldProduct,
   invalidateProductInventory,
   productKeys,
   productListQuery,
@@ -76,6 +86,60 @@ describe("product requests", () => {
       credentials: "omit",
       redirect: "error",
       referrerPolicy: "no-referrer",
+    });
+  });
+
+  it("shows a confirmed sale in cached inventory before the server lists refetch", async () => {
+    const client = new QueryClient();
+    const product: ProductListItem = {
+      id: "product",
+      code: "001",
+      name: "Ring",
+      category: "Rings",
+      purity: 585,
+      weight: "4.500",
+      status: "IN_STOCK",
+    };
+    const remaining = { ...product, id: "remaining" };
+    const detail = {
+      ...product,
+      createdAt: "2026-11-20T14:31:00Z",
+      movements: [],
+      note: null,
+      photo: null,
+      sale: null,
+    } satisfies ProductDetail;
+    const sale = {
+      id: "sale",
+      createdAt: detail.createdAt,
+      total: { amount: "750", currency: "AZN" },
+    };
+    const data: InfiniteData<ProductList> = {
+      pages: [{ items: [product, remaining], nextCursor: "cursor" }],
+      pageParams: [undefined],
+    };
+    const allKey = productKeys.list(scope, {});
+    const stockKey = productKeys.list(scope, { status: "IN_STOCK" });
+    const otherStore = productKeys.list({ ...scope, storeId: "another" }, {});
+    const detailKey = productKeys.detail(scope, product.id);
+    for (const key of [allKey, stockKey, otherStore])
+      client.setQueryData(key, data);
+    client.setQueryData(detailKey, detail);
+
+    await cacheSoldProduct(client, scope, product.id, sale);
+
+    const items = (key: typeof allKey) =>
+      client.getQueryData<InfiniteData<ProductList>>(key)?.pages[0].items;
+    expect(items(allKey)).toEqual([{ ...product, status: "SOLD" }, remaining]);
+    expect(items(stockKey)).toEqual([remaining]);
+    expect(items(otherStore)).toEqual([product, remaining]);
+    expect(
+      client.getQueryData<InfiniteData<ProductList>>(allKey)?.pages[0]
+        .nextCursor,
+    ).toBe("cursor");
+    expect(client.getQueryData(detailKey)).toMatchObject({
+      status: "SOLD",
+      sale,
     });
   });
 

@@ -105,14 +105,15 @@ test.skipIf(!db)(
           })
         ).statusCode,
       ).toBe(409);
-      expect(
-        (
-          await send("underpaid", {
-            ...payload,
-            payment: { ...payload.payment, amount: "99" },
-          })
-        ).statusCode,
-      ).toBe(400);
+      const underpaid = await send("underpaid", {
+        ...payload,
+        payment: { ...payload.payment, amount: "99" },
+      });
+      expect(underpaid.statusCode).toBe(400);
+      expect(underpaid.json()).toMatchObject({
+        code: "SALE_PAYMENT_TOO_LOW",
+        field: "payment.amount",
+      });
       expect(
         await db.product.findUnique({
           where: { organizationId_storeId_id: { ...scope, id: product.id } },

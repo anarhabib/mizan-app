@@ -41,6 +41,31 @@ describe("sale settlement", () => {
         amount: "99",
         exchangeRate: "1.70",
       }),
-    ).toThrow();
+    ).toThrow(
+      expect.objectContaining({
+        code: "SALE_PAYMENT_TOO_LOW",
+        field: "payment.amount",
+      }),
+    );
+  });
+
+  it("requires the converted tender to cover the post-trade-in balance", () => {
+    const tender = { currency: "USD", amount: "100", exchangeRate: "1.70" };
+    expect(() => calculateSettlement("AZN", "750", ["150"], tender)).toThrow(
+      expect.objectContaining({ code: "SALE_PAYMENT_TOO_LOW" }),
+    );
+    expect(
+      calculateSettlement("AZN", "750", ["150"], { ...tender, amount: "353" }),
+    ).toMatchObject({
+      balance: "600.00",
+      convertedPayment: "600.10",
+      change: "0.10",
+    });
+    expect(() => calculateSettlement("AZN", "750", ["750"], tender)).toThrow(
+      expect.objectContaining({
+        code: "SALE_PAYMENT_NOT_DUE",
+        field: "payment",
+      }),
+    );
   });
 });

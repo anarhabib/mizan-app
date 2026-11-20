@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, formatWeight, formatPurity } from "./index";
+import {
+  formatDateTime,
+  formatMoney,
+  formatWeight,
+  formatPurity,
+} from "./index";
+
+describe("date and time", () => {
+  it.each(["en", "az"])("uses the 24-hour clock in %s", (locale) => {
+    const evening = new Date(2026, 10, 20, 18, 31).toISOString();
+    const midnight = new Date(2026, 10, 20, 0, 5).toISOString();
+    expect(formatDateTime(evening, locale)).toContain("18:31");
+    expect(formatDateTime(midnight, locale)).toContain("00:05");
+  });
+});
 describe("exact money formatting", () => {
   it.each([
     ["0", "AZN", "0,00 AZN"],

@@ -148,6 +148,25 @@ describe("sale payload", () => {
 });
 
 describe("sale errors", () => {
+  it("guides the user when the tender is below the balance or no payment is due", () => {
+    expect(
+      saleError(
+        new ApiError(400, "SALE_PAYMENT_TOO_LOW", "server", "payment.amount"),
+        1,
+      ),
+    ).toEqual({
+      message: "paymentTooLow",
+      field: "payment.amount",
+    });
+    expect(
+      saleError(
+        new ApiError(400, "SALE_PAYMENT_NOT_DUE", "server", "payment"),
+        1,
+      ),
+    ).toEqual({
+      message: "paymentNotDue",
+    });
+  });
   it("maps simple and nested validation fields", () => {
     const invalid = (field: string, count = 1) =>
       saleError(new ApiError(400, "INVALID_SALE", "server", field), count);

@@ -1,5 +1,11 @@
 # Mizan project state
 
+## Sales and inventory fixes (November 20, 2026)
+
+- The cloud development project was missing `product-photos`. Created the documented private bucket with a 5 MiB limit and JPEG, PNG and WebP support. Signed upload, metadata, duplicate rejection and signed download passed with a disposable image that was removed after the check.
+- In `apps/api/src/modules/sales/settlement.ts`, payment rejection now distinguishes underpayment from a trade-in that leaves nothing due. The sale form explains both cases and keeps field errors in place until the next submit. Products and sales use shared 24-hour timestamp formatting.
+- The confirmed sale updates the affected store's cached product rows and detail before the exact refetches. Verified with 106 web tests, 7 focused API tests against disposable Postgres and local Storage, API and web builds, typecheck and lint. Chromium fixture checks passed at 390px and 1280px in light and dark, including a corrected payment and a Sold badge while the list refetch was delayed.
+
 ## Task 4 — sales (November 20, 2026)
 
 - Added scoped sales history, search/date filters, cursor pagination and server receipts in `apps/web/src/features/sales` and `apps/web/src/routes/sales.tsx`. The in-stock product detail links to the sale form. `GET /sales/options` supplies the currency and current rates for active purities to both roles. Trading settings reads require an owner.

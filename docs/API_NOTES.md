@@ -18,7 +18,7 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 ## Errors and validation
 
 - Application error JSON is exactly `{ "code": string, "message": string }`, optionally with `"field": string`; no outer `error` envelope. Messages are Azerbaijani. A validation example is `{ "code": "INVALID_SALE", "message": "Satış məlumatlarını yoxlayın.", "field": "saleAmount" }`.
-- 400: `INVALID_ONBOARDING`, `INVALID_MEMBERSHIP`, `INVALID_SETTINGS`, `INVALID_PRODUCT`, `INVALID_SALE`.
+- 400: `INVALID_ONBOARDING`, `INVALID_MEMBERSHIP`, `INVALID_SETTINGS`, `INVALID_PRODUCT`, `INVALID_SALE`, `SALE_PAYMENT_TOO_LOW`, `SALE_PAYMENT_NOT_DUE`.
 - 401: `UNAUTHENTICATED`; 403: `ACCESS_DENIED`.
 - 404: `PRODUCT_NOT_FOUND`, `SALE_NOT_FOUND`.
 - 409: `INVITATION_UNAVAILABLE`, `PURITY_CONFLICT`, `PRODUCT_CODE_CONFLICT`, `PHOTO_CONFLICT`, `SALE_CONFLICT`.
@@ -86,6 +86,7 @@ No separate inventory-movement, return, old-gold exchange, stock-adjustment, cus
 - `ProductDetail`: ProductListItem + `acquisitionCost?:Money,note:string|null,createdAt,photo:{url,contentType,size}|null,movements:{id,kind,actorId,createdAt}[],sale:{id,total:Money,createdAt}|null`. Movement kinds: `PRODUCT_ADDED|PRODUCT_SOLD|OLD_GOLD_RECEIVED`.
 - `ProductPhotoUpload`: `uploadId,uploadUrl`; signed upload transport/content restrictions and confirmation response are service-defined, not established by route code alone.
 - `SaleCreateInput`: `productId,saleAmount,expectedCurrency?,tradeIns?:{purity,weight,rateId,overrideAmount?}[],payment?:{currency,amount,exchangeRate?}`. At most 100 trade-ins; same-currency exchangeRate must equal 1 (defaults to `"1"`); foreign payment requires it. Currency mismatch with expectedCurrency throws `SALE_CONFLICT` on `currency`.
+- Explicit tender must cover the final balance after trade-ins (`SALE_PAYMENT_TOO_LOW`, field `payment.amount`) and is only accepted when a balance is due (`SALE_PAYMENT_NOT_DUE`, field `payment`). If tender is omitted, a positive balance is recorded as paid in the sale currency.
 - `SaleResult`: `id,actorId,createdAt,currency,saleAmount,tradeInTotal,balance,payout,payment:{currency,amount,exchangeRate,convertedAmount,change}|null,product:{id,code,name,category,purity,weight,status:"SOLD"},tradeIns:{id,purity,rateId,weight,appliedRate,calculatedValue,acceptedValue,overridden}[]`.
 - `SaleList`: `{items:{id,createdAt,actorId,currency,saleAmount,product,balance,paymentCurrency:string|null}[],nextCursor?}`; `product` matches SaleResult.product. Date fields in public response contracts are strings; no route response serializer enforces a timestamp format.
 

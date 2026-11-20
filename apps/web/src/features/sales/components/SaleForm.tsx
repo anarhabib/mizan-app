@@ -50,7 +50,8 @@ export function SaleForm({
       payment: { currency, amount: "", exchangeRate: "" },
     },
     mode: "onSubmit",
-    reValidateMode: "onBlur",
+    // Keep inline errors in place while a submit click moves focus off an input.
+    reValidateMode: "onSubmit",
     resolver: saleResolver(productId, options),
   });
   const tradeIns = useFieldArray({ control: form.control, name: "tradeIns" });
@@ -79,7 +80,7 @@ export function SaleForm({
     setMessage(undefined);
     const error = await submission.submit(payload);
     if (error) {
-      if (error.field) form.setError(error.field, { type: "server" });
+      if (error.field) form.setError(error.field, { type: error.message });
       if (!error.field) setMessage(error.message);
     }
   });
@@ -183,6 +184,11 @@ export function SaleForm({
         </section>
         <section className="grid gap-3 border-t pt-4">
           <h3 className="font-medium">{t("payment")}</h3>
+          <p className="text-muted-foreground">
+            {paymentEnabled
+              ? t("paymentCoverage")
+              : t("defaultPayment", { currency })}
+          </p>
           <Button
             type="button"
             variant="outline"
@@ -192,6 +198,7 @@ export function SaleForm({
               if (!paymentEnabled) form.setValue("payment.currency", currency);
               form.setValue("includePayment", !paymentEnabled);
               form.clearErrors("payment");
+              setMessage(undefined);
             }}
           >
             {t(paymentEnabled ? "removePayment" : "addPayment")}
@@ -294,7 +301,9 @@ function FormField({
       )}
       {error && (
         <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
-          {t("invalidField")}
+          {error.type === "paymentTooLow"
+            ? t("errors.paymentTooLow")
+            : t("invalidField")}
         </p>
       )}
     </div>

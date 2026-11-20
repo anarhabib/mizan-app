@@ -136,6 +136,12 @@ export function saleError(error: ApiError, tradeInCount: number) {
   if (error.code === "SALE_CONFLICT" && error.field === "currency") {
     return { message: "currencyChanged", refresh: true } as const;
   }
+  if (error.code === "SALE_PAYMENT_TOO_LOW") {
+    return { message: "paymentTooLow", field: "payment.amount" } as const;
+  }
+  if (error.code === "SALE_PAYMENT_NOT_DUE") {
+    return { message: "paymentNotDue" } as const;
+  }
   if (error.code === "INVALID_SALE") {
     const field = error.field;
     if (

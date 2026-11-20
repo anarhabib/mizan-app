@@ -30,3 +30,13 @@ export function formatPurity(value: number) {
     throw new RangeError("Invalid purity");
   return String(value);
 }
+
+export function formatDateTime(value: string, locale = "az") {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    hourCycle: "h23",
+  }).format(date);
+}

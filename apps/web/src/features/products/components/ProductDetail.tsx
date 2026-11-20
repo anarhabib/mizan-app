@@ -4,6 +4,7 @@ import type { ProductDetail as Detail } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -68,12 +69,8 @@ export function ProductDetail({
 
 function ProductRecord({ product }: { product: Detail }) {
   const { t, i18n } = useTranslation("products");
-  const date = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? "az", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
   const time = (value: string) => (
-    <time dateTime={value}>{date.format(new Date(value))}</time>
+    <time dateTime={value}>{formatDateTime(value, i18n.resolvedLanguage)}</time>
   );
   const sale = product.status === "SOLD" ? product.sale : null;
 
