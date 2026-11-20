@@ -34,6 +34,16 @@ export function formatPurity(value: number) {
 export function formatDateTime(value: string, locale = "az") {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
+  if (locale === "az" || locale.startsWith("az-")) {
+    // Some browser locale data uses month labels such as M11 for Azerbaijani.
+    const twoDigits = (part: number) => String(part).padStart(2, "0");
+    const day = twoDigits(date.getDate());
+    const month = twoDigits(date.getMonth() + 1);
+    const year = date.getFullYear();
+    const hours = twoDigits(date.getHours());
+    const minutes = twoDigits(date.getMinutes());
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+  }
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",

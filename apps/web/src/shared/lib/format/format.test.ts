@@ -7,6 +7,12 @@ import {
 } from "./index";
 
 describe("date and time", () => {
+  it.each(["az", "az-AZ"])("uses a numeric month in %s", (locale) => {
+    const sale = new Date(2026, 10, 20, 17, 57).toISOString();
+    const midnight = new Date(2026, 0, 2, 0, 5).toISOString();
+    expect(formatDateTime(sale, locale)).toBe("20.11.2026 17:57");
+    expect(formatDateTime(midnight, locale)).toBe("02.01.2026 00:05");
+  });
   it.each(["en", "az"])("uses the 24-hour clock in %s", (locale) => {
     const evening = new Date(2026, 10, 20, 18, 31).toISOString();
     const midnight = new Date(2026, 10, 20, 0, 5).toISOString();

@@ -1,5 +1,9 @@
 # Mizan project state
 
+## Azerbaijani timestamps (November 20, 2026)
+
+- The shared formatter in `apps/web/src/shared/lib/format/index.ts` uses `DD.MM.YYYY HH:mm` for Azerbaijani to avoid browser month placeholders such as `M11`. All 108 web tests and the web build passed. Chromium fixtures verified the dates in product details, stock history, sale rows, and receipts at 390px and 1280px in both themes.
+
 ## Sales and inventory fixes (November 20, 2026)
 
 - The cloud development project was missing `product-photos`. Created the documented private bucket with a 5 MiB limit and JPEG, PNG and WebP support. Signed upload, metadata, duplicate rejection and signed download passed with a disposable image that was removed after the check.
