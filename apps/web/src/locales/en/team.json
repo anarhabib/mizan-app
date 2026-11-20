@@ -1,5 +1,57 @@
 {
   "title": "Team",
-  "empty": "Team management is coming soon",
-  "description": "Team management will be added in the next stage."
+  "inviteHeading": "Invite a salesperson",
+  "email": "Email address",
+  "store": "Store",
+  "chooseStore": "Choose a store",
+  "members": "Team members",
+  "noMembers": "There are no team members yet.",
+  "unknownEmail": "Unknown email",
+  "assignedStores": "Assigned stores",
+  "noAssignedStores": "No stores assigned.",
+  "invitations": "Pending invitations",
+  "noInvitations": "There are no pending invitations.",
+  "expires": "Expires",
+  "stores": "Stores",
+  "noStores": "There are no stores available.",
+  "unknownStore": "Unknown store",
+  "assignment": "{{store}} for {{email}}",
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending"
+  },
+  "actions": {
+    "invite": "Send invitation",
+    "revoke": "Revoke",
+    "resend": "Resend",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "assign": "Assign store",
+    "remove": "Remove access"
+  },
+  "confirm": {
+    "revoke": "Revoke the invitation for {{target}}? The invitation link will stop working.",
+    "resend": "Send a new invitation to {{target}}? The previous link will stop working.",
+    "deactivate": "Deactivate {{target}}? This member will lose access until reactivated.",
+    "remove": "Remove access to {{target}}?"
+  },
+  "delivery": {
+    "sent": "Invitation email sent.",
+    "failed": "The invitation was saved, but the email could not be sent. You can resend it from Pending invitations.",
+    "not_sent": "No invitation email was sent."
+  },
+  "errors": {
+    "email": "Enter a valid email address.",
+    "store": "Choose an available store.",
+    "accessDenied": "You don't have permission to manage this team.",
+    "invitationUnavailable": "This invitation is unavailable. Check the updated invitation list.",
+    "invalidMembership": "The team action could not be applied. Check the member or store and try again.",
+    "network": "The connection was interrupted. Check the team directory before trying again.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "cancel": "Cancel",
+  "retry": "Reload directory",
+  "saving": "Updating the team directory…",
+  "updated": "Team directory updated."
 }

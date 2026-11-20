@@ -1,5 +1,57 @@
 {
   "title": "Komanda",
-  "empty": "Komanda bölməsi hazırlanır",
-  "description": "Komanda idarəetməsi növbəti mərhələdə əlavə ediləcək."
+  "inviteHeading": "Satıcını dəvət et",
+  "email": "E-poçt ünvanı",
+  "store": "Mağaza",
+  "chooseStore": "Mağaza seçin",
+  "members": "Komanda üzvləri",
+  "noMembers": "Hələ komanda üzvü yoxdur.",
+  "unknownEmail": "E-poçt ünvanı məlum deyil",
+  "assignedStores": "Təyin olunmuş mağazalar",
+  "noAssignedStores": "Mağaza təyin olunmayıb.",
+  "invitations": "Gözləyən dəvətlər",
+  "noInvitations": "Gözləyən dəvət yoxdur.",
+  "expires": "Bitmə vaxtı",
+  "stores": "Mağazalar",
+  "noStores": "Mağaza yoxdur.",
+  "unknownStore": "Mağaza məlum deyil",
+  "assignment": "{{store}} ({{email}})",
+  "status": {
+    "active": "Aktiv",
+    "inactive": "Deaktiv",
+    "pending": "Gözləyir"
+  },
+  "actions": {
+    "invite": "Dəvət göndər",
+    "revoke": "Ləğv et",
+    "resend": "Yenidən göndər",
+    "deactivate": "Deaktiv et",
+    "reactivate": "Aktiv et",
+    "assign": "Mağaza təyin et",
+    "remove": "Girişi ləğv et"
+  },
+  "confirm": {
+    "revoke": "{{target}} üçün dəvəti ləğv etmək istəyirsiniz? Dəvət keçidi artıq işləməyəcək.",
+    "resend": "{{target}} ünvanına yeni dəvət göndərilsin? Əvvəlki keçid artıq işləməyəcək.",
+    "deactivate": "{{target}} deaktiv edilsin? Üzv yenidən aktivləşdirilənədək giriş hüququnu itirəcək.",
+    "remove": "{{target}} üzrə mağazaya giriş hüququ ləğv edilsin?"
+  },
+  "delivery": {
+    "sent": "Dəvət e-poçtla göndərildi.",
+    "failed": "Dəvət yadda saxlanıldı, amma e-poçt göndərilmədi. Dəvəti gözləyən dəvətlər siyahısından yenidən göndərə bilərsiniz.",
+    "not_sent": "Dəvət e-poçtu göndərilmədi."
+  },
+  "errors": {
+    "email": "Düzgün e-poçt ünvanı daxil edin.",
+    "store": "Mövcud mağazalardan birini seçin.",
+    "accessDenied": "Bu komandanı idarə etmək icazəniz yoxdur.",
+    "invitationUnavailable": "Bu dəvət artıq əlçatan deyil. Yenilənmiş dəvət siyahısını yoxlayın.",
+    "invalidMembership": "Əməliyyat baş tutmadı. Üzvü və ya mağazanı yoxlayıb yenidən cəhd edin.",
+    "network": "Bağlantı kəsildi. Yenidən cəhd etməzdən əvvəl komanda siyahısını yoxlayın.",
+    "generic": "Xəta baş verdi. Yenidən cəhd edin."
+  },
+  "cancel": "İmtina et",
+  "retry": "Siyahını yenilə",
+  "saving": "Komanda siyahısı yenilənir…",
+  "updated": "Komanda siyahısı yeniləndi."
 }
