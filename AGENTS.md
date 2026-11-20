@@ -1,27 +1,32 @@
 # Mizan — Codex Agent Instructions
 
 ## Role and priorities
+
 You assist the sole developer of Mizan, a jewelry-store inventory and sales management application. Favor reliable, maintainable, straightforward implementations over abstraction. Work incrementally and preserve existing functionality and data. Keep tool and model usage lean without reducing correctness, security, or usability.
 
 ## Sources of truth
+
 - `PROJECT_CONTEXT.md`: confirmed product scope, business rules, architecture, feature requirements. Read only the sections relevant to the task.
-- `docs/API_NOTES.md`: compact backend contract (endpoints, auth, error format, decimal formats, validation). Frontend work reads this instead of backend code. If it looks stale or lacks an endpoint, read only that backend route file and update the note.
-- `docs/FRONTEND.md`: frontend structure, data, rendering and UI conventions. **Read before any UI task.**
+- `docs/API_NOTES.md`: backend contract (endpoints, auth, errors, number formats, pagination, idempotency). Frontend work reads this instead of backend code. If it looks stale or lacks detail, read only the one relevant backend file and update the note.
+- `docs/FRONTEND.md`: frontend structure, API/auth, data, rendering and UI conventions. **Read before any UI task.**
 - `DESIGN.md`: follow it only if its first line is `Status: current`. Otherwise it is outdated (pre-rebuild): ignore it.
 - Existing code, tests, Prisma schema and migrations: authoritative for the current implementation and database structure. Report consequential conflicts with approved requirements before changing behavior.
 - `docs/ROADMAP.md`: milestone scope and sequencing. `PROJECT_STATE.md`: implementation and verification status.
 - This file governs agent workflow. Do not invent requirements absent from approved sources.
 
 ## Stack (do not re-inspect)
-- pnpm monorepo. Use pnpm only, never npm or yarn. Backend: Fastify + Prisma. Frontend: `apps/web` (package name `web`).
-- Frontend stack: Vite, React 19 with React Compiler, TypeScript, TanStack Router (file-based), TanStack Query, Tailwind CSS v4, shadcn/ui, react-i18next, react-hook-form + Zod, decimal.js, Vitest.
-- Shared packages: `@mizan/contracts` holds shared API contracts; `apps/web` should import its types and schemas (instead of redefining them) once `docs/API_NOTES.md` confirms it is browser-safe. `@mizan/database` (Prisma) is backend-only: never import it, or anything from `packages/database`, in `apps/web`.
+
+- pnpm monorepo. Use pnpm only, never npm or yarn. Backend: Fastify + Prisma (`apps/api`, `/api/v1`). Frontend: `apps/web` (package name `web`).
+- Frontend stack: Vite, React 19 with React Compiler, TypeScript, TanStack Router (file-based), TanStack Query, Tailwind CSS v4, shadcn/ui, react-i18next, react-hook-form, `@supabase/supabase-js` (Auth only), Vitest.
+- Validation and decimal/money logic come from `@mizan/contracts` (plain types, parser functions, decimal helpers; no Zod). Do not add Zod or decimal.js unless a concrete need is shown and approved.
+- Shared packages: `@mizan/contracts` is browser-safe; `apps/web` imports its types, parsers and helpers instead of redefining them. It must be built (`pnpm --filter @mizan/contracts build`) before web dev, tests or typecheck. `@mizan/database` (Prisma) is backend-only: never import it, or anything from `packages/database`, in `apps/web`.
+- Auth and API: the API accepts `Authorization: Bearer <Supabase access token>` only (no cookies, no login endpoints, no CORS). Development uses a Vite proxy `/api` → `http://127.0.0.1:3001` with `VITE_API_BASE_URL=/api/v1`. There is no OpenAPI spec: write small typed API functions per feature using `@mizan/contracts` types.
+- Supabase rule: the browser may use `supabase-js` for Auth only (sign-in, sign-up, session, refresh, password reset). Never use the Supabase Data API, Prisma, or Storage SDK from the frontend. Product photos go only to the signed `uploadUrl` returned by the API. Browser env contains only `VITE_SUPABASE_URL` and the publishable key, never the service-role key or database URL.
 - Never read or search `.next/` or `node_modules/`.
-- Backend input validation: check how existing routes validate (Fastify's built-in JSON Schema counts) before proposing anything. Do not add a validation library to the backend without approval.
-- Read `package.json` only when adding or changing a dependency.
-- Do not add dependencies, infrastructure or abstractions without demonstrated benefit.
+- Read `package.json` only when adding or changing a dependency. Do not add dependencies, infrastructure or abstractions without demonstrated benefit.
 
 ## Development workflow
+
 1. Define the requested change and inspect only the relevant code and docs. Reuse context already in the session.
 2. Follow approved decisions and the milestone plan. For a well-scoped task, implement directly. Ask only about material unresolved decisions.
 3. Prefer small, reviewable changes and shared components. No unrelated refactors or speculative features.
@@ -31,33 +36,38 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 7. Report briefly: changed files/behavior, checks run, risks/unverified states, PR URL.
 
 ## Architecture
+
 - Keep business logic out of presentation components and database access out of unrelated layers.
 - Validate input at boundaries; return consistent, actionable errors.
 - Use English for folder names, file names and route paths. User-facing text is Azerbaijani by default, with English support. Prioritize mobile-friendly workflows.
-- Currency is AZN. Always show explicit units (grams, gold purity, etc.). Never silently round, convert or reinterpret financial or weight values.
-- Do not silently extend the MVP toward SaaS or multi-tenant functionality.
+- Amounts are `{amount, currency}` objects. The organization default currency is usually AZN but other ISO currencies exist: never assume AZN, always display the currency code. Gold purity is an integer fineness (for example 585, 750), not a percentage. Weights are grams with up to 3 decimals. Never silently round, convert or reinterpret financial or weight values.
+- Do not silently extend the MVP toward SaaS or multi-tenant functionality beyond what the API already provides.
 - A public QR-shared catalog is planned for later as a separate app (`apps/catalog`, server-rendered or static for fast first load and link previews). It is out of scope now: do not add public routes, SSR or catalog code to `apps/web`. When it is built, public endpoints must use separate response shapes that never expose cost price, supplier, exact stock counts or internal notes, and must be rate-limited and cacheable.
 
 ## Data integrity and security
+
 - Treat each jewelry item and inventory movement as business-critical data.
-- Sales, returns, old-gold exchanges and stock adjustments must keep records consistent and prevent duplicate or invalid inventory movements.
+- Sales, trade-ins and stock changes must keep records consistent and prevent duplicate or invalid inventory movements.
 - Use database transactions for multi-step operations that must succeed or fail together.
 - Use decimal-safe arithmetic for money and weights, never floating point.
 - Do not delete or overwrite historical inventory or financial records as a shortcut; follow documented audit/correction rules.
 - Never reset a database, make destructive schema changes or apply production migrations without explicit approval.
-- Keep secrets out of code, docs and logs. Use environment variables and keep `.env.example` free of credentials.
+- Keep secrets out of code, docs and logs. Use environment variables and keep `.env.example` free of credentials. Never log or persist invitation tokens or access tokens outside the Supabase session store.
 - Enforce permissions server-side, not only by hiding UI controls.
 
 ## Frontend (summary; details in `docs/FRONTEND.md`)
+
 - The UI was rebuilt from scratch. Do not recreate old components, palettes, glass headers or the previous icon library.
-- Feature-based structure. Server state only in TanStack Query. shadcn/ui for primitives. Tailwind for styling. Branding is provisional: the logo lives only in `shared/ui/BrandMark` and the accent color only in the `--primary` token, so a rebrand is a one-file change. Never hardcode brand colors in components; use semantic tokens.
+- Feature-based structure. Server state only in TanStack Query. shadcn/ui for primitives. Tailwind for styling. The applied shadcn preset (`components.json`, theme variables in `src/index.css`, font, radius, icon library) is the visual base: do not replace or restyle it, and use the icon library named in `components.json`. Branding is provisional: the logo lives only in `shared/ui/BrandMark` and the accent color only in the `--primary` token, so a rebrand is a one-file change. Never hardcode brand colors in components; use semantic tokens.
 - Mobile-first, compact on desktop. No unnecessary re-renders.
-- Money and weights stay as decimal strings in the UI; never use `parseFloat` for them.
-- Sales, returns, old-gold exchanges and stock adjustments are never optimistic. Disable submit while pending and invalidate exact query keys on success.
+- Every store-scoped API call carries `organizationId` and `storeId`; both belong in every query key.
+- Money and weights stay as decimal strings in the UI; never use `parseFloat` or Number for them. Display server-calculated values; do not compute money in the UI.
+- Sales and any stock- or money-changing action are never optimistic. Disable submit while pending and invalidate exact query keys on success. `POST /sales` always sends an `Idempotency-Key`.
 - Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
 - Visual check only when the task asks for it, or once before a UI PR: one pass at 390px and 1280px. Report deliberate deviations and unverified states.
 
 ## Execution efficiency
+
 - Work inline in the session. Use subagents only for substantial independent work or high-risk review, giving them focused requirements, changed files and the diff, not the whole conversation.
 - Reuse approved plans and decisions. Do not reopen resolved scope, repeat questions, or write new plans or documents for routine tasks.
 - Read the smallest relevant sections; do not re-read unchanged files. Batch independent reads and searches and constrain output to relevant findings and errors.
@@ -68,6 +78,7 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 - Do not claim measured token savings without actual usage data.
 
 ## Communication and session continuity
+
 - Ask focused questions only when the answer materially affects behavior, security, data, architecture or approved visual direction. Distinguish confirmed facts from assumptions and explain consequential risks.
 - On a new session, read only documentation relevant to the task; do not assume earlier chat context persists. Check `TASKS.md` if present and update it only when task status changes.
 - Record significant approved decisions in an existing appropriate document; use `DECISIONS.md` only if the repository has adopted it.
