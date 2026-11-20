@@ -39,9 +39,20 @@ export function SaleCreate({
   }, [saleId]);
   return (
     <ProductPanel
-      title={t(submission.resultId ? "recorded" : saleId ? "detail" : "sell")}
+      title={t(
+        submission.resultId
+          ? "recorded"
+          : saleId
+            ? "detail"
+            : submission.confirmation
+              ? "confirmTitle"
+              : "sell",
+      )}
+      descriptionId={
+        submission.confirmation ? "sale-confirmation-description" : undefined
+      }
       opener={opener}
-      close={close}
+      close={submission.confirmation ? submission.cancelConfirmation : close}
       busy={submission.busy}
     >
       {saleId ? (
@@ -63,7 +74,7 @@ export function SaleCreate({
               retry={() => void product.refetch()}
             />
           )}
-          {product.data && (
+          {product.data && !submission.confirmation && (
             <div className="grid gap-2 border-b pb-4">
               <h3 className="font-medium wrap-anywhere">{product.data.name}</h3>
               <p className="wrap-anywhere text-muted-foreground">
@@ -103,6 +114,7 @@ export function SaleCreate({
               )}
               {options.data && (
                 <SaleForm
+                  scope={scope}
                   productId={productId}
                   options={options.data}
                   disabled={

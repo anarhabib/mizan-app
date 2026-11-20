@@ -3,6 +3,7 @@ import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import { AccessError } from "../access/access.errors.js";
 import { resolveAccessContext } from "../access/access.service.js";
+import { SaleConfirmationRequired } from "./sale-confirmation.js";
 import {
   getSale,
   getSaleOptions,
@@ -46,9 +47,25 @@ export function registerSaleRoutes(
     const key = request.headers["idempotency-key"];
     if (typeof key !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(key))
       throw new AccessError("INVALID_SALE", "idempotencyKey");
-    return reply
-      .code(201)
-      .send(await recordSale(db!, request.access!, key, request.body));
+    const token = request.headers["sale-confirmation"];
+    try {
+      const sale = await recordSale(
+        db!,
+        request.access!,
+        key,
+        request.body,
+        typeof token === "string" ? token : undefined,
+        request.identity?.sessionId,
+      );
+      return reply.code(201).send(sale);
+    } catch (error) {
+      if (!(error instanceof SaleConfirmationRequired)) throw error;
+      return reply.code(409).send({
+        code: "SALE_CONFIRMATION_REQUIRED",
+        message: error.message,
+        confirmation: error.confirmation,
+      });
+    }
   });
 
   app.get<Scope>("/sales/options", { preHandler }, (request) =>

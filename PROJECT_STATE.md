@@ -1,5 +1,11 @@
 # Mizan project state
 
+## Task 9 — sale confirmation and profit (November 20, 2026)
+
+- Sales accept multiple products with individual final prices. The API checks each price against its acquisition cost before changing stock and issues an attempt-bound confirmation for losses. Active Owner mode sees the loss breakdown and receipt profit. Salesperson sessions receive a generic confirmation and receipts without profit data.
+- `apps/api/src/modules/sales` records item acquisition snapshots and computes gross profit from the final sale value. Existing trade-in and payment settlement rules apply. Old receipts lack cost snapshots, and profit is unavailable when acquisition cost is missing or in another currency. Zero-value sales show the known loss with an unavailable margin.
+- API and web builds, TypeScript, changed-file lint and formatting, 23 contracts tests, 124 web tests, and 30 API tests on disposable PostgreSQL passed. Chromium fixtures exercised both display modes at 390px and 1280px in light and dark. The separate live Storage test was skipped. Apply migration `202611200003_sale_items` before rolling out the updated API.
+
 ## Task 8 — owner display mode (November 20, 2026)
 
 - The localized header control in `apps/web/src/features/settings/components/DisplayModeControl.tsx` switches the owner's current Supabase session to Salesperson mode. The API persists the restriction across token refresh and requires a fresh Supabase sign-in to regain Owner mode. Membership roles and separate device sessions retain their permissions.

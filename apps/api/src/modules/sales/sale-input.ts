@@ -1,4 +1,8 @@
-import { currencyMinorUnits, parseDecimal } from "@mizan/contracts";
+import {
+  currencyMinorUnits,
+  maxSaleItems,
+  parseDecimal,
+} from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { uuidPattern } from "../access/access.service.js";
 
@@ -45,6 +49,28 @@ export function parseSaleInput(body: unknown, currency: string) {
   )
     throw new AccessError("SALE_CONFLICT", "currency");
   const scale = currencyMinorUnits(currency);
+  const parseItem = (line: Record<string, unknown>) => ({
+    productId: id(line.productId, "productId"),
+    saleAmount: decimal(line.saleAmount, scale, 16, "saleAmount", true),
+  });
+  let items;
+  if (input.items === undefined) {
+    items = [parseItem(input)];
+  } else {
+    if (
+      input.productId !== undefined ||
+      input.saleAmount !== undefined ||
+      !Array.isArray(input.items) ||
+      !input.items.length ||
+      input.items.length > maxSaleItems
+    )
+      throw new AccessError("INVALID_SALE", "items");
+    items = input.items.map((item: unknown) =>
+      parseItem(object(item, "items")),
+    );
+    if (new Set(items.map(({ productId }) => productId)).size !== items.length)
+      throw new AccessError("INVALID_SALE", "items");
+  }
   const lines = input.tradeIns === undefined ? [] : input.tradeIns;
   if (!Array.isArray(lines) || lines.length > 100)
     throw new AccessError("INVALID_SALE", "tradeIns");
@@ -92,8 +118,7 @@ export function parseSaleInput(body: unknown, currency: string) {
     };
   }
   return {
-    productId: id(input.productId, "productId"),
-    saleAmount: decimal(input.saleAmount, scale, 16, "saleAmount"),
+    items,
     tradeIns,
     tender,
   };

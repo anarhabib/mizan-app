@@ -87,7 +87,31 @@ describe("sale payload", () => {
     ).not.toHaveProperty("input.payment.exchangeRate");
   });
 
-  it.each(["0.00", "12.345", "-1", "1e2", "10000000000000000"])(
+  it("sends each final negotiated amount, including zero, without product labels", () => {
+    expect(
+      build({
+        ...values,
+        saleAmount: "0.00",
+        items: [{ productId: "product-2", label: "Ring", saleAmount: "15.25" }],
+      }),
+    ).toEqual({
+      input: {
+        items: [
+          { productId: "product-1", saleAmount: "0.00" },
+          { productId: "product-2", saleAmount: "15.25" },
+        ],
+        expectedCurrency: "AZN",
+      },
+    });
+    expect(
+      build({
+        ...values,
+        items: [{ productId: "product-1", label: "Ring", saleAmount: "15.25" }],
+      }),
+    ).toEqual({ field: "items" });
+  });
+
+  it.each(["12.345", "-1", "1e2", "10000000000000000"])(
     "rejects invalid sale amount %s",
     (saleAmount) => {
       expect(build({ ...values, saleAmount })).toEqual({ field: "saleAmount" });

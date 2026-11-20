@@ -1,7 +1,20 @@
-export interface SaleCreateInput {
-  expectedCurrency?: string;
+import type { MoneyInput } from "./money.js";
+
+export type SaleCreateInput = SaleTerms &
+  (
+    | { productId: string; saleAmount: string; items?: never }
+    | { items: SaleItemInput[]; productId?: never; saleAmount?: never }
+  );
+
+export interface SaleItemInput {
   productId: string;
   saleAmount: string;
+}
+
+export const maxSaleItems = 100;
+
+interface SaleTerms {
+  expectedCurrency?: string;
   tradeIns?: Array<{
     purity: number;
     weight: string;
@@ -15,6 +28,31 @@ export interface SaleCreateInput {
   };
 }
 
+export interface SaleLoss {
+  productId: string;
+  code: string;
+  acquisitionCost: string;
+  saleAmount: string;
+  expectedLoss: string;
+}
+
+export interface SaleConfirmation {
+  token: string;
+  financials?: { currency: string; losses: SaleLoss[] };
+}
+
+export interface SaleProfit {
+  acquisitionCost: MoneyInput | null;
+  grossProfit: string | null;
+  marginPercent: string | null;
+}
+
+export interface SaleItem {
+  product: SaleResult["product"];
+  saleAmount: string;
+  profit?: SaleProfit & { acquisitionCostPerGram: MoneyInput | null };
+}
+
 export interface SaleList {
   items: Array<
     Pick<
@@ -26,7 +64,7 @@ export interface SaleList {
       | "saleAmount"
       | "product"
       | "balance"
-    > & { paymentCurrency: string | null }
+    > & { paymentCurrency: string | null; itemCount: number }
   >;
   nextCursor?: string;
 }
@@ -40,6 +78,8 @@ export interface SaleResult {
   tradeInTotal: string;
   balance: string;
   payout: string;
+  items: SaleItem[];
+  profit?: SaleProfit;
   payment: {
     currency: string;
     amount: string;

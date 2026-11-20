@@ -3,12 +3,14 @@ export class ApiError extends Error {
   readonly code: string;
   readonly field?: string;
   readonly isNetwork: boolean;
+  readonly confirmation?: unknown;
   constructor(
     status: number,
     code: string,
     message: string,
     field?: string,
     isNetwork = false,
+    confirmation?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -16,6 +18,7 @@ export class ApiError extends Error {
     this.code = code;
     this.field = field;
     this.isNetwork = isNetwork;
+    this.confirmation = confirmation;
   }
 }
 type Credentials = { token: string; generation: number };
@@ -90,6 +93,8 @@ export async function apiRequest<T>(
           ? payload.message
           : response.statusText,
         typeof payload.field === "string" ? payload.field : undefined,
+        false,
+        payload.confirmation,
       );
       if (response.status === 401) {
         let refreshed;

@@ -39,6 +39,12 @@ export function detailFields(access: AccessContext) {
     sale: {
       select: { id: true, saleAmount: true, currency: true, createdAt: true },
     },
+    saleItem: {
+      select: {
+        saleAmount: true,
+        sale: { select: { id: true, currency: true, createdAt: true } },
+      },
+    },
   } as const satisfies Prisma.ProductSelect;
 }
 
@@ -74,6 +80,7 @@ export function canEditAcquisition(row: DetailRow) {
   return (
     row.status === "IN_STOCK" &&
     !row.sale &&
+    !row.saleItem &&
     row.movements.every(({ kind }) => kind === "PRODUCT_ADDED")
   );
 }
@@ -90,10 +97,14 @@ export function presentDetail(
     note,
     createdAt,
     movements,
-    sale,
+    sale: legacySale,
+    saleItem,
     photoContentType,
     photoSize,
   } = row;
+  const sale = saleItem
+    ? { ...saleItem.sale, saleAmount: saleItem.saleAmount }
+    : legacySale;
   return {
     ...presentListItem(row),
     ...(acquisitionCost &&

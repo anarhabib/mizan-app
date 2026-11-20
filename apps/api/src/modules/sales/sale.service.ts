@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
-import type { SaleList, SaleResult } from "@mizan/contracts";
+import type {
+  SaleItem,
+  SaleList,
+  SaleLoss,
+  SaleResult,
+} from "@mizan/contracts";
 import { Prisma, type createDatabase } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
+import { canManageAsOwner } from "../access/display-mode.js";
 import { lockOrganization } from "../access/organization-owner.js";
 import {
   resolveAccessContext,
@@ -9,11 +15,38 @@ import {
   type AccessContext,
 } from "../access/access.service.js";
 import { parseSaleInput } from "./sale-input.js";
+import { calculateProfit } from "./profit.js";
+import { requireSaleConfirmation } from "./sale-confirmation.js";
 import { calculateSettlement, SaleDecimal } from "./settlement.js";
 
 export type SalesDatabase = ReturnType<typeof createDatabase>;
-const include = { tradeIns: { orderBy: { id: "asc" } } } as const;
+const include = {
+  tradeIns: { orderBy: { id: "asc" } },
+  items: { orderBy: { position: "asc" } },
+} as const;
 type SaleRecord = Prisma.SaleGetPayload<{ include: typeof include }>;
+
+function productSnapshot(
+  row: Pick<
+    SaleRecord,
+    | "productId"
+    | "productCode"
+    | "productName"
+    | "productCategory"
+    | "productPurity"
+    | "productWeight"
+  >,
+): SaleResult["product"] {
+  return {
+    id: row.productId,
+    code: row.productCode,
+    name: row.productName,
+    category: row.productCategory,
+    purity: row.productPurity,
+    weight: row.productWeight.toFixed(),
+    status: "SOLD",
+  };
+}
 
 function currentRates(
   db: Pick<SalesDatabase, "oldGoldRate">,
@@ -49,13 +82,71 @@ export async function getSaleOptions(
   };
 }
 
-function presentSale(sale: SaleRecord): SaleResult {
+function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
+  const currency = sale.defaultCurrency;
+  const saleAmount = sale.defaultSaleAmount.toFixed();
+  const showProfit = canManageAsOwner(access);
+  const rows = sale.items.length
+    ? sale.items
+    : [
+        {
+          ...sale,
+          saleAmount: sale.defaultSaleAmount,
+          acquisitionCost: null,
+          acquisitionCostPerGram: null,
+          acquisitionCurrency: null,
+        },
+      ];
+  const items = rows.map((row): SaleItem => {
+    const amount = row.saleAmount.toFixed();
+    const item = { product: productSnapshot(row), saleAmount: amount };
+    if (!showProfit) return item;
+    return {
+      ...item,
+      profit: {
+        ...calculateProfit(
+          amount,
+          currency,
+          row.acquisitionCost,
+          row.acquisitionCurrency,
+        ),
+        acquisitionCostPerGram:
+          row.acquisitionCurrency && row.acquisitionCostPerGram?.gt(0)
+            ? {
+                amount: row.acquisitionCostPerGram.toFixed(),
+                currency: row.acquisitionCurrency,
+              }
+            : null,
+      },
+    };
+  });
+  const costs = items.flatMap(({ profit }) =>
+    profit?.acquisitionCost ? [profit.acquisitionCost] : [],
+  );
+  const costCurrency = costs[0]?.currency;
+  const totalCost =
+    costs.length === items.length &&
+    costs.every(({ currency }) => currency === costCurrency)
+      ? costs.reduce(
+          (total, { amount }) => total.plus(amount),
+          new SaleDecimal(0),
+        )
+      : null;
   return {
     id: sale.id,
     actorId: sale.actorId,
     createdAt: sale.createdAt.toISOString(),
-    currency: sale.defaultCurrency,
-    saleAmount: sale.defaultSaleAmount.toFixed(),
+    currency,
+    saleAmount,
+    items,
+    ...(showProfit && {
+      profit: calculateProfit(
+        saleAmount,
+        currency,
+        totalCost,
+        costCurrency ?? null,
+      ),
+    }),
     tradeInTotal: sale.acceptedTradeInTotal.toFixed(),
     balance: sale.defaultSettlement.toFixed(),
     payout: SaleDecimal.max(sale.defaultSettlement.negated(), 0).toFixed(),
@@ -73,15 +164,7 @@ function presentSale(sale: SaleRecord): SaleResult {
             change: sale.changeAmount.toFixed(),
           }
         : null,
-    product: {
-      id: sale.productId,
-      code: sale.productCode,
-      name: sale.productName,
-      category: sale.productCategory,
-      purity: sale.productPurity,
-      weight: sale.productWeight.toFixed(),
-      status: "SOLD" as const,
-    },
+    product: items[0].product,
     tradeIns: sale.tradeIns.map((line) => ({
       id: line.id,
       purity: line.purity,
@@ -112,7 +195,7 @@ export async function getSale(
     include,
   });
   if (!sale) throw new AccessError("SALE_NOT_FOUND");
-  return presentSale(sale);
+  return presentSale(sale, context);
 }
 
 export async function listSales(
@@ -179,6 +262,26 @@ export async function listSales(
                       mode: "insensitive" as const,
                     },
                   },
+                  {
+                    items: {
+                      some: {
+                        OR: [
+                          {
+                            productName: {
+                              contains: search,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                          {
+                            productCode: {
+                              contains: search,
+                              mode: "insensitive" as const,
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
                   ...(q && uuidPattern.test(q)
                     ? [{ id: q }]
                     : reference
@@ -216,6 +319,7 @@ export async function listSales(
       productCategory: true,
       productPurity: true,
       productWeight: true,
+      _count: { select: { items: true } },
     },
   });
   return {
@@ -227,15 +331,8 @@ export async function listSales(
       saleAmount: sale.defaultSaleAmount.toFixed(),
       balance: sale.defaultSettlement.toFixed(),
       paymentCurrency: sale.paymentCurrency,
-      product: {
-        id: sale.productId,
-        code: sale.productCode,
-        name: sale.productName,
-        category: sale.productCategory,
-        purity: sale.productPurity,
-        weight: sale.productWeight.toFixed(),
-        status: "SOLD",
-      },
+      product: productSnapshot(sale),
+      itemCount: sale._count.items || 1,
     })),
     nextCursor: rows.length > 50 ? rows[49].id : undefined,
   };
@@ -246,15 +343,24 @@ export async function recordSale(
   context: AccessContext,
   idempotencyKey: string,
   body: unknown,
+  confirmation: string | undefined,
+  sessionId: string | undefined,
 ) {
   const { organizationId, storeId, userId: actorId } = context;
   const scope = { organizationId, storeId };
   return db.$transaction(
     async (tx) => {
       await lockOrganization(tx, organizationId);
+      const restricted =
+        context.salespersonDisplay ||
+        (sessionId &&
+          (await tx.salespersonDisplaySession.findUnique({
+            where: { sessionId, userId: actorId },
+            select: { sessionId: true },
+          })));
       const access = await resolveAccessContext(
         tx,
-        context,
+        restricted ? { ...context, salespersonDisplay: true } : context,
         organizationId,
         storeId,
       );
@@ -266,25 +372,64 @@ export async function recordSale(
       const currency =
         previous?.defaultCurrency ?? access.settings.defaultCurrency;
       const input = parseSaleInput(body, currency);
+      const {
+        items,
+        tradeIns: requestedTradeIns,
+        tender: requestedTender,
+      } = input;
+      // Preserve the canonical digest used by existing single-product receipts.
       const requestDigest = createHash("sha256")
-        .update(JSON.stringify(input))
+        .update(
+          JSON.stringify(
+            items.length === 1
+              ? {
+                  ...items[0],
+                  tradeIns: requestedTradeIns,
+                  tender: requestedTender,
+                }
+              : input,
+          ),
+        )
         .digest("hex");
       if (previous) {
         if (previous.requestDigest !== requestDigest)
           throw new AccessError("SALE_CONFLICT", "idempotencyKey");
-        return presentSale(previous);
+        return presentSale(previous, access);
       }
 
-      const productWhere = { ...scope, id: input.productId };
-      const product = await tx.product.findUnique({
-        where: { organizationId_storeId_id: productWhere },
+      const productWhere = {
+        ...scope,
+        id: { in: items.map(({ productId }) => productId) },
+      };
+      const products = await tx.product.findMany({ where: productWhere });
+      const byId = new Map(products.map((product) => [product.id, product]));
+      const saleItems = items.map(({ productId, saleAmount }, position) => {
+        const product = byId.get(productId);
+        if (!product) throw new AccessError("PRODUCT_NOT_FOUND");
+        if (product.status !== "IN_STOCK")
+          throw new AccessError("SALE_CONFLICT", "productId");
+        return {
+          productId,
+          position,
+          saleAmount,
+          productCode: product.code,
+          productName: product.name,
+          productCategory: product.category,
+          productPurity: product.purity,
+          productWeight: product.weight,
+          acquisitionCost: product.acquisitionCost.gt(0)
+            ? product.acquisitionCost
+            : null,
+          acquisitionCostPerGram: product.acquisitionCostPerGram,
+          acquisitionCurrency: product.acquisitionCurrency,
+        };
       });
-      if (!product) throw new AccessError("PRODUCT_NOT_FOUND");
-      const claimed = await tx.product.updateMany({
-        where: { ...productWhere, status: "IN_STOCK" },
-        data: { status: "SOLD" },
-      });
-      if (!claimed.count) throw new AccessError("SALE_CONFLICT", "productId");
+      const saleAmount = items
+        .reduce(
+          (total, item) => total.plus(item.saleAmount),
+          new SaleDecimal(0),
+        )
+        .toFixed();
 
       const rates = input.tradeIns.length
         ? await currentRates(
@@ -315,12 +460,45 @@ export async function recordSale(
       });
       const settlement = calculateSettlement(
         currency,
-        input.saleAmount,
+        saleAmount,
         tradeIns.map(({ acceptedValue }) => acceptedValue),
         input.tender,
       );
       if (new SaleDecimal(settlement.tradeInTotal).gte("1e17"))
         throw new AccessError("INVALID_SALE", "tradeIns");
+      const losses = saleItems.flatMap((item): SaleLoss[] => {
+        const cost = item.acquisitionCost;
+        return cost &&
+          item.acquisitionCurrency === currency &&
+          cost.gt(item.saleAmount)
+          ? [
+              {
+                productId: item.productId,
+                code: item.productCode,
+                acquisitionCost: cost.toFixed(),
+                saleAmount: item.saleAmount,
+                expectedLoss: new SaleDecimal(cost)
+                  .minus(item.saleAmount)
+                  .toFixed(),
+              },
+            ]
+          : [];
+      });
+      const ownerMode = canManageAsOwner(access);
+      requireSaleConfirmation(
+        confirmation,
+        [key, sessionId, ownerMode, requestDigest],
+        currency,
+        losses,
+        ownerMode,
+      );
+      const claimed = await tx.product.updateMany({
+        where: { ...productWhere, status: "IN_STOCK" },
+        data: { status: "SOLD" },
+      });
+      if (claimed.count !== items.length)
+        throw new AccessError("SALE_CONFLICT", "productId");
+      const first = saleItems[0];
       const tender =
         input.tender ??
         (new SaleDecimal(settlement.balance).gt(0)
@@ -334,12 +512,12 @@ export async function recordSale(
         data: {
           ...key,
           requestDigest,
-          productId: product.id,
+          productId: first.productId,
           currency,
           defaultCurrency: currency,
           exchangeRate: "1",
-          saleAmount: input.saleAmount,
-          defaultSaleAmount: input.saleAmount,
+          saleAmount,
+          defaultSaleAmount: saleAmount,
           acceptedTradeInTotal: settlement.tradeInTotal,
           defaultAcceptedTradeInTotal: new SaleDecimal(settlement.tradeInTotal)
             .toDecimalPlaces(4, SaleDecimal.ROUND_HALF_UP)
@@ -351,16 +529,22 @@ export async function recordSale(
           paymentExchangeRate: tender?.exchangeRate,
           convertedPayment: tender && settlement.convertedPayment,
           changeAmount: tender && settlement.change,
-          productCode: product.code,
-          productName: product.name,
-          productCategory: product.category,
-          productPurity: product.purity,
-          productWeight: product.weight,
+          productCode: first.productCode,
+          productName: first.productName,
+          productCategory: first.productCategory,
+          productPurity: first.productPurity,
+          productWeight: first.productWeight,
+          items: { create: saleItems },
         },
+        include: { items: include.items },
       });
       const movement = { ...scope, actorId, saleId: sale.id };
-      await tx.inventoryMovement.create({
-        data: { ...movement, kind: "PRODUCT_SOLD", productId: product.id },
+      await tx.inventoryMovement.createMany({
+        data: saleItems.map(({ productId }) => ({
+          ...movement,
+          kind: "PRODUCT_SOLD",
+          productId,
+        })),
       });
       const savedLines = [];
       for (const line of tradeIns) {
@@ -379,12 +563,15 @@ export async function recordSale(
           },
         });
       }
-      return presentSale({
-        ...sale,
-        tradeIns: savedLines.sort((left, right) =>
-          left.id.localeCompare(right.id),
-        ),
-      });
+      return presentSale(
+        {
+          ...sale,
+          tradeIns: savedLines.sort((left, right) =>
+            left.id.localeCompare(right.id),
+          ),
+        },
+        access,
+      );
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
   );

@@ -189,6 +189,7 @@ model Product {
   store                  Store               @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
   grade                  PurityGrade         @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
   sale                   Sale?
+  saleItem               SaleItem?
   movements              InventoryMovement[]
 
   @@id([organizationId, storeId, id])
@@ -207,14 +208,14 @@ model Sale {
   currency                    String              @db.Char(3)
   defaultCurrency             String              @db.Char(3)
   exchangeRate                Decimal             @db.Decimal(24, 8)
-  saleAmount                  Decimal             @db.Decimal(20, 4)
+  saleAmount                  Decimal             @db.Decimal(28, 4)
   defaultSaleAmount           Decimal             @db.Decimal(28, 4)
   acceptedTradeInTotal        Decimal             @db.Decimal(32, 15)
   defaultAcceptedTradeInTotal Decimal             @db.Decimal(32, 4)
   settlement                  Decimal             @db.Decimal(32, 4)
   defaultSettlement           Decimal             @db.Decimal(32, 4)
   paymentCurrency             String?             @db.Char(3)
-  paymentAmount               Decimal?            @db.Decimal(20, 4)
+  paymentAmount               Decimal?            @db.Decimal(28, 4)
   paymentExchangeRate         Decimal?            @db.Decimal(24, 8)
   convertedPayment            Decimal?            @db.Decimal(32, 4)
   changeAmount                Decimal?            @db.Decimal(32, 4)
@@ -227,11 +228,35 @@ model Sale {
   product                     Product             @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
   actor                       StoreAssignment     @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
   tradeIns                    TradeIn[]
+  items                       SaleItem[]
   movements                   InventoryMovement[]
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, storeId, productId])
   @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@schema("mizan")
+}
+
+model SaleItem {
+  organizationId         String   @db.Uuid
+  storeId                String   @db.Uuid
+  saleId                 String   @db.Uuid
+  productId              String   @db.Uuid
+  position               Int
+  productCode            String
+  productName            String
+  productCategory        String
+  productPurity          Int
+  productWeight          Decimal  @db.Decimal(15, 3)
+  saleAmount             Decimal  @db.Decimal(20, 4)
+  acquisitionCost        Decimal? @db.Decimal(20, 4)
+  acquisitionCostPerGram Decimal? @db.Decimal(35, 16)
+  acquisitionCurrency    String?  @db.Char(3)
+  sale                   Sale     @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
+  product                Product  @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+
+  @@id([organizationId, storeId, productId])
+  @@unique([organizationId, storeId, saleId, position])
   @@schema("mizan")
 }
 

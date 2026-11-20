@@ -106,6 +106,11 @@ export function SaleList({
                     </span>
                     <span className="font-medium wrap-anywhere">
                       {sale.product.name}
+                      {sale.itemCount > 1 && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          {t("extraProducts", { count: sale.itemCount - 1 })}
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className="text-right wrap-anywhere lg:order-3">
