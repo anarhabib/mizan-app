@@ -1,17 +1,21 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { Package, Receipt, Settings, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/shared/ui/BrandMark";
+import { LanguageButton } from "@/shared/ui/LanguageButton";
+import { SignOutButton } from "@/features/auth";
+import { StoreSwitcher, useWorkspace } from "@/features/workspace";
 const items = [
   { to: "/products", namespace: "products", icon: Package },
   { to: "/sales", namespace: "sales", icon: Receipt },
-  { to: "/settings", namespace: "settings", icon: Settings },
-  { to: "/team", namespace: "team", icon: Users },
+  { to: "/settings", namespace: "settings", icon: Settings, ownerOnly: true },
+  { to: "/team", namespace: "team", icon: Users, ownerOnly: true },
 ] as const;
-export function Shell({ storeSwitcher }: { storeSwitcher?: ReactNode }) {
-  const { t, i18n } = useTranslation([
+export function Shell() {
+  const workspace = useWorkspace();
+  const owner = workspace.role === "OWNER";
+  const { t } = useTranslation([
     "shell",
     "products",
     "sales",
@@ -21,9 +25,6 @@ export function Shell({ storeSwitcher }: { storeSwitcher?: ReactNode }) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
-  useEffect(() => {
-    document.documentElement.lang = i18n.resolvedLanguage ?? "az";
-  }, [i18n.resolvedLanguage]);
   useEffect(() => {
     document.getElementById("main-content")?.focus();
   }, [pathname]);
@@ -44,39 +45,41 @@ export function Shell({ storeSwitcher }: { storeSwitcher?: ReactNode }) {
             <BrandMark />
           </span>
           <div className="min-w-0 flex-1" data-slot="store-switcher">
-            {storeSwitcher}
+            <StoreSwitcher
+              active={workspace}
+              contexts={workspace.contexts}
+              onSelect={workspace.selectStore}
+            />
           </div>
-          <Button
-            variant="outline"
-            className="min-h-11 min-w-11 lg:min-h-9"
-            aria-label={t("language")}
-            onClick={() => {
-              void i18n.changeLanguage(
-                i18n.resolvedLanguage === "en" ? "az" : "en",
-              );
-            }}
-          >
-            {t("otherLanguage")}
-          </Button>
+          <LanguageButton />
+          <SignOutButton compact />
         </div>
       </header>
       <nav
         aria-label={t("navigation")}
         className="shell-nav fixed inset-x-0 bottom-0 z-20 border-t bg-background lg:inset-x-auto lg:inset-y-0 lg:left-0 lg:top-20 lg:w-56 lg:border-0 lg:bg-sidebar lg:p-4"
       >
-        <ul className="grid grid-cols-4 gap-2 lg:flex lg:flex-col">
-          {items.map(({ to, namespace, icon: Icon }) => (
-            <li key={to}>
-              <Link
-                to={to}
-                activeProps={{ "aria-current": "page" }}
-                className="flex min-h-14 flex-col items-center justify-center gap-2 rounded-md px-2 py-3 text-xs text-muted-foreground outline-offset-2 hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring lg:min-h-11 lg:flex-row lg:justify-start lg:px-3 lg:text-sm [&[aria-current=page]]:bg-primary [&[aria-current=page]]:font-semibold [&[aria-current=page]]:text-primary-foreground [&[aria-current=page]]:underline [&[aria-current=page]]:underline-offset-4"
-              >
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
-                <span>{t("title", { ns: namespace })}</span>
-              </Link>
-            </li>
-          ))}
+        <ul
+          className={
+            owner
+              ? "grid grid-cols-4 gap-2 lg:flex lg:flex-col"
+              : "grid grid-cols-2 gap-2 lg:flex lg:flex-col"
+          }
+        >
+          {items
+            .filter((item) => owner || !("ownerOnly" in item))
+            .map(({ to, namespace, icon: Icon }) => (
+              <li key={to}>
+                <Link
+                  to={to}
+                  activeProps={{ "aria-current": "page" }}
+                  className="flex min-h-14 flex-col items-center justify-center gap-2 rounded-md px-2 py-3 text-xs text-muted-foreground outline-offset-2 hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring lg:min-h-11 lg:flex-row lg:justify-start lg:px-3 lg:text-sm [&[aria-current=page]]:bg-primary [&[aria-current=page]]:font-semibold [&[aria-current=page]]:text-primary-foreground [&[aria-current=page]]:underline [&[aria-current=page]]:underline-offset-4"
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden="true" />
+                  <span>{t("title", { ns: namespace })}</span>
+                </Link>
+              </li>
+            ))}
         </ul>
       </nav>
       <main

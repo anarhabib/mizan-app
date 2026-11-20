@@ -18,9 +18,16 @@ export class ApiError extends Error {
     this.isNetwork = isNetwork;
   }
 }
-type TokenGetter = () => string | null | Promise<string | null>;
+type Credentials = { token: string; generation: number };
+type AccessToken = Credentials | string | null;
+type TokenGetter = () => AccessToken | Promise<AccessToken>;
 let getToken: TokenGetter = () => null;
-let unauthorized: (error: ApiError) => void | Promise<void> = () => {};
+type UnauthorizedHook = (
+  error: ApiError,
+  credentials: AccessToken,
+  retried: boolean,
+) => string | null | void | Promise<string | null | void>;
+let unauthorized: UnauthorizedHook = () => {};
 export function setAccessTokenGetter(getter: TokenGetter) {
   getToken = getter;
 }
@@ -33,8 +40,18 @@ export async function apiRequest<T>(
   options: Omit<RequestInit, "body" | "credentials"> & { body?: unknown } = {},
 ): Promise<T> {
   try {
-    const token = await getToken();
+    const credentials = await getToken();
+    return await send(credentials, false);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(0, "NETWORK_ERROR", "Request failed", undefined, true);
+  }
+
+  async function send(credentials: AccessToken, retried: boolean): Promise<T> {
+    const token =
+      typeof credentials === "object" ? credentials?.token : credentials;
     const headers = new Headers(options.headers);
+    headers.delete("Authorization");
     headers.set("Accept", "application/json");
     if (options.body !== undefined)
       headers.set("Content-Type", "application/json");
@@ -75,17 +92,23 @@ export async function apiRequest<T>(
         typeof payload.field === "string" ? payload.field : undefined,
       );
       if (response.status === 401) {
+        let refreshed;
         try {
-          await unauthorized(error);
-        } catch {
-          /* Preserve the API failure. */
+          refreshed = await unauthorized(error, credentials, retried);
+        } catch (refreshError) {
+          if (refreshError instanceof ApiError) throw refreshError;
+        }
+        if (refreshed && !retried) {
+          return send(
+            typeof credentials === "object" && credentials
+              ? { ...credentials, token: refreshed }
+              : refreshed,
+            true,
+          );
         }
       }
       throw error;
     }
     return data as T;
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(0, "NETWORK_ERROR", "Request failed", undefined, true);
   }
 }

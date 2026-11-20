@@ -40,14 +40,15 @@ To include API access, onboarding, invitation, settings, and product integration
 
 ## Owner signup and language
 
-1. With the local Supabase stack available, export `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` to the shell that starts the API and web app. Export `DATABASE_URL` for the API and apply the Prisma migrations before starting the apps. See `.env.example` for the expected variables.
-2. Open http://127.0.0.1:3000/register. Register or sign in, then enter the business name, first store name, and default currency. If email confirmation is enabled, allow the application's `/auth/callback` URL in Supabase and follow the confirmation link. A signed-in owner can return to registration to finish an interrupted setup.
-3. The workspace opens automatically for a single assignment and shows a store picker when more than one is available. English and Azerbaijani are selectable in the page header, and the choice is saved in the browser.
+1. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `apps/web/.env.local`. Point the API to the same Supabase project and apply the Prisma migrations before starting the apps. See `.env.example` for the expected variables.
+2. Open http://127.0.0.1:3000/login. Create an account or sign in. If you have no store assignments, enter an organization name, a store name, and a default currency.
+3. A single assignment opens automatically. For multiple assignments, the header store picker saves your selection in the browser. Use the language button to switch between Azerbaijani and English.
+4. Password reset uses `/auth/callback`. Allow the full callback URL in Supabase and open the reset email in Mailpit when testing locally.
 
 ## Local salesperson invitations
 
 1. Apply the Prisma migrations and start local Supabase with Mailpit SMTP enabled. For the API process set `MIZAN_SMTP_URL=smtp://127.0.0.1:54325` and `MIZAN_INVITATION_FROM=mizan@example.test`. When using a different loopback SMTP port, set the URL to match. Keep the full stack on loopback and use test addresses during development.
-2. As an owner, open **Salespeople and invitations** in the workspace. Choose a store and send the invite. Open Mailpit at http://127.0.0.1:54324 and follow the captured link in a separate browser profile or private window.
+2. Create an invitation through the API with an owner session. Open Mailpit at http://127.0.0.1:54324 and follow the captured link in a separate browser profile or private window.
 3. Sign in or register using the invited address. If Supabase requires confirmation, confirm the email before accepting the invitation. Creating an Auth account alone does not grant store access. Use confirmed email settings for hosted environments.
 4. A link expires after 48 hours and can be accepted once. Resending creates a new link and invalidates the old one. If SMTP fails, the owner can resend the stored invitation. Deactivation and store removal preserve the membership and assignment records while blocking access on the next API request.
 

@@ -1,0 +1,20 @@
+{
+  "title": "Workspace",
+  "loading": "Loading your workspace",
+  "onboarding": "Set up your workspace",
+  "organizationName": "Organization name",
+  "storeName": "Store name",
+  "defaultCurrency": "Default currency",
+  "currencyExample": "For example, AZN",
+  "required": "This field is required.",
+  "create": "Create workspace",
+  "creating": "Creating workspace…",
+  "switchStore": "Switch store",
+  "chooseStore": "Choose a store to open.",
+  "switchFrom": "Switch store. Current store: {{name}}",
+  "invitation": "Store invitation",
+  "acceptInvitation": "Accept invitation",
+  "acceptingInvitation": "Accepting invitation…",
+  "invitationAccepted": "Invitation accepted.",
+  "openWorkspace": "Open workspace"
+}

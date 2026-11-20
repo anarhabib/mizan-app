@@ -10,14 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TeamRouteImport } from './routes/team'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as InvitationsTokenRouteImport } from './routes/invitations.$token'
+import { Route as InvitationsAcceptRouteImport } from './routes/invitations.accept'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsRoute = ProductsRouteImport.update({
@@ -40,43 +49,102 @@ const TeamRoute = TeamRouteImport.update({
   path: '/team',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationsTokenRoute = InvitationsTokenRouteImport.update({
+  id: '/invitations/$token',
+  path: '/invitations/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationsAcceptRoute = InvitationsAcceptRouteImport.update({
+  id: '/invitations/accept',
+  path: '/invitations/accept',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/team': typeof TeamRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/invitations/$token': typeof InvitationsTokenRoute
+  '/invitations/accept': typeof InvitationsAcceptRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/team': typeof TeamRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/invitations/$token': typeof InvitationsTokenRoute
+  '/invitations/accept': typeof InvitationsAcceptRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
   '/team': typeof TeamRoute
+  '/auth/callback': typeof AuthCallbackRoute
+  '/invitations/$token': typeof InvitationsTokenRoute
+  '/invitations/accept': typeof InvitationsAcceptRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/products' | '/sales' | '/settings' | '/team'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/products'
+    | '/sales'
+    | '/settings'
+    | '/team'
+    | '/auth/callback'
+    | '/invitations/$token'
+    | '/invitations/accept'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/products' | '/sales' | '/settings' | '/team'
-  id: '__root__' | '/' | '/products' | '/sales' | '/settings' | '/team'
+  to:
+    | '/'
+    | '/login'
+    | '/products'
+    | '/sales'
+    | '/settings'
+    | '/team'
+    | '/auth/callback'
+    | '/invitations/$token'
+    | '/invitations/accept'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/products'
+    | '/sales'
+    | '/settings'
+    | '/team'
+    | '/auth/callback'
+    | '/invitations/$token'
+    | '/invitations/accept'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   ProductsRoute: typeof ProductsRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
   TeamRoute: typeof TeamRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  InvitationsTokenRoute: typeof InvitationsTokenRoute
+  InvitationsAcceptRoute: typeof InvitationsAcceptRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -86,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products': {
@@ -116,15 +191,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations/$token': {
+      id: '/invitations/$token'
+      path: '/invitations/$token'
+      fullPath: '/invitations/$token'
+      preLoaderRoute: typeof InvitationsTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations/accept': {
+      id: '/invitations/accept'
+      path: '/invitations/accept'
+      fullPath: '/invitations/accept'
+      preLoaderRoute: typeof InvitationsAcceptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   ProductsRoute: ProductsRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
   TeamRoute: TeamRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
+  InvitationsTokenRoute: InvitationsTokenRoute,
+  InvitationsAcceptRoute: InvitationsAcceptRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

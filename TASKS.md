@@ -22,8 +22,8 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
 
 ## Frontend sequence
 
-- [ ] Add before Prompt 2: `pnpm --filter web add @supabase/supabase-js`, create `apps/web/.env.local` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; publishable key only)
-- [ ] Prompt 2: auth, workspace, onboarding, invitation accept
+- [x] Add before Prompt 2: `pnpm --filter web add @supabase/supabase-js`, create `apps/web/.env.local` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; publishable key only)
+- [x] Prompt 2: auth, workspace, onboarding, invitation accept
   - [ ] Test login, logout, onboarding, store switch, expired session on a phone
 - [ ] Add before Prompt 3: `pnpm dlx shadcn@latest add select textarea alert-dialog switch tabs`
 - [ ] Prompt 3: products (reference feature)

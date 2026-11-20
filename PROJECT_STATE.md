@@ -1,5 +1,12 @@
 # Mizan project state
 
+## Task 2 — authentication and workspaces (November 20, 2026)
+
+- Added Supabase email sign-in, signup, sign-out and password recovery in `apps/web/src/features/auth`. The API client replays a 401 once after refresh and preserves the session on retryable Auth outages. The web env uses the existing ignored `apps/web/.env.local` and the recovery route uses Supabase's allow-listed `/auth/callback`.
+- Added onboarding, store access, per-account store selection, desktop and mobile switching and owner-only navigation in `apps/web/src/features/workspace` and `apps/web/src/app/Shell.tsx`. The emitted `/invitations/:token` link removes the token from the address bar before login and retains it in page memory until acceptance or dismissal.
+- Verified against a separate local API and Supabase. Browser checks exercised signup, login, logout, guarded return paths, onboarding, simulated 401 and 503 responses, invitation acceptance and replay, role-based navigation, store switching and selection after reload, and Mailpit password recovery. Checked login and onboarding at 390px and 1280px in light and dark. Real-phone testing remains open.
+- Contracts and web builds, web typecheck and lint, and 52 Vitest tests passed. The recovery check forwarded the Mailpit callback to the isolated Vite port.
+
 ## Task 1 — frontend foundation (November 20, 2026)
 
 - Added `apps/web/src/app` providers, file routes, responsive shell, typed Azerbaijani/English resources, shared UI states and exact money/weight/purity formatters. API client in `src/shared/lib/api` supports injected bearer-token and unauthorized hooks; auth remains deferred.

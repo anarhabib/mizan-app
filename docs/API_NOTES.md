@@ -47,7 +47,7 @@ All paths below are relative to `/api/v1`. `Auth` = authenticated identity; `Sto
 | Health | GET `/health` | Liveness | Public | — | `{status:"ok"}` |
 | Access | GET `O/stores/:storeId/access` | Verify current store access | Store | — | `{userId,organizationId,storeId,role,settings:{defaultCurrency,salespersonCanViewAcquisitionCost}}` |
 | Onboarding | POST `/onboarding` | Create initial workspace | Auth | `organizationName,storeName,defaultCurrency` | `OnboardingResult` |
-| Onboarding | GET `/me/contexts` | List accessible workspaces | Auth | — | Service result; public element contract `StoreContext` |
+| Onboarding | GET `/me/contexts` | List accessible workspaces | Auth | — | `StoreContext[]` |
 | Memberships | GET `O/memberships` | List staff/invites/stores | Owner* | — | `MembershipDirectory` |
 | Memberships | POST `O/invitations` | Invite salesperson | Owner* | `email,storeId` | `InvitationSummary` + `delivery` |
 | Memberships | POST `O/invitations/:id/revoke` | Revoke invite | Owner* | — | `InvitationSummary` + `delivery` |

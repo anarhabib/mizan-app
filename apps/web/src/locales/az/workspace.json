@@ -1,0 +1,20 @@
+{
+  "title": "İş yeri",
+  "loading": "İş yeri yüklənir",
+  "onboarding": "İş yerinizi yaradın",
+  "organizationName": "Təşkilatın adı",
+  "storeName": "Mağazanın adı",
+  "defaultCurrency": "Əsas valyuta",
+  "currencyExample": "Məsələn, AZN",
+  "required": "Bu sahə mütləq doldurulmalıdır.",
+  "create": "İş yeri yarat",
+  "creating": "İş yeri yaradılır…",
+  "switchStore": "Mağazanı dəyiş",
+  "chooseStore": "Açmaq istədiyiniz mağazanı seçin.",
+  "switchFrom": "Mağazanı dəyiş. Cari mağaza: {{name}}",
+  "invitation": "Mağazaya dəvət",
+  "acceptInvitation": "Dəvəti qəbul et",
+  "acceptingInvitation": "Dəvət qəbul edilir…",
+  "invitationAccepted": "Dəvət qəbul edildi.",
+  "openWorkspace": "İş yerini aç"
+}

@@ -37,7 +37,7 @@ if (!$env:DATABASE_URL -or !$env:SUPABASE_PUBLISHABLE_KEY) {
 }
 ```
 
-`SUPABASE_PUBLISHABLE_KEY` accepts the local anon key for legacy HS256 verification. `SUPABASE_SERVICE_ROLE_KEY` enables signed product photo operations and belongs only in server process environments. The frontend session configuration uses `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. `MIZAN_API_URL` is the web server's address for Fastify. `MIZAN_WEB_ORIGIN` is used for links, callbacks, and secure-cookie selection.
+`SUPABASE_PUBLISHABLE_KEY` accepts the local anon key for legacy HS256 verification. `SUPABASE_SERVICE_ROLE_KEY` enables signed product photo operations and belongs only in server process environments. The frontend session configuration uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. The Vite proxy uses the Fastify address from the shell's `MIZAN_API_URL` when set. `MIZAN_WEB_ORIGIN` supplies the origin for emailed invitation links.
 
 ## Cloud dev project
 
@@ -71,9 +71,9 @@ Each independently opened terminal needs its own environment configuration. `pnp
 | Mailpit captured email | http://127.0.0.1:54324 |
 | Mailpit SMTP | `127.0.0.1:54325` |
 
-Open `/register`, create an owner, and enter the organization, first store, and default currency. The local Supabase configuration disables email confirmation. If enabling confirmation, keep `http://127.0.0.1:3000/auth/callback` in the allowed redirect URLs and follow the email captured in Mailpit.
+Open `/login`, create an account, and enter the organization, first store, and default currency. The local Supabase configuration disables email confirmation. Password reset emails appear in Mailpit and use the allowed redirect `http://127.0.0.1:3000/auth/callback`.
 
-From the owner workspace, use `/settings` for cost visibility, purity grades, and purchase rates, and `/settings/users` for invitations. Follow a captured invitation in a separate browser profile so the owner session stays available. Invitations expire after 48 hours and support new and existing Auth accounts. The application starts in Azerbaijani and remembers the selected interface language.
+Create a salesperson invitation through the API with an owner session. Follow the Mailpit link in a separate browser profile so the owner session stays available. Invitations expire after 48 hours and support new and existing Auth accounts. The application starts in Azerbaijani and offers English in the header.
 
 Use `/products/new` to add inventory, `/products` to find items, and `/sales/new` to record an ordinary sale or old-gold trade-in. Keep money and weights as explicit decimal inputs with currency, grams, and purity. Sale confirmation saves the selected rate and financial snapshots for later history.
 
