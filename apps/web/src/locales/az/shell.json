@@ -11,6 +11,10 @@
   "retry": "Yenidən cəhd et",
   "notFound": "Səhifə tapılmadı",
   "home": "Məhsullara keç",
+  "theme": {
+    "switchToLight": "Açıq rejimə keç",
+    "switchToDark": "Qaranlıq rejimə keç"
+  },
   "displayMode": {
     "owner": "Sahib",
     "salesperson": "Satıcı",
