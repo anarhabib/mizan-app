@@ -1,7 +1,11 @@
 {
-  "otherLanguage": "AZ",
   "navigation": "Main navigation",
   "language": "Change language",
+  "languageOptions": {
+    "az": "Azerbaijani",
+    "en": "English",
+    "ru": "Russian"
+  },
   "skip": "Skip to content",
   "loading": "Loading",
   "retry": "Try again",

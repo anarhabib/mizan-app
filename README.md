@@ -1,6 +1,6 @@
 # Mizan
 
-Mizan is an inventory and sales app for jewelry stores, available in Azerbaijani and English. The workspace has a Next.js web app, a Fastify API, and separate packages for API contracts and the database.
+Mizan is an inventory and sales app for jewelry stores, available in Azerbaijani, English, and Russian. The workspace has a Next.js web app, a Fastify API, and separate packages for API contracts and the database.
 
 Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuration, migrations, service addresses, and verification commands. Use [the backup and restore procedure](docs/BACKUP_RESTORE.md) to preserve local data and exercise isolated recovery. See the [roadmap](docs/ROADMAP.md) for upcoming milestones. Current milestone acceptance evidence is in [PROJECT_STATE.md](PROJECT_STATE.md).
 
@@ -42,7 +42,7 @@ To include API access, onboarding, invitation, settings, and product integration
 
 1. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `apps/web/.env.local`. Point the API to the same Supabase project and apply the Prisma migrations before starting the apps. See `.env.example` for the expected variables.
 2. Open http://127.0.0.1:3000/login. Create an account or sign in. If you have no store assignments, enter an organization name, a store name, and a default currency.
-3. A single assignment opens automatically. For multiple assignments, the header store picker saves your selection in the browser. Use the language button to switch between Azerbaijani and English.
+3. A single assignment opens automatically. For multiple assignments, the header store picker saves your selection in the browser. Use the language menu to choose Azerbaijani, English, or Russian.
 4. Password reset uses `/auth/callback`. Allow the full callback URL in Supabase and open the reset email in Mailpit when testing locally.
 
 ## Local salesperson invitations

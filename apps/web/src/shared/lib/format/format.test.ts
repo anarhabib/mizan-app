@@ -37,6 +37,10 @@ describe("exact money formatting", () => {
     expect(formatMoney({ amount: "1234.5", currency: "EUR" }, "en")).toBe(
       "1,234.50 EUR",
     ));
+  it("uses Russian separators", () =>
+    expect(formatMoney({ amount: "1234.5", currency: "EUR" }, "ru")).toBe(
+      "1\u202f234,50 EUR",
+    ));
   it.each(["", "01", "NaN", "1e3", "1.", "+1", " 1", "1,2", "--1"])(
     "rejects %s",
     (amount) =>
@@ -54,6 +58,8 @@ describe("weight and purity", () => {
   ])("formats %s", (value, expected) =>
     expect(formatWeight(value)).toBe(expected),
   );
+  it("formats weight in Russian", () =>
+    expect(formatWeight("1234.500", "ru")).toBe("1\u202f234,500 г"));
   it.each(["1.2345", "abc", ""])("rejects invalid weight %s", (value) =>
     expect(() => formatWeight(value)).toThrow(),
   );

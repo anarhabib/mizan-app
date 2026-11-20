@@ -73,7 +73,7 @@ Each independently opened terminal needs its own environment configuration. `pnp
 
 Open `/login`, create an account, and enter the organization, first store, and default currency. The local Supabase configuration disables email confirmation. Password reset emails appear in Mailpit and use the allowed redirect `http://127.0.0.1:3000/auth/callback`.
 
-Create a salesperson invitation through the API with an owner session. Follow the Mailpit link in a separate browser profile so the owner session stays available. Invitations expire after 48 hours and support new and existing Auth accounts. The application starts in Azerbaijani and offers English in the header.
+Create a salesperson invitation through the API with an owner session. Follow the Mailpit link in a separate browser profile so the owner session stays available. Invitations expire after 48 hours and support new and existing Auth accounts. The application starts in Azerbaijani and offers Azerbaijani, English, and Russian in the header language menu.
 
 Use `/products/new` to add inventory, `/products` to find items, and `/sales/new` to record an ordinary sale or old-gold trade-in. Keep money and weights as explicit decimal inputs with currency, grams, and purity. Sale confirmation saves the selected rate and financial snapshots for later history.
 

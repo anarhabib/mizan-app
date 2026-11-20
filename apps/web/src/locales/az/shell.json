@@ -1,7 +1,11 @@
 {
-  "otherLanguage": "EN",
   "navigation": "Əsas naviqasiya",
   "language": "Dili dəyiş",
+  "languageOptions": {
+    "az": "Azərbaycan dili",
+    "en": "İngilis dili",
+    "ru": "Rus dili"
+  },
   "skip": "Məzmuna keç",
   "loading": "Yüklənir",
   "retry": "Yenidən cəhd et",
