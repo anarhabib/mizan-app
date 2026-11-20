@@ -1,5 +1,83 @@
 {
   "title": "Products",
-  "empty": "Products are coming soon",
-  "description": "The product list will be added in the next stage."
+  "empty": "No products in this store",
+  "description": "Add a product to start tracking inventory.",
+  "noResults": "No matching products",
+  "noResultsHint": "Try a different search or clear a filter.",
+  "search": "Search inventory",
+  "searchHint": "Product code or name",
+  "filters": "Filters",
+  "all": "All",
+  "showResults": "View results",
+  "loadMore": "Load more",
+  "loadingMore": "Loading more…",
+  "detail": "Product details",
+  "create": "Add product",
+  "close": "Close",
+  "save": "Save product",
+  "saving": "Saving…",
+  "choosePurity": "Select purity",
+  "noPurities": "No active purity grades",
+  "noPuritiesHint": "An owner can enable grades in settings.",
+  "createUncertain": "The save could not be confirmed. Check the inventory for this product code before trying again.",
+  "fields": {
+    "code": "Product code",
+    "status": "Status",
+    "category": "Category",
+    "purity": "Purity",
+    "weight": "Weight",
+    "acquisitionCost": "Acquisition cost",
+    "createdAt": "Added",
+    "note": "Note"
+  },
+  "formFields": {
+    "code": "Product code",
+    "name": "Product name",
+    "category": "Category",
+    "weight": "Weight (g)",
+    "acquisitionCost": {
+      "amount": "Acquisition cost",
+      "currency": "Currency"
+    },
+    "note": "Note (optional)"
+  },
+  "validation": {
+    "code": "Enter a valid product code.",
+    "name": "Enter a valid product name.",
+    "category": "Enter a valid category.",
+    "purity": "Select a purity grade.",
+    "weight": "Enter a valid weight in grams, with up to three decimal places.",
+    "cost": "Check the amount and ISO currency code.",
+    "note": "Enter a shorter note."
+  },
+  "status": {
+    "IN_STOCK": "In stock",
+    "SOLD": "Sold"
+  },
+  "sale": {
+    "title": "Sale",
+    "total": "Sale total",
+    "date": "Sale date"
+  },
+  "movements": {
+    "title": "Inventory history",
+    "empty": "No inventory movements.",
+    "PRODUCT_ADDED": "Added to inventory",
+    "PRODUCT_SOLD": "Sold",
+    "OLD_GOLD_RECEIVED": "Old gold received"
+  },
+  "photo": {
+    "title": "Product photo",
+    "alt": "Photo of {{name}}",
+    "empty": "No photo yet",
+    "loadError": "The photo could not be loaded.",
+    "reload": "Reload photo",
+    "choose": "Choose photo",
+    "camera": "Take photo",
+    "uploading": "Uploading photo…",
+    "saved": "Photo saved.",
+    "invalidType": "Choose a JPEG, PNG or WebP image.",
+    "processingError": "The image could not be prepared. Try a different image.",
+    "uncertain": "The upload could not be confirmed. Check the photo before trying again."
+  }
 }

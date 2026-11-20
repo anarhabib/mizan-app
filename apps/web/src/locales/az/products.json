@@ -1,5 +1,83 @@
 {
   "title": "Məhsullar",
-  "empty": "Məhsul bölməsi hazırlanır",
-  "description": "Məhsul siyahısı növbəti mərhələdə əlavə ediləcək."
+  "empty": "Bu mağazada məhsul yoxdur",
+  "description": "Stokun uçotuna başlamaq üçün məhsul əlavə edin.",
+  "noResults": "Uyğun məhsul tapılmadı",
+  "noResultsHint": "Başqa sözlə axtarın və ya filtrləri təmizləyin.",
+  "search": "Stokda axtarış",
+  "searchHint": "Məhsulun kodu və ya adı",
+  "filters": "Filtrlər",
+  "all": "Hamısı",
+  "showResults": "Nəticələrə bax",
+  "loadMore": "Daha çox göstər",
+  "loadingMore": "Yüklənir…",
+  "detail": "Məhsul məlumatları",
+  "create": "Məhsul əlavə et",
+  "close": "Bağla",
+  "save": "Məhsulu saxla",
+  "saving": "Saxlanılır…",
+  "choosePurity": "Əyar seçin",
+  "noPurities": "Aktiv əyar yoxdur",
+  "noPuritiesHint": "Mağaza sahibi əyarları tənzimləmələrdə aktivləşdirə bilər.",
+  "createUncertain": "Məhsulun saxlanması təsdiqlənmədi. Yenidən cəhd etməzdən əvvəl bu kodu stokda yoxlayın.",
+  "fields": {
+    "code": "Məhsulun kodu",
+    "status": "Status",
+    "category": "Kateqoriya",
+    "purity": "Əyar",
+    "weight": "Çəki",
+    "acquisitionCost": "Alış dəyəri",
+    "createdAt": "Əlavə edilmə tarixi",
+    "note": "Qeyd"
+  },
+  "formFields": {
+    "code": "Məhsulun kodu",
+    "name": "Məhsulun adı",
+    "category": "Kateqoriya",
+    "weight": "Çəki (q)",
+    "acquisitionCost": {
+      "amount": "Alış dəyəri",
+      "currency": "Valyuta"
+    },
+    "note": "Qeyd (istəyə görə)"
+  },
+  "validation": {
+    "code": "Düzgün məhsul kodu daxil edin.",
+    "name": "Düzgün məhsul adı daxil edin.",
+    "category": "Düzgün kateqoriya daxil edin.",
+    "purity": "Əyar seçin.",
+    "weight": "Çəkini qramla, vergüldən sonra ən çox üç rəqəmlə daxil edin.",
+    "cost": "Məbləği və ISO valyuta kodunu yoxlayın.",
+    "note": "Daha qısa qeyd daxil edin."
+  },
+  "status": {
+    "IN_STOCK": "Stokda",
+    "SOLD": "Satılıb"
+  },
+  "sale": {
+    "title": "Satış",
+    "total": "Yekun məbləğ",
+    "date": "Satış tarixi"
+  },
+  "movements": {
+    "title": "Stok tarixçəsi",
+    "empty": "Stok əməliyyatı yoxdur.",
+    "PRODUCT_ADDED": "Stoka əlavə edilib",
+    "PRODUCT_SOLD": "Satılıb",
+    "OLD_GOLD_RECEIVED": "Köhnə qızıl qəbul edilib"
+  },
+  "photo": {
+    "title": "Məhsulun şəkli",
+    "alt": "{{name}} məhsulunun şəkli",
+    "empty": "Hələ şəkil yoxdur",
+    "loadError": "Şəkli yükləmək mümkün olmadı.",
+    "reload": "Şəkli yenilə",
+    "choose": "Şəkil seç",
+    "camera": "Şəkil çək",
+    "uploading": "Şəkil yüklənir…",
+    "saved": "Şəkil saxlanıldı.",
+    "invalidType": "JPEG, PNG və ya WebP formatında şəkil seçin.",
+    "processingError": "Şəkil hazırlana bilmədi. Başqa şəkil seçin.",
+    "uncertain": "Şəklin yüklənməsi təsdiqlənmədi. Yenidən cəhd etməzdən əvvəl şəkli yoxlayın."
+  }
 }

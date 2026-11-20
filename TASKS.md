@@ -26,7 +26,7 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
 - [x] Prompt 2: auth, workspace, onboarding, invitation accept
   - [ ] Test login, logout, onboarding, store switch, expired session on a phone
 - [ ] Add before Prompt 3: `pnpm dlx shadcn@latest add select textarea alert-dialog switch tabs`
-- [ ] Prompt 3: products (reference feature)
+- [x] Prompt 3: products (reference feature)
   - [ ] Check re-renders with React DevTools "highlight updates"
   - [ ] Test photo upload from a real phone camera
   - [ ] Fix anything wrong now, every later feature copies this one

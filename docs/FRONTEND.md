@@ -48,6 +48,7 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 
 - All server state goes through TanStack Query. No fetching in `useEffect`, no server data copied into `useState` or a global store.
 - Define `queryOptions()` and a key factory per feature. Invalidate exact keys, not broad prefixes. List the keys a mutation invalidates in the PR description.
+- For filtered lists, enumerate cached keys under the affected store's list prefix and invalidate each exact key. Invalidate separately keyed facets when their data changes.
 - Use `select` for derived data. Set `staleTime` per resource (lists short, settings and options long).
 - Lists use `useInfiniteQuery`: pass `nextCursor` unchanged as `after`. Do not invent page size or sort parameters. Debounce search input 300 ms and keep previous data while filters change.
 - Every query screen has loading (skeleton), empty and error states with a retry.
