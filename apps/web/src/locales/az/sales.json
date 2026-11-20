@@ -28,6 +28,8 @@
   "removeTradeIn": "Qəbul sətrini sil",
   "addPayment": "Ödəniş əlavə et",
   "removePayment": "Ödənişi sil",
+  "paymentCoverage": "Ödəniş köhnə qızıl qəbulundan sonra qalan məbləği tam qarşılamalıdır.",
+  "defaultPayment": "Ödəniş məlumatlarını boş saxlasanız, qalan məbləğ {{currency}} ilə ödənilmiş kimi qeydə alınacaq.",
   "exchangeRateHint": "1 {{paymentCurrency}} üçün {{currency}} ilə qarşılığı daxil edin.",
   "invalidField": "Bu dəyəri yoxlayın. Kəsr hissəsini nöqtə ilə ayırın.",
   "invalidTradeIns": "Köhnə qızıl məlumatlarını və seçilmiş tarifləri yoxlayın.",
@@ -62,7 +64,9 @@
     "productMissing": "Məhsul tapılmadı.",
     "saleMissing": "Satış tapılmadı.",
     "invalid": "Satış məlumatlarını yoxlayıb yenidən cəhd edin.",
-    "invalidPayment": "Ödəniş valyutasını, məbləği və məzənnəni yoxlayın.",
+    "invalidPayment": "Köhnə qızıl qəbulundan sonra qalan məbləği tam ödəyin. Ödəniş tələb olunmursa, onu silin.",
+    "paymentTooLow": "Ödəniş köhnə qızıl qəbulundan sonra qalan məbləğdən azdır. Seçilmiş məzənnə ilə qalığı tam qarşılayan məbləği daxil edin.",
+    "paymentNotDue": "Alınacaq ödəniş qalmayıb. Satışı tamamlamaq üçün ödənişi silin.",
     "generic": "Satış qeydə alınmadı. Yenidən cəhd edin.",
     "unknownOutcome": "Satışın vəziyyəti təsdiqlənmədi."
   }

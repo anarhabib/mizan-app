@@ -28,6 +28,8 @@
   "removeTradeIn": "Remove trade-in",
   "addPayment": "Add payment",
   "removePayment": "Remove payment",
+  "paymentCoverage": "The payment must cover the full balance after trade-ins.",
+  "defaultPayment": "Leave payment details blank to record any remaining balance as paid in {{currency}}.",
   "exchangeRateHint": "Enter the amount in {{currency}} equal to 1 {{paymentCurrency}}.",
   "invalidField": "Check this value. Use a decimal point for fractional amounts.",
   "invalidTradeIns": "Check the trade-in entries and selected rates.",
@@ -62,7 +64,9 @@
     "productMissing": "The product could not be found.",
     "saleMissing": "The sale could not be found.",
     "invalid": "Check the sale details and try again.",
-    "invalidPayment": "Check the payment currency, amount, and exchange rate.",
+    "invalidPayment": "Enter a payment that covers the full balance after trade-ins, or remove it if no payment is due.",
+    "paymentTooLow": "The payment is below the balance after trade-ins. Enter an amount that covers the full balance at the selected exchange rate.",
+    "paymentNotDue": "There is no remaining balance to collect. Remove the payment to finish this sale.",
     "generic": "The sale could not be recorded. Try again.",
     "unknownOutcome": "The sale status could not be confirmed."
   }

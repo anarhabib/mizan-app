@@ -136,3 +136,45 @@ export async function invalidateProductInventory(
     ),
   );
 }
+
+export async function cacheSoldProduct(
+  client: QueryClient,
+  scope: ProductScope,
+  id: string,
+  sale: NonNullable<ProductDetail["sale"]>,
+) {
+  const lists = client
+    .getQueryCache()
+    .findAll({ queryKey: productKeys.lists(scope) });
+  const detailKey = productKeys.detail(scope, id);
+  // Discard reads that may have started before the sale committed.
+  await Promise.all(
+    [detailKey, ...lists.map(({ queryKey }) => queryKey)].map((queryKey) =>
+      client.cancelQueries({ queryKey, exact: true }),
+    ),
+  );
+
+  client.setQueryData<ProductDetail>(
+    detailKey,
+    (product) => product && { ...product, status: "SOLD", sale },
+  );
+  for (const { queryKey } of lists) {
+    const filters = queryKey[4] as ProductFilters;
+    client.setQueryData<InfiniteData<ProductList>>(
+      queryKey,
+      (data) =>
+        data && {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items:
+              filters.status === "IN_STOCK"
+                ? page.items.filter((item) => item.id !== id)
+                : page.items.map((item) =>
+                    item.id === id ? { ...item, status: "SOLD" } : item,
+                  ),
+          })),
+        },
+    );
+  }
+}

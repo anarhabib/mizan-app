@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SaleCreateInput, SaleResult } from "@mizan/contracts";
+import type {
+  ProductDetail,
+  SaleCreateInput,
+  SaleResult,
+} from "@mizan/contracts";
 import {
+  cacheSoldProduct,
   invalidateProductInventory,
   productDetailQuery,
   productKeys,
@@ -21,11 +26,12 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   const [checkedInStock, setCheckedInStock] = useState(false);
   const [recoveredId, setRecoveredId] = useState<string>();
 
-  function refreshInventory() {
+  async function refreshInventory(sale: NonNullable<ProductDetail["sale"]>) {
+    await cacheSoldProduct(client, scope, productId, sale);
     const lists = client
       .getQueryCache()
       .findAll({ queryKey: saleKeys.lists(scope) });
-    return Promise.all([
+    void Promise.all([
       ...lists.map(({ queryKey }) =>
         client.invalidateQueries({ queryKey, exact: true }),
       ),
@@ -52,10 +58,14 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
         throw new ApiError(201, "INVALID_RESPONSE", "Missing sale result");
       return result;
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       attempt.current = undefined;
       client.setQueryData(saleKeys.detail(scope, result.id), result);
-      void refreshInventory();
+      await refreshInventory({
+        id: result.id,
+        createdAt: result.createdAt,
+        total: { amount: result.saleAmount, currency: result.currency },
+      });
     },
   });
 
@@ -75,7 +85,7 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
       if (product.status === "SOLD") {
         if (product.sale) {
           setRecoveredId(product.sale.id);
-          void refreshInventory();
+          await refreshInventory(product.sale);
         }
         return;
       }

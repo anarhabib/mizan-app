@@ -30,8 +30,11 @@ export function calculateSettlement(
         .times(tender.exchangeRate)
         .toDecimalPlaces(scale, SaleDecimal.ROUND_HALF_UP)
     : due;
-  if ((tender && due.isZero()) || converted.lessThan(due)) {
-    throw new AccessError("INVALID_SALE", "payment");
+  if (tender && due.isZero()) {
+    throw new AccessError("SALE_PAYMENT_NOT_DUE", "payment");
+  }
+  if (converted.lessThan(due)) {
+    throw new AccessError("SALE_PAYMENT_TOO_LOW", "payment.amount");
   }
   return {
     tradeInTotal: tradeInTotal.toFixed(),

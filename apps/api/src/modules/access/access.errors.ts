@@ -7,6 +7,8 @@ export type AccessFailure =
   | "INVALID_SETTINGS"
   | "PURITY_CONFLICT"
   | "INVALID_SALE"
+  | "SALE_PAYMENT_TOO_LOW"
+  | "SALE_PAYMENT_NOT_DUE"
   | "SALE_CONFLICT"
   | "SALE_NOT_FOUND"
   | "INVALID_PRODUCT"
@@ -17,6 +19,14 @@ export type AccessFailure =
 
 const details = {
   INVALID_SALE: { statusCode: 400, message: "Satış məlumatlarını yoxlayın." },
+  SALE_PAYMENT_TOO_LOW: {
+    statusCode: 400,
+    message: "Ödəniş qalan borcu tam qarşılamır.",
+  },
+  SALE_PAYMENT_NOT_DUE: {
+    statusCode: 400,
+    message: "Bu satış üzrə ödəniş tələb olunmur.",
+  },
   SALE_CONFLICT: {
     statusCode: 409,
     message: "Satışı tamamlamaq mümkün olmadı.",
