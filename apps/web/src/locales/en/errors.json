@@ -12,6 +12,8 @@
   "SALE_NOT_FOUND": "Sale not found.",
   "INVITATION_UNAVAILABLE": "Invitation is no longer available.",
   "PURITY_CONFLICT": "Purity already exists.",
+  "PRODUCT_EDIT_CONFLICT": "Acquisition details can no longer be edited.",
+  "PRODUCT_DELETE_CONFLICT": "A product with stock or sales history cannot be deleted.",
   "PRODUCT_CODE_CONFLICT": "Product code already exists.",
   "PHOTO_CONFLICT": "Photo has changed. Refresh and try again.",
   "SALE_CONFLICT": "Sale details have changed. Refresh and try again.",

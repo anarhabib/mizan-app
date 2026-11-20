@@ -14,6 +14,15 @@
   "detail": "Məhsul məlumatları",
   "create": "Məhsul əlavə et",
   "close": "Bağla",
+  "cancel": "Ləğv et",
+  "editAcquisition": "Alış dəyərini dəyiş",
+  "editUncertain": "Dəyişiklik təsdiqlənmədi. Yenidən cəhd etməzdən əvvəl saxlanmış məbləğləri yoxlayın.",
+  "delete": {
+    "title": "Məhsulu sil",
+    "description": "{{name}} məhsulunu bu mağazadan həmişəlik silmək istəyirsiniz?",
+    "pending": "Silinir…",
+    "protected": "Stok və ya satış tarixçəsi olan məhsulu silmək mümkün deyil."
+  },
   "save": "Məhsulu saxla",
   "saving": "Saxlanılır…",
   "choosePurity": "Əyar seçin",
@@ -26,7 +35,8 @@
     "category": "Kateqoriya",
     "purity": "Əyar",
     "weight": "Çəki",
-    "acquisitionCost": "Alış dəyəri",
+    "acquisitionCost": "Ümumi alış dəyəri",
+    "acquisitionCostPerGram": "Bir qramın alış dəyəri",
     "createdAt": "Əlavə edilmə tarixi",
     "note": "Qeyd"
   },
@@ -35,8 +45,8 @@
     "name": "Məhsulun adı",
     "category": "Kateqoriya",
     "weight": "Çəki (q)",
-    "acquisitionCost": {
-      "amount": "Alış dəyəri",
+    "acquisitionCostPerGram": {
+      "amount": "Bir qramın alış dəyəri",
       "currency": "Valyuta"
     },
     "note": "Qeyd (istəyə görə)"
@@ -47,7 +57,7 @@
     "category": "Düzgün kateqoriya daxil edin.",
     "purity": "Əyar seçin.",
     "weight": "Çəkini qramla, vergüldən sonra ən çox üç rəqəmlə daxil edin.",
-    "cost": "Məbləği və ISO valyuta kodunu yoxlayın.",
+    "cost": "Qram üzrə müsbət məbləğ (vergüldən sonra ən çox 16 rəqəm) və düzgün valyuta kodu daxil edin. Yuvarlaqlaşdırılmış yekun ən azı 0.0001 olmalı və tam hissəsi 16 rəqəmi keçməməlidir.",
     "note": "Daha qısa qeyd daxil edin."
   },
   "status": {

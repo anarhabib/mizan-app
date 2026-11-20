@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ function ScopedProducts({
 }) {
   const { t } = useTranslation("products");
   const [panel, setPanel] = useState<Panel>();
+  const createButton = useRef<HTMLButtonElement>(null);
   const close = () => setPanel(undefined);
 
   return (
@@ -44,6 +45,7 @@ function ScopedProducts({
         actions={
           <Button
             type="button"
+            ref={createButton}
             className="min-h-11 lg:min-h-9"
             onClick={(event) =>
               setPanel({ kind: "create", opener: event.currentTarget })
@@ -73,6 +75,7 @@ function ScopedProducts({
         <ProductDetail
           scope={scope}
           id={panel.id}
+          restoreFallbackFocus={() => createButton.current?.focus()}
           opener={panel.opener}
           close={close}
         />

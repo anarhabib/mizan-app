@@ -14,6 +14,8 @@ export type AccessFailure =
   | "INVALID_PRODUCT"
   | "PRODUCT_NOT_FOUND"
   | "PRODUCT_CODE_CONFLICT"
+  | "PRODUCT_EDIT_CONFLICT"
+  | "PRODUCT_DELETE_CONFLICT"
   | "PHOTO_CONFLICT"
   | "PHOTO_UNAVAILABLE";
 
@@ -40,6 +42,14 @@ const details = {
   PRODUCT_CODE_CONFLICT: {
     statusCode: 409,
     message: "Məhsul kodu artıq istifadə olunur.",
+  },
+  PRODUCT_EDIT_CONFLICT: {
+    statusCode: 409,
+    message: "Bu məhsulun alış məlumatlarını dəyişmək mümkün deyil.",
+  },
+  PRODUCT_DELETE_CONFLICT: {
+    statusCode: 409,
+    message: "Stok və ya satış tarixçəsi olan məhsulu silmək mümkün deyil.",
   },
   PHOTO_CONFLICT: {
     statusCode: 409,

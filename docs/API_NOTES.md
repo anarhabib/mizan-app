@@ -12,7 +12,7 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 - Verification uses Supabase issuer `${SUPABASE_URL}/auth/v1`, audience/role `authenticated`, UUID subject, and expiration; anonymous identities are rejected. ES256/RS256 use JWKS; legacy HS256 uses Supabase's `/auth/v1/user` verification.
 - Missing, invalid, or expired tokens return 401 `UNAUTHENTICATED`, with `WWW-Authenticate: Bearer`; API does not refresh tokens. Auth infrastructure failure returns 503 `AUTH_UNAVAILABLE`. Supabase config sets JWT lifetime to 3600 seconds and refresh-token rotation on (10-second reuse interval).
 - Store access requires an active organization membership AND active store assignment, checked against PostgreSQL on requests; invalid/inaccessible scope returns 403 without revealing its existence. Roles are `OWNER` and `SALESPERSON`.
-- Both assigned roles reach product/sale handlers. Organization management is owner-oriented via the shared owner guard; individual service calls to that guard are outside this inspection. Acquisition-cost visibility is controlled by `salespersonCanViewAcquisitionCost` (default false); actual product redaction lives in uninspected service/presenter code.
+- Both assigned roles reach product/sale handlers. Organization management is owner-oriented via the shared owner guard; individual service calls to that guard are outside this inspection. Product detail exposes acquisition cost and cost per gram to owners and to salespeople when `salespersonCanViewAcquisitionCost` is enabled (default false).
 - Protected route group sends `Cache-Control: private, no-store`. Health is public.
 
 ## Errors and validation
@@ -21,7 +21,7 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 - 400: `INVALID_ONBOARDING`, `INVALID_MEMBERSHIP`, `INVALID_SETTINGS`, `INVALID_PRODUCT`, `INVALID_SALE`, `SALE_PAYMENT_TOO_LOW`, `SALE_PAYMENT_NOT_DUE`.
 - 401: `UNAUTHENTICATED`; 403: `ACCESS_DENIED`.
 - 404: `PRODUCT_NOT_FOUND`, `SALE_NOT_FOUND`.
-- 409: `INVITATION_UNAVAILABLE`, `PURITY_CONFLICT`, `PRODUCT_CODE_CONFLICT`, `PHOTO_CONFLICT`, `SALE_CONFLICT`.
+- 409: `INVITATION_UNAVAILABLE`, `PURITY_CONFLICT`, `PRODUCT_CODE_CONFLICT`, `PRODUCT_EDIT_CONFLICT`, `PRODUCT_DELETE_CONFLICT`, `PHOTO_CONFLICT`, `SALE_CONFLICT`.
 - 503: `AUTH_UNAVAILABLE`, `PHOTO_UNAVAILABLE`; unexpected errors in protected group become 500 `INTERNAL_ERROR` with `{code,message}`.
 - No registered route supplies Fastify JSON Schema and no Zod schema is used. Validation is manual: shared `parseOnboarding`, `parseProductCreate`, `parsePurity`, `parseRate`, route checks, auth UUID checks, and backend `parseSaleInput`. TypeScript interfaces alone do not validate requests.
 - Invalid onboarding is a direct 400 `{code,message}` response; product/sale validation may include `field`, others usually do not. No validation issue array exists. Non-`AccessError` failures (including malformed JSON in the protected plugin) map to 500 instead of preserving their Fastify status. Unmatched routes/default Fastify errors outside this handler can use Fastify's `{statusCode,error,message}` shape.
@@ -32,7 +32,7 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 
 - Money and weights in public contracts are decimal **strings**; never use `parseFloat`. Money object (`Money`) is `{amount:string,currency:string}`. AZN uses 2 minor-unit digits; existing code supports other ISO currencies, so do not assume every amount is AZN.
 - Sale input enforces currency minor-unit precision, weight up to 3 decimal places (12 integer digits), exchange rate up to 8 (12 integer digits), and amount up to 16 integer digits. Purity is an integer JSON number, 1–999 (fineness), not a fractional percentage. Product/purity options also return numbers.
-- Database precision is not display precision: weight `Decimal(15,3)`; acquisition cost/sale/payment amount `(20,4)`; gold rate `(18,4)`; exchange rate `(24,8)`; settlement/change/converted amounts `(32,4)`; trade-in calculated/accepted values `(32,15)`. Default sale amount uses `(28,4)`. No Prisma Float fields were found.
+- Database precision is not display precision: weight `Decimal(15,3)`; acquisition total/sale/payment amount `(20,4)`; acquisition cost per gram `(35,16)`; gold rate `(18,4)`; exchange rate `(24,8)`; settlement/change/converted amounts `(32,4)`; trade-in calculated/accepted values `(32,15)`. Default sale amount uses `(28,4)`. No Prisma Float fields were found.
 - Response contracts declare strings but do not promise fixed trailing-zero padding; preserve exact values. `roundMoneyHalfUp` is exported, but service calculation/rounding implementation was not inspected.
 - Product list query: `organizationId`, `storeId`, optional `q` (trimmed, max 160), `status=IN_STOCK|SOLD`, `category` (max 80), `purity` (integer query string), `after` (nonempty, max 80), `facets=1`. Other `facets` values act as false. NUL is rejected in q/category/after.
 - Sale list accepts scoped `q`, `date`, `after`; their validation, date timezone, cursor encoding, page sizes, and ordering are service-defined and unverified. Both list contracts return `{items,nextCursor?}`; pass `nextCursor` unchanged as `after`. No route-level limit/page/sort convention is exposed; do not invent one.
@@ -40,7 +40,7 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 
 ## Endpoints
 
-All paths below are relative to `/api/v1`. `Auth` = authenticated identity; `Store` = Auth + active scoped assignment (either role); `Owner*` = owner management intent, service enforcement not verified here. Every product/sale endpoint also requires query `organizationId` and `storeId`. `O` abbreviates `/organizations/:organizationId`. `—` means no body. Contract names are expanded below.
+All paths below are relative to `/api/v1`. `Auth` = authenticated identity; `Store` = Auth + active scoped assignment (either role); `Owner` = Store + active owner role; `Owner*` = owner management intent, service enforcement not verified here. Every product/sale endpoint also requires query `organizationId` and `storeId`. `O` abbreviates `/organizations/:organizationId`. `—` means no body. Contract names are expanded below.
 
 | Module | Method/path | Purpose | Access | Body fields | Response fields/contract |
 | --- | --- | --- | --- | --- | --- |
@@ -64,15 +64,21 @@ All paths below are relative to `/api/v1`. `Auth` = authenticated identity; `Sto
 | Settings | POST `O/purities/:value/reactivate` | Reactivate purity | Owner* | — | Service result; public `PurityGrade` |
 | Settings | POST `O/rates` | Append old-gold rate | Owner* | Parsed by `parseRate`; public rate fields `purity,currency,amountPerGram` (parser internals not inspected) | Service result; public `OldGoldRate` |
 | Products | GET `/products` | Filter inventory | Store | — | `ProductList` |
-| Products | POST `/products` | Create item | Store | `code,name,category,purity,weight,acquisitionCost:Money,note?` | 201 `ProductDetail` |
+| Products | POST `/products` | Create item | Store | `code,name,category,purity,weight,acquisitionCostPerGram:Money,note?` | 201 `ProductDetail` |
 | Products | GET `/products/options` | Creation options | Store | — | `{defaultCurrency,purities:number[]}` |
 | Products | GET `/products/:id` | Detail + movements | Store | — | `ProductDetail` |
+| Products | PATCH `/products/:id/acquisition` | Update weight and acquisition cost | Owner | `weight,acquisitionCostPerGram:Money` | 204 |
+| Products | DELETE `/products/:id` | Permanently delete an in-stock product without history | Owner | — | 204 |
 | Products | POST `/products/:id/photo-upload` | Start signed upload | Store | — | `ProductPhotoUpload` |
 | Products | POST `/products/:id/photo-confirm` | Confirm uploaded photo | Store | `uploadId` UUID only | Service result; no route response schema |
 | Sales | POST `/sales` | Sell item, optional old gold/payment | Store | `SaleCreateInput`; required idempotency header | 201 service result; public `SaleResult` |
 | Sales | GET `/sales` | Sale history | Store | — | `SaleList` |
 | Sales | GET `/sales/options` | Trading/payment options | Store | — | Service result; no exported options contract or route response schema |
 | Sales | GET `/sales/:id` | Persisted sale | Store | — | Service result; public `SaleResult` |
+
+Product acquisition accepts a positive weight with up to 3 fractional digits and a positive rate with up to 16 fractional digits in a supported ISO currency. The API calculates weight × rate and rounds the total half up to 4 decimal places, independent of currency minor units. A total that rounds to zero or exceeds 16 whole digits is invalid. The product form uses the same shared parser for its preview. The migration derives rates from positive stored weight and cost while preserving original totals. A rate may be absent for legacy records with invalid values.
+
+Acquisition edits and deletions require an active owner with access to the store. Edits are limited to in-stock products with no sale or movement beyond initial intake. Deletion returns `PRODUCT_DELETE_CONFLICT` for sold products or any sale or inventory dependency, including `PRODUCT_ADDED`. Payments are stored on the sale and trade-ins reference the sale. Every API-created product has an intake movement. The schema has no product archive.
 
 No separate inventory-movement, return, old-gold exchange, stock-adjustment, customer, report, login/session, or general user CRUD endpoints are registered. Movements are nested in product detail; old-gold trade-ins are nested in sales.
 
@@ -83,7 +89,7 @@ No separate inventory-movement, return, old-gold exchange, stock-adjustment, cus
 - `InvitationSummary`: `id,email,storeId,status,expiresAt`; status `pending|accepted|expired|revoked`; delivery `sent|failed|not_sent`; member status `active|inactive`.
 - `OrganizationSettings`: `defaultCurrency,salespersonCanViewAcquisitionCost`; `PurityGrade`: `value,active`; `OldGoldRate`: `id,purity,currency,amountPerGram,effectiveAt,current`; `TradingSettings`: `settings:OrganizationSettings,purities:PurityGrade[],rates:OldGoldRate[]`.
 - `ProductListItem`: `id,code,name,category,purity,weight,status`; `ProductList`: `items:ProductListItem[],nextCursor?,filters?:{categories:string[],purities:number[]}`.
-- `ProductDetail`: ProductListItem + `acquisitionCost?:Money,note:string|null,createdAt,photo:{url,contentType,size}|null,movements:{id,kind,actorId,createdAt}[],sale:{id,total:Money,createdAt}|null`. Movement kinds: `PRODUCT_ADDED|PRODUCT_SOLD|OLD_GOLD_RECEIVED`.
+- `ProductDetail`: ProductListItem + `acquisitionCost?:Money,acquisitionCostPerGram?:Money,canEditAcquisition?:boolean,canDelete?:boolean,note:string|null,createdAt,photo:{url,contentType,size}|null,movements:{id,kind,actorId,createdAt}[],sale:{id,total:Money,createdAt}|null`. The edit and delete capabilities are sent only to owners. Movement kinds: `PRODUCT_ADDED|PRODUCT_SOLD|OLD_GOLD_RECEIVED`.
 - `ProductPhotoUpload`: `uploadId,uploadUrl`; signed upload transport/content restrictions and confirmation response are service-defined, not established by route code alone.
 - `SaleCreateInput`: `productId,saleAmount,expectedCurrency?,tradeIns?:{purity,weight,rateId,overrideAmount?}[],payment?:{currency,amount,exchangeRate?}`. At most 100 trade-ins; same-currency exchangeRate must equal 1 (defaults to `"1"`); foreign payment requires it. Currency mismatch with expectedCurrency throws `SALE_CONFLICT` on `currency`.
 - Explicit tender must cover the final balance after trade-ins (`SALE_PAYMENT_TOO_LOW`, field `payment.amount`) and is only accepted when a balance is due (`SALE_PAYMENT_NOT_DUE`, field `payment`). If tender is omitted, a positive balance is recorded as paid in the sale currency.
@@ -103,7 +109,7 @@ No separate inventory-movement, return, old-gold exchange, stock-adjustment, cus
   - onboarding: `OnboardingRequest`, `OnboardingResult`, `StoreContext`, `parseOnboarding`.
   - memberships: `InvitationStatus`, `MembershipStatus`, `InvitationDelivery`, `StoreOption`, `InvitationSummary`, `SalespersonSummary`, `MembershipDirectory`, `invitationTokenPattern`, `normalizeInvitationEmail`.
   - settings: `defaultPurities`, `OrganizationSettings`, `PurityGrade`, `OldGoldRate`, `TradingSettings`, `parsePurity`, `parseRate`.
-  - products: `ProductStatus`, `ProductCreateInput`, `ProductListItem`, `ProductDetail`, `ProductList`, `ProductPhotoUpload`, `ProductPhotoConfirmInput`, `parseProductCreate`.
+  - products: `ProductStatus`, `ProductAcquisitionInput`, `ProductCreateInput`, `ProductListItem`, `ProductDetail`, `ProductList`, `ProductPhotoUpload`, `ProductPhotoConfirmInput`, `parseProductAcquisition`, `parseProductCreate`.
   - sales: `SaleCreateInput`, `SaleList`, `SaleResult`.
 - `@mizan/database` exports `createDatabase`, `Prisma`; depends on Prisma/PostgreSQL libraries and is **backend-only**. Never import it or `packages/database` into `apps/web`.
 
@@ -112,5 +118,5 @@ No separate inventory-movement, return, old-gold exchange, stock-adjustment, cus
 - Browser integration is incomplete: no CORS registration, API auth/session endpoints, or backend-defined frontend env names; proxy/Auth configuration needs an explicit implementation decision.
 - Error behavior is inconsistent: non-AccessError failures become 500, field hints are optional, and unmatched routes can use Fastify's default envelope.
 - No route JSON Schema/OpenAPI exists; local validation gaps and delegated validation are listed above. Several response fields/options and pagination rules require a later targeted service inspection.
-- Owner checks, acquisition-cost redaction, mutation transactions, service arithmetic and idempotent replay were outside the permitted service inspection; no claim of missing transactions/permission checks or float arithmetic is made. Prisma financial fields are Decimal, and store access checks are verified.
-- Existing organization/store roles and multi-currency contract remain documented as shipped; this task makes no scope or behavior changes.
+- The product checks above cover owner access, acquisition-cost redaction and arithmetic, and deletion safeguards. The broader inspection did not review service transactions, arithmetic or idempotent replay outside this product scope.
+- Existing organization/store roles and the multi-currency contract remain documented as shipped.

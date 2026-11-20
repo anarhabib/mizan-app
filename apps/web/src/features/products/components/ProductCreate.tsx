@@ -1,7 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { Controller, useForm, type FieldError } from "react-hook-form";
+import {
+  Controller,
+  useForm,
+  useWatch,
+  type Control,
+  type FieldError,
+} from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import type { ProductCreateInput, ProductDetail } from "@mizan/contracts";
+import {
+  parseProductAcquisition,
+  type ProductCreateInput,
+  type ProductDetail,
+} from "@mizan/contracts";
+import { MoneyText } from "@/shared/ui/MoneyText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +35,8 @@ type TextField =
   | "name"
   | "category"
   | "weight"
-  | "acquisitionCost.amount"
-  | "acquisitionCost.currency"
+  | "acquisitionCostPerGram.amount"
+  | "acquisitionCostPerGram.currency"
   | "note";
 
 export function ProductCreate({
@@ -63,49 +74,54 @@ export function ProductCreate({
       ) : options.data.purities.length === 0 ? (
         <EmptyState title={t("noPurities")} description={t("noPuritiesHint")} />
       ) : (
-        <CreateForm
+        <ProductForm
           currency={currency}
           purities={options.data.purities}
-          create={create}
-          created={created}
+          pending={create.isPending}
+          save={async (input) => created(await create.mutateAsync(input))}
         />
       )}
     </ProductPanel>
   );
 }
 
-function CreateForm({
+export function ProductForm({
   currency,
-  purities,
-  create,
-  created,
+  purities = [],
+  product,
+  pending,
+  save,
 }: {
   currency: string;
-  purities: number[];
-  create: ReturnType<typeof useCreateProduct>;
-  created: (product: ProductDetail) => void;
+  purities?: number[];
+  product?: ProductDetail;
+  pending: boolean;
+  save: (input: ProductCreateInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["products", "errors"]);
   const form = useForm<ProductFormValues, unknown, ProductCreateInput>({
-    resolver: resolveProductForm,
+    resolver: (values) => resolveProductForm(values, Boolean(product)),
     mode: "onBlur",
     reValidateMode: "onBlur",
     defaultValues: {
-      code: "",
-      name: "",
-      category: "",
-      purity: "",
-      weight: "",
-      acquisitionCost: { amount: "", currency },
-      note: "",
+      code: product?.code ?? "",
+      name: product?.name ?? "",
+      category: product?.category ?? "",
+      purity: product ? String(product.purity) : "",
+      weight: product?.weight ?? "",
+      acquisitionCostPerGram: product?.acquisitionCostPerGram ?? {
+        amount: "",
+        currency: product?.acquisitionCost?.currency ?? currency,
+      },
+      note: product?.note ?? "",
     },
   });
   const { errors, isSubmitting } = form.formState;
-  const busy = isSubmitting || create.isPending;
+  const busy = isSubmitting || pending;
   const submit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
     try {
-      created(await create.mutateAsync(values));
+      await save(values);
     } catch (error) {
       if (error instanceof ApiError) {
         const field = productErrorField(error);
@@ -130,8 +146,8 @@ function CreateForm({
       return t("PRODUCT_CODE_CONFLICT", { ns: "errors" });
     if (field === "weight") return t("validation.weight");
     if (
-      field === "acquisitionCost.amount" ||
-      field === "acquisitionCost.currency"
+      field === "acquisitionCostPerGram.amount" ||
+      field === "acquisitionCostPerGram.currency"
     )
       return t("validation.cost");
     return t(`validation.${field}`);
@@ -143,10 +159,10 @@ function CreateForm({
       onChange: () => {
         if (form.getFieldState(field).invalid) form.clearErrors(field);
         if (
-          field === "acquisitionCost.currency" &&
-          form.getFieldState("acquisitionCost.amount").invalid
+          field === "acquisitionCostPerGram.currency" &&
+          form.getFieldState("acquisitionCostPerGram.amount").invalid
         ) {
-          form.clearErrors("acquisitionCost.amount");
+          form.clearErrors("acquisitionCostPerGram.amount");
         }
       },
     });
@@ -172,15 +188,19 @@ function CreateForm({
             {...accessibility}
             readOnly={busy}
             inputMode={
-              field === "weight" || field === "acquisitionCost.amount"
+              field === "weight" || field === "acquisitionCostPerGram.amount"
                 ? "decimal"
                 : "text"
             }
             enterKeyHint="next"
             autoComplete="off"
-            maxLength={field === "acquisitionCost.currency" ? 3 : undefined}
+            maxLength={
+              field === "acquisitionCostPerGram.currency" ? 3 : undefined
+            }
             autoCapitalize={
-              field === "acquisitionCost.currency" ? "characters" : undefined
+              field === "acquisitionCostPerGram.currency"
+                ? "characters"
+                : undefined
             }
             className="min-h-11 lg:min-h-9"
           />
@@ -197,62 +217,75 @@ function CreateForm({
   const rootError = errors.root?.type;
   return (
     <form onSubmit={submit} noValidate aria-busy={busy} className="grid gap-4">
-      {renderText("code", errors.code)}
-      {renderText("name", errors.name)}
-      {renderText("category", errors.category)}
-      <div className="grid grid-cols-2 gap-3">
-        <Controller
-          control={form.control}
-          name="purity"
-          render={({ field, fieldState }) => (
-            <div className="grid content-start gap-2">
-              <Label htmlFor="create-product-purity">
-                {t("fields.purity")}
-              </Label>
-              <ProductSelect
-                id="create-product-purity"
-                ref={field.ref}
-                value={field.value}
-                onBlur={field.onBlur}
-                onChange={field.onChange}
-                disabled={busy}
-                placeholder={t("choosePurity")}
-                invalid={fieldState.invalid}
-                describedBy={
-                  fieldState.error ? "create-product-purity-error" : undefined
-                }
-                options={purities.map((purity) => ({
-                  value: String(purity),
-                  label: String(purity),
-                }))}
-              />
-              {fieldState.error && (
-                <p
-                  id="create-product-purity-error"
-                  className="text-xs text-destructive"
-                >
-                  {fieldMessage(fieldState.error, "purity")}
-                </p>
+      {!product && (
+        <>
+          {renderText("code", errors.code)}
+          {renderText("name", errors.name)}
+          {renderText("category", errors.category)}
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              control={form.control}
+              name="purity"
+              render={({ field, fieldState }) => (
+                <div className="grid content-start gap-2">
+                  <Label htmlFor="create-product-purity">
+                    {t("fields.purity")}
+                  </Label>
+                  <ProductSelect
+                    id="create-product-purity"
+                    ref={field.ref}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    disabled={busy}
+                    placeholder={t("choosePurity")}
+                    invalid={fieldState.invalid}
+                    describedBy={
+                      fieldState.error
+                        ? "create-product-purity-error"
+                        : undefined
+                    }
+                    options={purities.map((purity) => ({
+                      value: String(purity),
+                      label: String(purity),
+                    }))}
+                  />
+                  {fieldState.error && (
+                    <p
+                      id="create-product-purity-error"
+                      className="text-xs text-destructive"
+                    >
+                      {fieldMessage(fieldState.error, "purity")}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        />
-        {renderText("weight", errors.weight)}
-      </div>
+            />
+            {renderText("weight", errors.weight)}
+          </div>
+        </>
+      )}
+      {product && renderText("weight", errors.weight)}
       <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-        {renderText("acquisitionCost.amount", errors.acquisitionCost?.amount)}
         {renderText(
-          "acquisitionCost.currency",
-          errors.acquisitionCost?.currency,
+          "acquisitionCostPerGram.amount",
+          errors.acquisitionCostPerGram?.amount,
+        )}
+        {renderText(
+          "acquisitionCostPerGram.currency",
+          errors.acquisitionCostPerGram?.currency,
         )}
       </div>
-      {renderText("note", errors.note)}
+      <AcquisitionPreview control={form.control} />
+      {!product && renderText("note", errors.note)}
       {rootError && (
         <p role="alert" className="text-destructive">
           {rootError === "uncertain"
-            ? t("createUncertain")
+            ? t(product ? "editUncertain" : "createUncertain")
             : t(
-                rootError === "INVALID_PRODUCT" ||
+                rootError === "PRODUCT_EDIT_CONFLICT" ||
+                  rootError === "PRODUCT_NOT_FOUND" ||
+                  rootError === "INVALID_PRODUCT" ||
                   rootError === "ACCESS_DENIED" ||
                   rootError === "AUTH_UNAVAILABLE"
                   ? rootError
@@ -265,5 +298,38 @@ function CreateForm({
         {t(busy ? "saving" : "save")}
       </Button>
     </form>
+  );
+}
+
+function AcquisitionPreview({
+  control,
+}: {
+  control: Control<ProductFormValues, unknown, ProductCreateInput>;
+}) {
+  const { t } = useTranslation("products");
+  const [weight, rate] = useWatch({
+    control,
+    name: ["weight", "acquisitionCostPerGram"],
+  });
+  const preview = parseProductAcquisition({
+    weight,
+    acquisitionCostPerGram: {
+      amount: rate.amount,
+      currency: rate.currency.trim().toUpperCase(),
+    },
+  });
+
+  return (
+    <div className="grid gap-2 rounded-md border p-3">
+      <span id="acquisition-total-label" className="text-muted-foreground">
+        {t("fields.acquisitionCost")}
+      </span>
+      <output
+        aria-labelledby="acquisition-total-label"
+        className="wrap-anywhere font-medium"
+      >
+        {"total" in preview ? <MoneyText value={preview.total} /> : "—"}
+      </output>
+    </div>
   );
 }

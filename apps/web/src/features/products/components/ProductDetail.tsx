@@ -1,17 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ProductDetail as Detail } from "@mizan/contracts";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useWorkspace } from "@/features/workspace";
 import { formatDateTime } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
 import { PurityText } from "@/shared/ui/PurityText";
 import { WeightText } from "@/shared/ui/WeightText";
-import { useUploadProductPhoto } from "../api/mutations";
+import {
+  useDeleteProduct,
+  useEditProductAcquisition,
+  useUploadProductPhoto,
+} from "../api/mutations";
 import { productDetailQuery, type ProductScope } from "../api/queries";
+import { ProductForm } from "./ProductCreate";
 import { ProductStatusBadge } from "./ProductList";
 import { ProductPanel } from "./ProductPanel";
 import { ProductPhoto } from "./ProductPhoto";
@@ -21,47 +27,163 @@ export function ProductDetail({
   id,
   opener,
   close,
+  restoreFallbackFocus,
 }: {
   scope: ProductScope;
   id: string;
   opener: HTMLElement;
   close: () => void;
+  restoreFallbackFocus: () => void;
 }) {
-  const { t } = useTranslation(["products", "sales"]);
+  const { t } = useTranslation(["products", "sales", "errors"]);
+  const { role } = useWorkspace();
   const detail = useQuery(productDetailQuery(scope, id));
   const upload = useUploadProductPhoto(scope, id);
+  const edit = useEditProductAcquisition(scope, id);
+  const removal = useDeleteProduct(scope, id);
+  const [view, setView] = useState<"detail" | "edit" | "delete">("detail");
+  const product = detail.data;
+  const owner = role === "OWNER";
 
   return (
     <ProductPanel
-      title={detail.data?.name ?? t("detail")}
+      title={
+        view === "edit"
+          ? t("editAcquisition")
+          : view === "delete"
+            ? t("delete.title")
+            : (product?.name ?? t("detail"))
+      }
       opener={opener}
       close={close}
-      busy={upload.isPending}
+      busy={upload.isPending || edit.isPending || removal.isPending}
+      restoreFallbackFocus={restoreFallbackFocus}
+      descriptionId={
+        view === "delete" ? "product-delete-description" : undefined
+      }
     >
-      {detail.isPending && <ListSkeleton rows={3} />}
-      {detail.isError && (
-        <ErrorState
-          error={detail.error}
-          pending={detail.isFetching}
-          retry={() => void detail.refetch()}
-        />
-      )}
-      {detail.data && (
-        <div className="grid gap-6">
-          {detail.data.status === "IN_STOCK" && (
-            <Button asChild className="min-h-11 justify-self-start lg:min-h-9">
-              <Link to="/sales" search={{ product: detail.data.id }}>
-                {t("sell", { ns: "sales" })}
-              </Link>
-            </Button>
-          )}
-          <ProductPhoto
-            product={detail.data}
-            upload={upload}
-            refresh={() => void detail.refetch()}
+      {owner && view === "edit" && product ? (
+        <div className="grid gap-4">
+          <ProductForm
+            product={product}
+            currency={product.acquisitionCost?.currency ?? ""}
+            pending={edit.isPending}
+            save={async (values) => {
+              await edit.mutateAsync(values);
+              setView("detail");
+            }}
           />
-          <ProductRecord product={detail.data} />
+          <Button
+            variant="outline"
+            onClick={() => setView("detail")}
+            disabled={edit.isPending}
+            className="min-h-11 lg:min-h-9"
+          >
+            {t("cancel")}
+          </Button>
         </div>
+      ) : owner && view === "delete" && product ? (
+        <div className="grid gap-4">
+          <p id="product-delete-description" className="text-muted-foreground">
+            {t("delete.description", { name: product.name })}
+          </p>
+          {removal.error && (
+            <p role="alert" className="text-destructive">
+              {t(
+                detail.error?.code === "PRODUCT_NOT_FOUND"
+                  ? "PRODUCT_NOT_FOUND"
+                  : removal.error.code === "PRODUCT_DELETE_CONFLICT"
+                    ? "PRODUCT_DELETE_CONFLICT"
+                    : removal.error.code === "ACCESS_DENIED"
+                      ? "ACCESS_DENIED"
+                      : "generic",
+                { ns: "errors" },
+              )}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              autoFocus
+              variant="outline"
+              onClick={() => setView("detail")}
+              disabled={removal.isPending}
+              className="min-h-11 lg:min-h-9"
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => removal.mutate(undefined, { onSuccess: close })}
+              disabled={
+                removal.isPending ||
+                !product.canDelete ||
+                detail.error?.code === "PRODUCT_NOT_FOUND"
+              }
+              className="min-h-11 lg:min-h-9"
+            >
+              {t(removal.isPending ? "delete.pending" : "delete.title")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {detail.isPending && <ListSkeleton rows={3} />}
+          {detail.isError && (
+            <ErrorState
+              error={detail.error}
+              pending={detail.isFetching}
+              retry={() => void detail.refetch()}
+            />
+          )}
+          {detail.data && (
+            <div className="grid gap-6">
+              {detail.data.status === "IN_STOCK" && (
+                <Button
+                  asChild
+                  className="min-h-11 justify-self-start lg:min-h-9"
+                >
+                  <Link to="/sales" search={{ product: detail.data.id }}>
+                    {t("sell", { ns: "sales" })}
+                  </Link>
+                </Button>
+              )}
+              <ProductPhoto
+                product={detail.data}
+                upload={upload}
+                refresh={() => void detail.refetch()}
+              />
+              <ProductRecord product={detail.data} />
+              {owner && detail.data.canEditAcquisition && (
+                <Button
+                  variant="outline"
+                  onClick={() => setView("edit")}
+                  disabled={upload.isPending}
+                  className="min-h-11 justify-self-start lg:min-h-9"
+                >
+                  {t("editAcquisition")}
+                </Button>
+              )}
+              {owner && detail.data.canDelete === false && (
+                <p className="text-sm text-muted-foreground">
+                  {t("delete.protected")}
+                </p>
+              )}
+              {owner && detail.data.canDelete && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    removal.reset();
+                    setView("delete");
+                  }}
+                  disabled={upload.isPending}
+                  className="min-h-11 justify-self-start lg:min-h-9"
+                >
+                  {t("delete.title")}
+                </Button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </ProductPanel>
   );
@@ -88,6 +210,11 @@ function ProductRecord({ product }: { product: Detail }) {
         <Fact label={t("fields.weight")}>
           <WeightText value={product.weight} />
         </Fact>
+        {product.acquisitionCostPerGram && (
+          <Fact label={t("fields.acquisitionCostPerGram")}>
+            <MoneyText value={product.acquisitionCostPerGram} />
+          </Fact>
+        )}
         {product.acquisitionCost && (
           <Fact label={t("fields.acquisitionCost")}>
             <MoneyText value={product.acquisitionCost} />

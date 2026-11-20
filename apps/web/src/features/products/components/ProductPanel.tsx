@@ -33,12 +33,16 @@ export function ProductPanel({
   close,
   opener,
   busy = false,
+  descriptionId,
+  restoreFallbackFocus,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
   opener: HTMLElement;
   busy?: boolean;
+  descriptionId?: string;
+  restoreFallbackFocus?: () => void;
 }) {
   const desktop = useProductDesktop();
   const { t } = useTranslation("products");
@@ -47,7 +51,8 @@ export function ProductPanel({
   };
   const restoreFocus = (event: Event) => {
     event.preventDefault();
-    opener.focus();
+    if (opener.isConnected) opener.focus();
+    else restoreFallbackFocus?.();
   };
 
   const closeButton = (
@@ -74,7 +79,7 @@ export function ProductPanel({
       <Sheet open onOpenChange={dismiss}>
         <SheetContent
           showCloseButton={false}
-          aria-describedby={undefined}
+          aria-describedby={descriptionId}
           onCloseAutoFocus={restoreFocus}
           className="gap-0 data-[side=right]:sm:max-w-lg motion-reduce:animate-none motion-reduce:transition-none"
         >
@@ -90,7 +95,7 @@ export function ProductPanel({
   return (
     <Drawer open onOpenChange={dismiss} dismissible={!busy} autoFocus>
       <DrawerContent
-        aria-describedby={undefined}
+        aria-describedby={descriptionId}
         onCloseAutoFocus={restoreFocus}
         className="data-[vaul-drawer-direction=bottom]:max-h-[85dvh] motion-reduce:animate-none motion-reduce:transition-none"
       >
