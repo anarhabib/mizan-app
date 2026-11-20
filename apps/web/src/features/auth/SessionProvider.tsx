@@ -13,6 +13,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(!auth);
   const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       current = session;
       setUserId(session?.user.id ?? null);
+      setEmail(session?.user.email ?? null);
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
       if (event === "SIGNED_OUT") setRecovery(false);
       setReady(true);
@@ -95,6 +97,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     <SessionContext
       value={{
         userId,
+        email,
         ready,
         recovery,
         finishRecovery: () => setRecovery(false),

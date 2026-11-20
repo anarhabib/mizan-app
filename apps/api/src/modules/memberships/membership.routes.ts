@@ -6,6 +6,7 @@ import {
   type InvitationSummary,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { requireOwnerDisplay } from "../access/display-mode.js";
 import { authenticate, readBearerToken } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import {
@@ -28,12 +29,13 @@ export function registerMembershipRoutes(
   access?: AccessOptions,
   options?: MembershipOptions,
 ) {
-  const preHandler =
+  const authenticateMember =
     access && options
       ? authenticate(access.db, access.verifyToken)
       : async () => {
           throw new AccessError("AUTH_UNAVAILABLE");
         };
+  const preHandler = [authenticateMember, requireOwnerDisplay];
   function configured() {
     if (!options) throw new AccessError("AUTH_UNAVAILABLE");
     return options;
@@ -146,7 +148,7 @@ export function registerMembershipRoutes(
   }
   app.post<{ Body: { token?: unknown } }>(
     "/invitations/accept",
-    { preHandler },
+    { preHandler: authenticateMember },
     async (request) => {
       const token = request.body?.token;
       if (typeof token !== "string" || !invitationTokenPattern.test(token))

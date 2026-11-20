@@ -5,6 +5,10 @@ import {
 } from "@mizan/contracts";
 import type { Prisma } from "@mizan/database";
 import type { AccessContext } from "../access/access.service.js";
+import {
+  canManageAsOwner,
+  canViewAcquisition,
+} from "../access/display-mode.js";
 
 export const listFields = {
   id: true,
@@ -17,9 +21,7 @@ export const listFields = {
 } as const satisfies Prisma.ProductSelect;
 
 export function detailFields(access: AccessContext) {
-  const showCost =
-    access.role === "OWNER" ||
-    access.settings.salespersonCanViewAcquisitionCost;
+  const showCost = canViewAcquisition(access);
   return {
     ...listFields,
     acquisitionCost: showCost,
@@ -105,7 +107,7 @@ export function presentDetail(
           acquisitionCurrency,
         ),
       }),
-    ...(access.role === "OWNER" && {
+    ...(canManageAsOwner(access) && {
       canEditAcquisition: canEditAcquisition(row),
       canDelete: row.status === "IN_STOCK" && !sale && movements.length === 0,
     }),

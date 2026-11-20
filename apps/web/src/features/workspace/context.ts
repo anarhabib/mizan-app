@@ -5,6 +5,7 @@ import type { StoreScope } from "./selection";
 export const WorkspaceContext = createContext<
   | (StoreContext & {
       settings: OrganizationSettings;
+      salespersonDisplay?: true;
       contexts: StoreContext[];
       selectStore: (scope: StoreScope) => void;
     })
@@ -14,5 +15,16 @@ export const WorkspaceContext = createContext<
 export function useWorkspace() {
   const workspace = useContext(WorkspaceContext);
   if (!workspace) throw new Error("WorkspaceProvider is required");
-  return workspace;
+  const canSwitchDisplayMode = workspace.role === "OWNER";
+  const canManageAsOwner =
+    canSwitchDisplayMode && !workspace.salespersonDisplay;
+  return {
+    ...workspace,
+    canSwitchDisplayMode,
+    canManageAsOwner,
+    canViewAcquisition:
+      !workspace.salespersonDisplay &&
+      (canManageAsOwner ||
+        workspace.settings.salespersonCanViewAcquisitionCost),
+  };
 }

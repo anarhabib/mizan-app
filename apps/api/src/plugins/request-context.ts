@@ -78,18 +78,33 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerProductRoutes(app, access, products);
   registerSaleRoutes(app, access, salesDb);
 
+  const preHandler = access
+    ? [
+        authenticate(access.db, access.verifyToken),
+        requireStoreAccess(access.db),
+      ]
+    : async () => {
+        throw new AccessError("AUTH_UNAVAILABLE");
+      };
+  const store = "/organizations/:organizationId/stores/:storeId";
   app.get<{ Params: ScopeParams }>(
-    "/organizations/:organizationId/stores/:storeId/access",
-    {
-      preHandler: access
-        ? [
-            authenticate(access.db, access.verifyToken),
-            requireStoreAccess(access.db),
-          ]
-        : async () => {
-            throw new AccessError("AUTH_UNAVAILABLE");
-          },
-    },
+    `${store}/access`,
+    { preHandler },
     async (request) => request.access,
+  );
+  app.post<{ Params: ScopeParams }>(
+    `${store}/salesperson-mode`,
+    { preHandler },
+    async (request, reply) => {
+      if (!access) throw new AccessError("AUTH_UNAVAILABLE");
+      const { sessionId, userId } = request.identity!;
+      if (!sessionId || request.access?.role !== "OWNER")
+        throw new AccessError("ACCESS_DENIED");
+      await access.db.salespersonDisplaySession.createMany({
+        data: [{ sessionId, userId }],
+        skipDuplicates: true,
+      });
+      return reply.code(204).send();
+    },
   );
 };

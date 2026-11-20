@@ -36,14 +36,13 @@ export function ProductDetail({
   restoreFallbackFocus: () => void;
 }) {
   const { t } = useTranslation(["products", "sales", "errors"]);
-  const { role } = useWorkspace();
+  const { canManageAsOwner: owner, canViewAcquisition } = useWorkspace();
   const detail = useQuery(productDetailQuery(scope, id));
   const upload = useUploadProductPhoto(scope, id);
   const edit = useEditProductAcquisition(scope, id);
   const removal = useDeleteProduct(scope, id);
   const [view, setView] = useState<"detail" | "edit" | "delete">("detail");
   const product = detail.data;
-  const owner = role === "OWNER";
 
   return (
     <ProductPanel
@@ -152,7 +151,10 @@ export function ProductDetail({
                 upload={upload}
                 refresh={() => void detail.refetch()}
               />
-              <ProductRecord product={detail.data} />
+              <ProductRecord
+                product={detail.data}
+                canViewAcquisition={canViewAcquisition}
+              />
               {owner && detail.data.canEditAcquisition && (
                 <Button
                   variant="outline"
@@ -189,7 +191,13 @@ export function ProductDetail({
   );
 }
 
-function ProductRecord({ product }: { product: Detail }) {
+function ProductRecord({
+  product,
+  canViewAcquisition,
+}: {
+  product: Detail;
+  canViewAcquisition: boolean;
+}) {
   const { t, i18n } = useTranslation("products");
   const time = (value: string) => (
     <time dateTime={value}>{formatDateTime(value, i18n.resolvedLanguage)}</time>
@@ -210,12 +218,12 @@ function ProductRecord({ product }: { product: Detail }) {
         <Fact label={t("fields.weight")}>
           <WeightText value={product.weight} />
         </Fact>
-        {product.acquisitionCostPerGram && (
+        {canViewAcquisition && product.acquisitionCostPerGram && (
           <Fact label={t("fields.acquisitionCostPerGram")}>
             <MoneyText value={product.acquisitionCostPerGram} />
           </Fact>
         )}
-        {product.acquisitionCost && (
+        {canViewAcquisition && product.acquisitionCost && (
           <Fact label={t("fields.acquisitionCost")}>
             <MoneyText value={product.acquisitionCost} />
           </Fact>

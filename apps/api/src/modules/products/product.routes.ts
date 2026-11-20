@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { parseProductAcquisition, parseProductCreate } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { canManageAsOwner } from "../access/display-mode.js";
 import { resolveAccessContext, uuidPattern } from "../access/access.service.js";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
@@ -139,7 +140,7 @@ export function registerProductRoutes(
     "/products/:id/acquisition",
     { preHandler },
     async (request, reply) => {
-      if (request.access!.role !== "OWNER")
+      if (!canManageAsOwner(request.access!))
         throw new AccessError("ACCESS_DENIED");
       const parsed = parseProductAcquisition(request.body);
       if ("field" in parsed)

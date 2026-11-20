@@ -6,5 +6,20 @@
   "loading": "Yüklənir",
   "retry": "Yenidən cəhd et",
   "notFound": "Səhifə tapılmadı",
-  "home": "Məhsullara keç"
+  "home": "Məhsullara keç",
+  "displayMode": {
+    "owner": "Sahib",
+    "salesperson": "Satıcı",
+    "trigger": "Görünüş rejimi: {{mode}}",
+    "switchTo": "{{mode}} rejiminə keç",
+    "restrict": "Bu cihazda alış xərcləri və sahibə aid idarəetmə bölmələri gizlənəcək. Sahib rejiminə qayıtmaq üçün şifrənizi daxil edin.",
+    "authenticate": "Sahib rejiminə qayıtmaq üçün hesab şifrənizi daxil edin.",
+    "confirm": "Rejimi dəyiş",
+    "cancel": "Ləğv et",
+    "switching": "Dəyişdirilir…",
+    "concealed": "Rejim dəyişdirilərkən iş sahəsi gizlədilir.",
+    "invalidPassword": "Şifrə yanlışdır.",
+    "unavailable": "Bu sessiyada şifrəni təsdiqləmək mümkün deyil.",
+    "failed": "Rejimi dəyişmək mümkün olmadı. Yenidən cəhd edin."
+  }
 }

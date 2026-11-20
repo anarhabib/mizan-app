@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, test } from "vitest";
 import { createSupabaseVerifier } from "../src/plugins/auth.js";
 
 const userId = randomUUID();
+const sessionId = randomUUID();
 const pair = await generateKeyPair("ES256");
 const jwk = { ...(await exportJWK(pair.publicKey)), kid: "test", alg: "ES256" };
 const legacyKey = randomBytes(32);
@@ -53,11 +54,14 @@ function token(
     audience?: string;
     expiration?: string;
     role?: string;
+    sessionId?: string | null;
     anonymous?: boolean;
   } = {},
 ) {
   return new SignJWT({
     role: overrides.role ?? "authenticated",
+    session_id:
+      overrides.sessionId === undefined ? sessionId : overrides.sessionId,
     is_anonymous: overrides.anonymous ?? false,
   })
     .setProtectedHeader({ alg: "ES256", kid: "test" })
@@ -70,7 +74,7 @@ function token(
 
 test("accepts a signed user token from the configured issuer", async () => {
   const verify = createSupabaseVerifier({ issuer });
-  await expect(verify(await token())).resolves.toEqual({ userId });
+  await expect(verify(await token())).resolves.toEqual({ userId, sessionId });
 });
 
 test.each([
@@ -79,6 +83,8 @@ test.each([
   { expiration: "-1m" },
   { role: "service_role" },
   { anonymous: true },
+  { sessionId: null },
+  { sessionId: "invalid" },
 ])("rejects tokens with invalid user claims %j", async (claims) => {
   const verify = createSupabaseVerifier({ issuer });
   await expect(verify(await token(claims))).rejects.toMatchObject({
@@ -104,7 +110,7 @@ test("rejects malformed tokens", async () => {
 
 test("asks Supabase to validate legacy tokens when a publishable key is configured", async () => {
   const sign = (key: Uint8Array) =>
-    new SignJWT({ role: "authenticated" })
+    new SignJWT({ role: "authenticated", session_id: sessionId })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuer(issuer)
       .setAudience("authenticated")
@@ -112,7 +118,10 @@ test("asks Supabase to validate legacy tokens when a publishable key is configur
       .setExpirationTime("3m")
       .sign(key);
   const verify = createSupabaseVerifier({ issuer, apiKey: publishableKey });
-  await expect(verify(await sign(legacyKey))).resolves.toEqual({ userId });
+  await expect(verify(await sign(legacyKey))).resolves.toEqual({
+    userId,
+    sessionId,
+  });
   await expect(verify(await sign(randomBytes(32)))).rejects.toMatchObject({
     statusCode: 401,
   });

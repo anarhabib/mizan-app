@@ -23,12 +23,17 @@ function identityFromClaims(payload: JWTPayload): AuthIdentity {
   if (
     !payload.sub ||
     !uuidPattern.test(payload.sub) ||
+    typeof payload.session_id !== "string" ||
+    !uuidPattern.test(payload.session_id) ||
     payload.role !== audience ||
     payload.is_anonymous === true
   ) {
     throw new AccessError("UNAUTHENTICATED");
   }
-  return { userId: payload.sub.toLowerCase() };
+  return {
+    userId: payload.sub.toLowerCase(),
+    sessionId: payload.session_id.toLowerCase(),
+  };
 }
 
 // Legacy Supabase projects use a symmetric key that is never published in JWKS.
@@ -170,6 +175,15 @@ export function authenticate(db: AccessDatabase, verifyToken: VerifyToken) {
     if (!identity || !uuidPattern.test(identity.userId))
       throw new AccessError("UNAUTHENTICATED");
     await ensureApplicationUser(db, identity);
-    request.identity = identity;
+    const locked = identity.sessionId
+      ? await db.salespersonDisplaySession.findUnique({
+          where: { sessionId: identity.sessionId, userId: identity.userId },
+          select: { sessionId: true },
+        })
+      : null;
+    request.identity = {
+      ...identity,
+      ...(locked && { salespersonDisplay: true }),
+    };
   };
 }

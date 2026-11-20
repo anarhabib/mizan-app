@@ -1,5 +1,11 @@
 # Mizan project state
 
+## Task 8 — owner display mode (November 20, 2026)
+
+- The localized header control in `apps/web/src/features/settings/components/DisplayModeControl.tsx` switches the owner's current Supabase session to Salesperson mode. The API persists the restriction across token refresh and requires a fresh Supabase sign-in to regain Owner mode. Membership roles and separate device sessions retain their permissions.
+- The server guard in `apps/api/src/modules/access/display-mode.ts` redacts stored acquisition costs and blocks owner settings, team administration, acquisition edits, and product deletion. Workspace permission flags hide the corresponding UI. Mode switches clear query caches and reload open tabs. Product intake still requires a new acquisition rate, and product search and sales remain available.
+- Type checks, changed-file lint, API and web builds, disposable PostgreSQL integration tests, and live local Supabase browser checks passed. Chromium covered both modes at 390px and 1280px in light and dark, including wrong passwords, an interrupted switch, cross-tab changes, and direct API access with the previous session. The separate Storage test was skipped. Apply migration `202611200002_salesperson_display_session` before starting this API version.
+
 ## Task 7 — product acquisition and deletion (November 20, 2026)
 
 - Product create and owner acquisition edit use a per-gram rate and preview weight × rate. The shared parser in `packages/contracts/src/products.ts` rounds the total half up to four places. The Prisma migration in `packages/database/prisma/migrations/202611200001_product_acquisition_per_gram` derives rates from valid legacy rows while preserving stored totals.

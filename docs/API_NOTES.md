@@ -14,6 +14,8 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 - Store access requires an active organization membership AND active store assignment, checked against PostgreSQL on requests; invalid/inaccessible scope returns 403 without revealing its existence. Roles are `OWNER` and `SALESPERSON`.
 - Both assigned roles reach product/sale handlers. Organization management is owner-oriented via the shared owner guard; individual service calls to that guard are outside this inspection. Product detail exposes acquisition cost and cost per gram to owners and to salespeople when `salespersonCanViewAcquisitionCost` is enabled (default false).
 - Protected route group sends `Cache-Control: private, no-store`. Health is public.
+- The API requires a verified Supabase `session_id` claim. Owners can restrict their current session with `POST /organizations/:organizationId/stores/:storeId/salesperson-mode` (204, idempotent). The access response includes `salespersonDisplay: true` for a restricted session and still returns the actual membership role. The restriction follows token refreshes and all stores in that session. The web app returns to Owner mode by signing in again through Supabase with the owner's password. The previous session stays restricted.
+- Restricted sessions receive neither acquisition values nor owner product capabilities, even when the organization lets staff view acquisition costs. Settings, team administration and owner inventory mutations return 403. Product intake still accepts the required acquisition rate, and product search and sales remain available. Apply migration `202611200002_salesperson_display_session` before starting this API version.
 
 ## Errors and validation
 

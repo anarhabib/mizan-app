@@ -42,6 +42,7 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 - Every product, sale, settings and membership request needs `organizationId` (store routes also `storeId`). `useWorkspace()` is the only source of these ids; features never read storage themselves.
 - Both ids are part of every query key (key factories take `{organizationId, storeId}`), so switching store never shows stale data from another store.
 - Roles are `OWNER` and `SALESPERSON`. Hide owner-only UI (settings, team) for salespeople as a convenience; the server enforces access.
+- Use the permission flags from `useWorkspace()` for owner actions and acquisition visibility. Display mode is verified by the API and switching it clears query data and reloads the workspace across tabs.
 - `acquisitionCost` can be absent for salespeople. Render nothing when it is missing; never show `0` or a placeholder amount.
 
 ## Data (TanStack Query)
