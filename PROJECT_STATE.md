@@ -1,5 +1,11 @@
 # Mizan project state
 
+## Task 3 — products (November 20, 2026)
+
+- Replaced the products placeholder with scoped search, facet filters, cursor pagination, a responsive detail panel, creation, and photo upload. The reference feature lives in `apps/web/src/features/products`; the route entry is `apps/web/src/routes/products.tsx`.
+- Creation uses the contracts parser through a feature-local React Hook Form resolver because the shared resolver is absent. It defaults to the workspace currency and refreshes exact list and facet keys. Browser photos are downscaled to JPEG, sent by signed PUT, and confirmed before refreshing the detail.
+- Contracts and web builds, web typecheck, changed-file lint and format, and 10 feature tests passed. Checked 390px and 1280px in light and dark with mocked API responses, including a duplicate code and a 1600px JPEG upload. Live signed storage, real-phone camera capture, and React DevTools review remain open.
+
 ## Task 2 — authentication and workspaces (November 20, 2026)
 
 - Added Supabase email sign-in, signup, sign-out and password recovery in `apps/web/src/features/auth`. The API client replays a 401 once after refresh and preserves the session on retryable Auth outages. The web env uses the existing ignored `apps/web/.env.local` and the recovery route uses Supabase's allow-listed `/auth/callback`.
