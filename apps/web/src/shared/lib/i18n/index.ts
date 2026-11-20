@@ -16,6 +16,14 @@ import azauth from "@/locales/az/auth.json";
 import enauth from "@/locales/en/auth.json";
 import azworkspace from "@/locales/az/workspace.json";
 import enworkspace from "@/locales/en/workspace.json";
+import rushell from "@/locales/ru/shell.json";
+import ruproducts from "@/locales/ru/products.json";
+import rusales from "@/locales/ru/sales.json";
+import rusettings from "@/locales/ru/settings.json";
+import ruteam from "@/locales/ru/team.json";
+import ruerrors from "@/locales/ru/errors.json";
+import ruauth from "@/locales/ru/auth.json";
+import rworkspace from "@/locales/ru/workspace.json";
 
 export const resources = {
   az: {
@@ -38,12 +46,23 @@ export const resources = {
     auth: enauth,
     workspace: enworkspace,
   },
+  ru: {
+    shell: rushell,
+    products: ruproducts,
+    sales: rusales,
+    settings: rusettings,
+    team: ruteam,
+    errors: ruerrors,
+    auth: ruauth,
+    workspace: rworkspace,
+  },
 } as const;
 
 const languageKey = "mizan:language";
 function initialLanguage() {
   try {
-    return sessionStorage.getItem(languageKey) === "en" ? "en" : "az";
+    const language = sessionStorage.getItem(languageKey);
+    return language === "en" || language === "ru" ? language : "az";
   } catch {
     return "az";
   }

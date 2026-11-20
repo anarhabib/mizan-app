@@ -17,7 +17,7 @@ apps/web/src/
     ui/         shadcn components (CLI-managed, do not edit or regenerate) + BrandMark, PageHeader, etc.
     lib/        api client, auth (supabase), format, form helpers, i18n setup
     hooks/
-  locales/      az/ and en/, one namespace file per feature
+  locales/      az/, en/ and ru/, one namespace file per feature
 ```
 
 Features: `auth`, `workspace`, `products`, `sales`, `settings`, `team`.
@@ -63,7 +63,7 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 - Weights are grams as strings (up to 3 decimals). Purity is an integer fineness 1–999 shown as "585", not a percentage.
 - Validate, parse and round only through `@mizan/contracts` helpers (`parseDecimal`, `parseMoney`, `currencyMinorUnits`, `roundMoneyHalfUp`). No `parseFloat`, `Number()` or float arithmetic on money or weight. Do not compute money in the UI: show server-calculated values.
 - Formatters preserve exact digits: group thousands, add trailing zeros up to the currency's minor units, never truncate or round.
-- All user-facing text goes through i18n (Azerbaijani default, English supported), one namespace per feature. No hard-coded strings in components.
+- All user-facing text goes through i18n (Azerbaijani default; English and Russian supported), one namespace per feature. No hard-coded strings in components.
 
 ## Forms
 

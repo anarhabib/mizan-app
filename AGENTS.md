@@ -39,7 +39,7 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 
 - Keep business logic out of presentation components and database access out of unrelated layers.
 - Validate input at boundaries; return consistent, actionable errors.
-- Use English for folder names, file names and route paths. User-facing text is Azerbaijani by default, with English support. Prioritize mobile-friendly workflows.
+- Use English for folder names, file names and route paths. User-facing text is Azerbaijani by default, with English and Russian support. Prioritize mobile-friendly workflows.
 - Amounts are `{amount, currency}` objects. The organization default currency is usually AZN but other ISO currencies exist: never assume AZN, always display the currency code. Gold purity is an integer fineness (for example 585, 750), not a percentage. Weights are grams with up to 3 decimals. Never silently round, convert or reinterpret financial or weight values.
 - Do not silently extend the MVP toward SaaS or multi-tenant functionality beyond what the API already provides.
 - A public QR-shared catalog is planned for later as a separate app (`apps/catalog`, server-rendered or static for fast first load and link previews). It is out of scope now: do not add public routes, SSR or catalog code to `apps/web`. When it is built, public endpoints must use separate response shapes that never expose cost price, supplier, exact stock counts or internal notes, and must be rate-limited and cacheable.

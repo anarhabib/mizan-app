@@ -16,7 +16,7 @@ Mizan is a management app for small jewelry stores. A family-owned jewelry store
 | Architecture | pnpm monorepo with separate Next.js web and Fastify API applications; modular monolith |
 | Tenancy | Organization and store scoped from the first milestone, with Owner and Salesperson roles |
 | Initial deployment | One family-owned store at one location |
-| Localization | Azerbaijani (default) and English interface options, organization default ISO currency with optional foreign-currency payment, weight in grams |
+| Localization | Azerbaijani (default), English, and Russian interface options, organization default ISO currency with optional foreign-currency payment, weight in grams |
 | Inventory | Track each piece of jewelry individually with its own product record and unique code |
 | Acquisition cost | Enter each item's initial acquisition cost manually |
 | Selling price | The selling price can change. Show the estimated selling price on the product record and the actual sale amount on the transaction |
@@ -32,7 +32,7 @@ Prioritize mobile screens and use a left sidebar on desktop. The previous fronte
 
 ## First Implementation Task
 
-1. In the new repository, build sign-in, a product creation form, an inventory list, a product details screen, and a sales form. Localize these screens in Azerbaijani and English. Connect the core workflow to a real database through the Fastify API and Prisma. If sample data is needed, keep it separate for testing.
+1. In the new repository, build sign-in, a product creation form, an inventory list, a product details screen, and a sales form. Localize these screens in Azerbaijani, English, and Russian. Connect the core workflow to a real database through the Fastify API and Prisma. If sample data is needed, keep it separate for testing.
 2. Let the salesperson save a product with its code, type, gold purity, weight, and acquisition cost. Show a clear inline error for a duplicate code or invalid measurements. If the design includes a photo field, make it optional for the core workflow.
 3. Show the saved product in the inventory list. Let the salesperson find it by code and open its details. Before the sale, show availability, weight, purity, acquisition cost, and the estimated selling price when available.
 4. Let the salesperson enter the actual sale amount and confirm the sale. In the Fastify sales endpoint, use a single Prisma transaction to record the sale and mark the item as sold. Double-clicks and concurrent requests must produce at most one sale for the same item.

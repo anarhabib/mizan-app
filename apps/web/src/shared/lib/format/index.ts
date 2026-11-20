@@ -9,8 +9,10 @@ function decimal(value: string, minimum = 0, locale = "az") {
   const magnitude = negative ? value.slice(1) : value;
   const fraction = magnitude.split(".")[1] ?? "";
   parseDecimal(magnitude, fraction.length);
-  const separator = locale === "en" ? "," : ".";
-  const point = locale === "en" ? "." : ",";
+  const english = locale.startsWith("en");
+  const russian = locale.startsWith("ru");
+  const separator = english ? "," : russian ? "\u202f" : ".";
+  const point = english ? "." : ",";
   const whole = magnitude
     .split(".")[0]
     .replace(/\B(?=(\d{3})+(?!\d))/g, separator);
@@ -23,7 +25,7 @@ export function formatMoney(money: MoneyInput, locale = "az") {
 }
 export function formatWeight(value: string, locale = "az") {
   parseDecimal(value.startsWith("-") ? value.slice(1) : value, 3);
-  return `${decimal(value, 0, locale)} g`;
+  return `${decimal(value, 0, locale)} ${locale.startsWith("ru") ? "г" : "g"}`;
 }
 export function formatPurity(value: number) {
   if (!Number.isInteger(value) || value < 1 || value > 999)
