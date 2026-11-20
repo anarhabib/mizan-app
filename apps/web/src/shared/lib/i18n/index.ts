@@ -39,14 +39,29 @@ export const resources = {
     workspace: enworkspace,
   },
 } as const;
+
+const languageKey = "mizan:language";
+function initialLanguage() {
+  try {
+    return sessionStorage.getItem(languageKey) === "en" ? "en" : "az";
+  } catch {
+    return "az";
+  }
+}
+
 void i18n.use(initReactI18next).init({
   resources,
-  lng: "az",
+  lng: initialLanguage(),
   fallbackLng: "az",
   defaultNS: "shell",
   interpolation: { escapeValue: false },
 });
 i18n.on("languageChanged", (language) => {
   if (typeof document !== "undefined") document.documentElement.lang = language;
+  try {
+    sessionStorage.setItem(languageKey, language);
+  } catch {
+    // Language selection still works when browser storage is unavailable.
+  }
 });
 export default i18n;

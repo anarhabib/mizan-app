@@ -6,5 +6,20 @@
   "loading": "Loading",
   "retry": "Try again",
   "notFound": "Page not found",
-  "home": "Go to products"
+  "home": "Go to products",
+  "displayMode": {
+    "owner": "Owner",
+    "salesperson": "Salesperson",
+    "trigger": "Display mode: {{mode}}",
+    "switchTo": "Switch to {{mode}} mode",
+    "restrict": "This hides acquisition costs and owner controls on this device. Enter your password to return to Owner mode.",
+    "authenticate": "Enter your account password to return to Owner mode.",
+    "confirm": "Switch mode",
+    "cancel": "Cancel",
+    "switching": "Switching…",
+    "concealed": "Workspace hidden while switching display modes.",
+    "invalidPassword": "The password is incorrect.",
+    "unavailable": "Password confirmation is unavailable for this session.",
+    "failed": "Could not switch display modes. Try again."
+  }
 }

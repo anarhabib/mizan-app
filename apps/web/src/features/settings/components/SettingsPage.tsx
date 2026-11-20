@@ -22,7 +22,7 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title={t("title")} />
-      {workspace.role === "OWNER" ? (
+      {workspace.canManageAsOwner ? (
         <OwnerSettings
           key={JSON.stringify([workspace.organizationId, workspace.storeId])}
           scope={workspace}

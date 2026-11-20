@@ -12,6 +12,7 @@ import type { StoreScope } from "./selection";
 type StoreAccess = StoreScope & {
   userId: string;
   role: StoreContext["role"];
+  salespersonDisplay?: true;
   settings: OrganizationSettings;
 };
 
@@ -36,6 +37,13 @@ export function accessQuery(userId: string, scope: StoreScope) {
         { signal },
       ),
   });
+}
+
+export function enableSalespersonDisplay(scope: StoreScope) {
+  return apiRequest<void>(
+    `/organizations/${encodeURIComponent(scope.organizationId)}/stores/${encodeURIComponent(scope.storeId)}/salesperson-mode`,
+    { method: "POST", keepalive: true },
+  );
 }
 
 export function createWorkspace(body: OnboardingRequest) {

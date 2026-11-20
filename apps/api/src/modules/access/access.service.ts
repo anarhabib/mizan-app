@@ -3,14 +3,19 @@ import { AccessError } from "./access.errors.js";
 
 export type AccessDatabase = Pick<
   Prisma.TransactionClient,
-  "user" | "storeAssignment"
+  "user" | "storeAssignment" | "salespersonDisplaySession"
 >;
 
 export interface AuthIdentity {
   userId: string;
+  sessionId?: string;
+  salespersonDisplay?: true;
 }
 
-export interface AccessContext extends AuthIdentity {
+export interface AccessContext extends Pick<
+  AuthIdentity,
+  "userId" | "salespersonDisplay"
+> {
   organizationId: string;
   storeId: string;
   role: "OWNER" | "SALESPERSON";
@@ -70,6 +75,7 @@ export async function resolveAccessContext(
 
   return {
     userId: identity.userId,
+    ...(identity.salespersonDisplay && { salespersonDisplay: true }),
     organizationId: assignment.organizationId,
     storeId: assignment.storeId,
     role: assignment.membership.role,

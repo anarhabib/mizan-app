@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { parsePurity, parseRate } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { requireOwnerDisplay } from "../access/display-mode.js";
 import type { OrganizationDatabase } from "../access/organization-owner.js";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
@@ -18,7 +19,7 @@ export function registerSettingsRoutes(
 ) {
   const preHandler =
     access && db
-      ? authenticate(access.db, access.verifyToken)
+      ? [authenticate(access.db, access.verifyToken), requireOwnerDisplay]
       : async () => {
           throw new AccessError("AUTH_UNAVAILABLE");
         };

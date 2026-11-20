@@ -8,6 +8,7 @@ import type {
   ProductStatus,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { canManageAsOwner } from "../access/display-mode.js";
 import {
   resolveAccessContext,
   uuidPattern,
@@ -116,7 +117,7 @@ async function lockProductOwner(
   tx: Prisma.TransactionClient,
   access: AccessContext,
 ) {
-  if (access.role !== "OWNER") throw new AccessError("ACCESS_DENIED");
+  if (!canManageAsOwner(access)) throw new AccessError("ACCESS_DENIED");
   await lockOrganization(tx, access.organizationId);
   const currentAccess = await resolveAccessContext(
     tx,
@@ -124,7 +125,7 @@ async function lockProductOwner(
     access.organizationId,
     access.storeId,
   );
-  if (currentAccess.role !== "OWNER") throw new AccessError("ACCESS_DENIED");
+  if (!canManageAsOwner(currentAccess)) throw new AccessError("ACCESS_DENIED");
   return currentAccess;
 }
 

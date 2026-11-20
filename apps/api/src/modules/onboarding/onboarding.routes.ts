@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { parseOnboarding } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { requireOwnerDisplay } from "../access/display-mode.js";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import {
@@ -20,16 +21,20 @@ export function registerOnboardingRoutes(
       : async () => {
           throw new AccessError("AUTH_UNAVAILABLE");
         };
-  app.post("/onboarding", { preHandler }, async (request, reply) => {
-    if (!db || !request.identity) throw new AccessError("UNAUTHENTICATED");
-    const input = parseOnboarding(request.body);
-    if (!input)
-      return reply.code(400).send({
-        code: "INVALID_ONBOARDING",
-        message: "Biznes, mağaza və valyuta məlumatlarını yoxlayın.",
-      });
-    return provisionOwnerWorkspace(db, request.identity.userId, input);
-  });
+  app.post(
+    "/onboarding",
+    { preHandler: [preHandler, requireOwnerDisplay] },
+    async (request, reply) => {
+      if (!db || !request.identity) throw new AccessError("UNAUTHENTICATED");
+      const input = parseOnboarding(request.body);
+      if (!input)
+        return reply.code(400).send({
+          code: "INVALID_ONBOARDING",
+          message: "Biznes, mağaza və valyuta məlumatlarını yoxlayın.",
+        });
+      return provisionOwnerWorkspace(db, request.identity.userId, input);
+    },
+  );
   app.get("/me/contexts", { preHandler }, async (request) => {
     if (!db || !request.identity) throw new AccessError("UNAUTHENTICATED");
     return listStoreContexts(db, request.identity.userId);

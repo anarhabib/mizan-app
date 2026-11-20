@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { StoreContext } from "@mizan/contracts";
@@ -8,6 +8,11 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { accessQuery, contextsQuery } from "./api";
 import { WorkspaceContext } from "./context";
+import {
+  pendingSalespersonDisplay,
+  restrictDisplay,
+  watchDisplayModeChanges,
+} from "./display-mode";
 import { OnboardingForm } from "./OnboardingForm";
 import {
   readSelection,
@@ -25,14 +30,50 @@ export function WorkspaceProvider({
   children: ReactNode;
 }) {
   const { t } = useTranslation("workspace");
+  const queryClient = useQueryClient();
   const [selection, setSelection] = useState(() => readSelection(userId));
+  const [pendingMode, setPendingMode] = useState(() =>
+    pendingSalespersonDisplay(userId),
+  );
+  const resumeMode = useMutation({
+    mutationFn: (scope: StoreScope) => restrictDisplay(userId, scope),
+    onSuccess: () => setPendingMode(null),
+  });
+  const { mutate: resumeRestriction } = resumeMode;
+  useEffect(() => {
+    if (pendingMode) resumeRestriction(pendingMode);
+  }, [pendingMode, resumeRestriction]);
+
   const contexts = useQuery(contextsQuery(userId));
   const active = contexts.data && resolveSelection(contexts.data, selection);
+  useEffect(
+    () =>
+      watchDisplayModeChanges(userId, () => {
+        document.documentElement.style.display = "none";
+        queryClient.clear();
+        window.location.reload();
+      }),
+    [queryClient, userId],
+  );
 
   function selectStore(scope: StoreScope) {
     setSelection(scope);
   }
 
+  if (pendingMode && resumeMode.isError)
+    return (
+      <WorkspaceError
+        error={resumeMode.error}
+        retry={() => resumeRestriction(pendingMode)}
+        pending={resumeMode.isPending}
+      />
+    );
+  if (pendingMode)
+    return (
+      <AuthPanel title={t("loading")}>
+        <ListSkeleton />
+      </AuthPanel>
+    );
   if (contexts.isError) {
     return (
       <WorkspaceError
@@ -124,6 +165,7 @@ function SelectedWorkspace({
       value={{
         ...active,
         role: access.data.role,
+        salespersonDisplay: access.data.salespersonDisplay,
         settings: access.data.settings,
         contexts,
         selectStore,

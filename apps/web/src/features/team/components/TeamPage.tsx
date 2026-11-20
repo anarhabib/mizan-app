@@ -18,7 +18,7 @@ export function TeamPage() {
   return (
     <>
       <PageHeader title={t("title")} />
-      {workspace.role === "OWNER" ? (
+      {workspace.canManageAsOwner ? (
         <OwnerTeam
           key={JSON.stringify([workspace.organizationId, workspace.storeId])}
           scope={workspace}

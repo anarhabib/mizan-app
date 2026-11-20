@@ -35,7 +35,17 @@ model User {
   createdAt   DateTime                 @default(now())
   memberships OrganizationMembership[]
   initialWorkspace OwnerOnboarding?
+  salespersonDisplaySessions SalespersonDisplaySession[]
 
+  @@schema("mizan")
+}
+
+model SalespersonDisplaySession {
+  sessionId String @id @db.Uuid
+  userId    String @db.Uuid
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@schema("mizan")
 }
 
