@@ -7,6 +7,10 @@
 - Findings: no CORS or API auth/session endpoints; inconsistent handling of non-AccessError failures; response/pagination details, owner enforcement, cost redaction, transactions and retry semantics delegated to business services remain unverified under the requested inspection scope. Direct Supabase Auth versus API-only auth needs a later decision.
 - Documentation line count and Git whitespace checks verified. App, builds and tests intentionally not run for this documentation-only task. Branch: `task/0-api-notes`; PR targets `main`, with no merge/deployment authorized.
 
+## Web scaffold (November 20, 2026)
+
+- Removed the demo dashboard and restored the placeholder in `apps/web/src/App.tsx`. The Radix Nova/Mist preset and shadcn components remain in the web scaffold on `task/ui-component-updates`. Older frontend entries below describe the previous implementation.
+
 - The Next.js frontend and design document were removed at the user’s request. The API, contracts, and database packages remain. API tests: 13 passed; 7 database integration tests skipped.
 
 ## Frontend design requirements
