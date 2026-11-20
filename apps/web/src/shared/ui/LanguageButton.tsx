@@ -23,7 +23,7 @@ export function LanguageButton() {
           {language.toUpperCase()}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-38">
         <DropdownMenuRadioGroup
           value={language}
           onValueChange={(value) => void i18n.changeLanguage(value)}
