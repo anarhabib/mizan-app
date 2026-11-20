@@ -37,6 +37,10 @@ export const productKeys = {
     [...scopeKey(scope), "detail", id] as const,
   options: (scope: ProductScope) => [...scopeKey(scope), "options"] as const,
   create: (scope: ProductScope) => [...scopeKey(scope), "create"] as const,
+  edit: (scope: ProductScope, id: string) =>
+    [...scopeKey(scope), "edit", id] as const,
+  delete: (scope: ProductScope, id: string) =>
+    [...scopeKey(scope), "delete", id] as const,
   photo: (scope: ProductScope, id: string) =>
     [...scopeKey(scope), "photo", id] as const,
 };

@@ -1,5 +1,12 @@
 # Mizan project state
 
+## Task 7 — product acquisition and deletion (November 20, 2026)
+
+- Product create and owner acquisition edit use a per-gram rate and preview weight × rate. The shared parser in `packages/contracts/src/products.ts` rounds the total half up to four places. The Prisma migration in `packages/database/prisma/migrations/202611200001_product_acquisition_per_gram` derives rates from valid legacy rows while preserving stored totals.
+- Owner-only deletion in `apps/api/src/modules/products` requires confirmation in the web product detail and protects all sale and inventory history. Every API-created product has an intake movement. The schema has no archival mechanism.
+- Type checks, changed-file lint, API and web builds, 23 contracts tests, 124 web tests, focused PostgreSQL product and sale tests, Prisma validation, and a legacy backfill check passed. Chromium fixtures covered create, edit, deletion and protected records at 390px and 1280px in both themes. The separate live Supabase Storage test was skipped.
+- Applied the pending migration to the hosted database used by the local API after an unmigrated schema caused product details to return HTTP 500. Prisma reports the schema is current. A read-only check loaded an existing product with both acquisition amounts and verified the stored total against its backfilled rate.
+
 ## Azerbaijani timestamps (November 20, 2026)
 
 - The shared formatter in `apps/web/src/shared/lib/format/index.ts` uses `DD.MM.YYYY HH:mm` for Azerbaijani to avoid browser month placeholders such as `M11`. All 108 web tests and the web build passed. Chromium fixtures verified the dates in product details, stock history, sale rows, and receipts at 390px and 1280px in both themes.

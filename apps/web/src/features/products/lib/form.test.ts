@@ -12,7 +12,7 @@ const valid: ProductFormValues = {
   category: "Jewelry",
   purity: "585",
   weight: "1.025",
-  acquisitionCost: { amount: "120.05", currency: " eur " },
+  acquisitionCostPerGram: { amount: "120.05", currency: " eur " },
   note: "",
 };
 
@@ -26,7 +26,7 @@ describe("product creation validation", () => {
         category: "Jewelry",
         purity: 585,
         weight: "1.025",
-        acquisitionCost: { amount: "120.05", currency: "EUR" },
+        acquisitionCostPerGram: { amount: "120.05", currency: "EUR" },
       },
     });
   });
@@ -44,9 +44,12 @@ describe("product creation validation", () => {
     expect(
       resolveProductForm({
         ...valid,
-        acquisitionCost: { amount: "10.001", currency: "EUR" },
+        acquisitionCostPerGram: {
+          amount: "0.10000000000000001",
+          currency: "EUR",
+        },
       }).errors,
-    ).toEqual({ acquisitionCost: { amount: { type: "validate" } } });
+    ).toEqual({ acquisitionCostPerGram: { amount: { type: "validate" } } });
   });
 
   it("places duplicate codes and recognized server fields inline", () => {
@@ -55,14 +58,19 @@ describe("product creation validation", () => {
     ).toBe("code");
     expect(
       productErrorField(
-        new ApiError(400, "INVALID_PRODUCT", "", "acquisitionCost"),
+        new ApiError(400, "INVALID_PRODUCT", "", "acquisitionCostPerGram"),
       ),
-    ).toBe("acquisitionCost.amount");
+    ).toBe("acquisitionCostPerGram.amount");
     expect(
       productErrorField(
-        new ApiError(400, "INVALID_PRODUCT", "", "acquisitionCost.currency"),
+        new ApiError(
+          400,
+          "INVALID_PRODUCT",
+          "",
+          "acquisitionCostPerGram.currency",
+        ),
       ),
-    ).toBe("acquisitionCost.currency");
+    ).toBe("acquisitionCostPerGram.currency");
     expect(
       productErrorField(new ApiError(400, "INVALID_PRODUCT", "", "toString")),
     ).toBeUndefined();

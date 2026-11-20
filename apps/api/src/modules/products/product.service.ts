@@ -1,6 +1,8 @@
-﻿import { Prisma } from "@mizan/database";
+import { Prisma } from "@mizan/database";
 import { randomUUID } from "node:crypto";
 import type {
+  MoneyInput,
+  ProductAcquisitionInput,
   ProductCreateInput,
   ProductPhotoUpload,
   ProductStatus,
@@ -16,6 +18,7 @@ import {
   type OrganizationDatabase,
 } from "../access/organization-owner.js";
 import {
+  canEditAcquisition,
   detailFields,
   listFields,
   presentDetail,
@@ -50,8 +53,9 @@ export async function createProduct(
   db: OrganizationDatabase,
   access: AccessContext,
   input: ProductCreateInput,
+  total: MoneyInput,
 ) {
-  const { acquisitionCost, ...values } = input;
+  const { acquisitionCostPerGram, ...values } = input;
   const store = scope(access);
   try {
     return await db.$transaction(async (tx) => {
@@ -77,8 +81,9 @@ export async function createProduct(
         data: {
           ...store,
           ...values,
-          acquisitionCost: acquisitionCost.amount,
-          acquisitionCurrency: acquisitionCost.currency,
+          acquisitionCost: total.amount,
+          acquisitionCostPerGram: acquisitionCostPerGram.amount,
+          acquisitionCurrency: acquisitionCostPerGram.currency,
         },
         select: { id: true },
       });
@@ -93,6 +98,7 @@ export async function createProduct(
       return presentDetail(
         await findProduct(tx, currentAccess, product.id),
         null,
+        currentAccess,
       );
     });
   } catch (error) {
@@ -102,6 +108,85 @@ export async function createProduct(
     ) {
       throw new AccessError("PRODUCT_CODE_CONFLICT", "code");
     }
+    throw error;
+  }
+}
+
+async function lockProductOwner(
+  tx: Prisma.TransactionClient,
+  access: AccessContext,
+) {
+  if (access.role !== "OWNER") throw new AccessError("ACCESS_DENIED");
+  await lockOrganization(tx, access.organizationId);
+  const currentAccess = await resolveAccessContext(
+    tx,
+    access,
+    access.organizationId,
+    access.storeId,
+  );
+  if (currentAccess.role !== "OWNER") throw new AccessError("ACCESS_DENIED");
+  return currentAccess;
+}
+
+export async function updateProductAcquisition(
+  db: OrganizationDatabase,
+  access: AccessContext,
+  id: string,
+  input: ProductAcquisitionInput,
+  total: MoneyInput,
+) {
+  await db.$transaction(async (tx) => {
+    const currentAccess = await lockProductOwner(tx, access);
+    const row = await findProduct(tx, currentAccess, id);
+    if (!canEditAcquisition(row))
+      throw new AccessError("PRODUCT_EDIT_CONFLICT");
+    await tx.product.update({
+      where: {
+        organizationId_storeId_id: { ...scope(currentAccess), id: row.id },
+      },
+      data: {
+        weight: input.weight,
+        acquisitionCost: total.amount,
+        acquisitionCostPerGram: input.acquisitionCostPerGram.amount,
+        acquisitionCurrency: input.acquisitionCostPerGram.currency,
+      },
+    });
+  });
+}
+
+export async function deleteProduct(
+  db: OrganizationDatabase,
+  access: AccessContext,
+  id: string,
+) {
+  try {
+    await db.$transaction(async (tx) => {
+      const currentAccess = await lockProductOwner(tx, access);
+      if (!uuidPattern.test(id)) throw new AccessError("PRODUCT_NOT_FOUND");
+      const where = { ...scope(currentAccess), id };
+      const { count } = await tx.product.deleteMany({
+        where: {
+          ...where,
+          status: "IN_STOCK",
+          sale: null,
+          movements: { none: {} },
+        },
+      });
+      if (count) return;
+      const existing = await tx.product.findUnique({
+        where: { organizationId_storeId_id: where },
+        select: { id: true },
+      });
+      throw new AccessError(
+        existing ? "PRODUCT_DELETE_CONFLICT" : "PRODUCT_NOT_FOUND",
+      );
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    )
+      throw new AccessError("PRODUCT_DELETE_CONFLICT");
     throw error;
   }
 }
@@ -189,7 +274,7 @@ export async function getProduct(
       // Inventory detail stays usable during a storage outage.
     }
   }
-  return presentDetail(row, photoUrl);
+  return presentDetail(row, photoUrl, access);
 }
 
 function photoDirectory(access: AccessContext, id: string) {

@@ -1,4 +1,4 @@
-﻿import { randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { afterAll, expect, test } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createProductPhotoStorage } from "../src/modules/products/product.storage.js";
@@ -101,7 +101,7 @@ test.skipIf(!db)(
       },
     });
     const send = (
-      method: "GET" | "POST",
+      method: "GET" | "POST" | "PATCH" | "DELETE",
       path: string,
       payload?: object,
       user = "owner",
@@ -183,14 +183,19 @@ test.skipIf(!db)(
         category: "Ring",
         purity: 585,
         weight: "1.234",
-        acquisitionCost: { amount: "95.20", currency: "AZN" },
+        acquisitionCostPerGram: { amount: "95.20", currency: "AZN" },
       };
       for (const invalid of [
         { weight: "1.2345" },
         { weight: "0.000" },
         { weight: "1000000000000" },
-        { acquisitionCost: { amount: "95.201", currency: "AZN" } },
-        { acquisitionCost: { amount: "0", currency: "AZN" } },
+        {
+          acquisitionCostPerGram: {
+            amount: "95.20000000000000001",
+            currency: "AZN",
+          },
+        },
+        { acquisitionCostPerGram: { amount: "0", currency: "AZN" } },
       ])
         expect(
           (await send("POST", path(scope), { ...input, ...invalid }))
@@ -211,7 +216,10 @@ test.skipIf(!db)(
       expect(created.json()).toMatchObject({
         weight: "1.234",
         status: "IN_STOCK",
-        acquisitionCost: input.acquisitionCost,
+        acquisitionCost: { amount: "117.4768", currency: "AZN" },
+        acquisitionCostPerGram: input.acquisitionCostPerGram,
+        canDelete: false,
+        canEditAcquisition: true,
         movements: [{ kind: "PRODUCT_ADDED", actorId: users.owner }],
       });
       expect(
@@ -303,21 +311,92 @@ test.skipIf(!db)(
         items: [],
         filters: { categories: [], purities: [] },
       });
-      expect(
-        (await send("GET", path(scope, detail), undefined, "seller")).json(),
-      ).not.toHaveProperty("acquisitionCost");
+      const hidden = (
+        await send("GET", path(scope, detail), undefined, "seller")
+      ).json();
+      expect(hidden).not.toHaveProperty("acquisitionCost");
+      expect(hidden).not.toHaveProperty("acquisitionCostPerGram");
+      expect(hidden).not.toHaveProperty("canDelete");
+      expect(hidden).not.toHaveProperty("canEditAcquisition");
       await send("POST", "/organizations/" + organizationId + "/settings", {
         salespersonCanViewAcquisitionCost: true,
       });
       expect(
         (await send("GET", path(scope, detail), undefined, "seller")).json(),
-      ).toMatchObject({ acquisitionCost: input.acquisitionCost });
+      ).toMatchObject({
+        acquisitionCost: { amount: "117.4768", currency: "AZN" },
+        acquisitionCostPerGram: input.acquisitionCostPerGram,
+      });
+      const patch = detail + "/acquisition";
+      const update = {
+        weight: "1.005",
+        acquisitionCostPerGram: { amount: "12.345", currency: "EUR" },
+      };
+      expect(
+        (await send("PATCH", path(scope, patch), update, "seller")).statusCode,
+      ).toBe(403);
+      expect(
+        (await send("PATCH", path(secondScope, patch), update)).statusCode,
+      ).toBe(404);
+      expect((await send("PATCH", path(scope, patch), update)).statusCode).toBe(
+        204,
+      );
+      expect((await send("GET", path(scope, detail))).json()).toMatchObject({
+        weight: update.weight,
+        acquisitionCostPerGram: update.acquisitionCostPerGram,
+        acquisitionCost: { amount: "12.4067", currency: "EUR" },
+      });
+      expect(
+        (await send("DELETE", path(scope, detail), undefined, "seller"))
+          .statusCode,
+      ).toBe(403);
+      expect((await send("DELETE", path(secondScope, detail))).statusCode).toBe(
+        404,
+      );
+      const protectedDelete = await send("DELETE", path(scope, detail));
+      expect(protectedDelete.statusCode).toBe(409);
+      expect(protectedDelete.json()).toHaveProperty(
+        "code",
+        "PRODUCT_DELETE_CONFLICT",
+      );
+      expect(
+        await db.inventoryMovement.count({
+          where: { ...scope, productId: id },
+        }),
+      ).toBe(1);
+
+      const untracked = await db.product.create({
+        data: {
+          ...scope,
+          code: "UNTRACKED",
+          name: input.name,
+          category: input.category,
+          purity: input.purity,
+          weight: input.weight,
+          acquisitionCost: "117.4768",
+          acquisitionCurrency: "AZN",
+        },
+      });
+      const untrackedPath = path(scope, "/" + untracked.id);
+      expect((await send("GET", untrackedPath)).json()).toMatchObject({
+        canDelete: true,
+      });
+      expect(
+        (await send("DELETE", untrackedPath, undefined, "seller")).statusCode,
+      ).toBe(403);
+      expect((await send("DELETE", untrackedPath)).statusCode).toBe(204);
+      expect((await send("GET", untrackedPath)).statusCode).toBe(404);
       await db.product.updateMany({
         where: { ...scope, id },
         data: { status: "SOLD" },
       });
+      expect(
+        (await send("PATCH", path(scope, patch), update)).json(),
+      ).toHaveProperty("code", "PRODUCT_EDIT_CONFLICT");
       expect((await send("GET", path(scope, detail))).json()).toMatchObject({
         status: "SOLD",
+        canEditAcquisition: false,
+        canDelete: false,
       });
       expect(
         (await send("GET", path(scope, "", "&status=SOLD"))).json(),

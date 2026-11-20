@@ -14,6 +14,15 @@
   "detail": "Product details",
   "create": "Add product",
   "close": "Close",
+  "cancel": "Cancel",
+  "editAcquisition": "Edit acquisition cost",
+  "editUncertain": "The update could not be confirmed. Check the saved amounts before trying again.",
+  "delete": {
+    "title": "Delete product",
+    "description": "Permanently delete {{name}} from this store?",
+    "pending": "Deleting…",
+    "protected": "This product has stock or sales history and cannot be deleted."
+  },
   "save": "Save product",
   "saving": "Saving…",
   "choosePurity": "Select purity",
@@ -26,7 +35,8 @@
     "category": "Category",
     "purity": "Purity",
     "weight": "Weight",
-    "acquisitionCost": "Acquisition cost",
+    "acquisitionCost": "Total acquisition cost",
+    "acquisitionCostPerGram": "Acquisition cost per gram",
     "createdAt": "Added",
     "note": "Note"
   },
@@ -35,8 +45,8 @@
     "name": "Product name",
     "category": "Category",
     "weight": "Weight (g)",
-    "acquisitionCost": {
-      "amount": "Acquisition cost",
+    "acquisitionCostPerGram": {
+      "amount": "Acquisition cost per gram",
       "currency": "Currency"
     },
     "note": "Note (optional)"
@@ -47,7 +57,7 @@
     "category": "Enter a valid category.",
     "purity": "Select a purity grade.",
     "weight": "Enter a valid weight in grams, with up to three decimal places.",
-    "cost": "Check the amount and ISO currency code.",
+    "cost": "Enter a positive rate with up to 16 decimal places and a valid currency. The rounded total must be at least 0.0001 and fit in 16 whole digits.",
     "note": "Enter a shorter note."
   },
   "status": {

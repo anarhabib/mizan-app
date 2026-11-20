@@ -1,5 +1,5 @@
-﻿import type { FastifyInstance, FastifyRequest } from "fastify";
-import { parseProductCreate } from "@mizan/contracts";
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import { parseProductAcquisition, parseProductCreate } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { resolveAccessContext, uuidPattern } from "../access/access.service.js";
 import { authenticate } from "../../plugins/auth.js";
@@ -7,9 +7,11 @@ import type { AccessOptions } from "../../plugins/request-context.js";
 import {
   confirmPhoto,
   createProduct,
+  deleteProduct,
   getProduct,
   listProducts,
   startPhotoUpload,
+  updateProductAcquisition,
   type ProductOptions,
 } from "./product.service.js";
 
@@ -71,6 +73,7 @@ export function registerProductRoutes(
         options().db,
         request.access!,
         parsed.input,
+        parsed.total,
       );
       return reply.code(201).send(detail);
     },
@@ -131,6 +134,33 @@ export function registerProductRoutes(
   );
   app.get<ProductId>("/products/:id", { preHandler }, (request) =>
     getProduct(options(), request.access!, request.params.id),
+  );
+  app.patch<ProductId>(
+    "/products/:id/acquisition",
+    { preHandler },
+    async (request, reply) => {
+      if (request.access!.role !== "OWNER")
+        throw new AccessError("ACCESS_DENIED");
+      const parsed = parseProductAcquisition(request.body);
+      if ("field" in parsed)
+        throw new AccessError("INVALID_PRODUCT", parsed.field);
+      await updateProductAcquisition(
+        options().db,
+        request.access!,
+        request.params.id,
+        parsed.input,
+        parsed.total,
+      );
+      return reply.code(204).send();
+    },
+  );
+  app.delete<ProductId>(
+    "/products/:id",
+    { preHandler },
+    async (request, reply) => {
+      await deleteProduct(options().db, request.access!, request.params.id);
+      return reply.code(204).send();
+    },
   );
   app.post<ProductId>("/products/:id/photo-upload", { preHandler }, (request) =>
     startPhotoUpload(options(), request.access!, request.params.id),

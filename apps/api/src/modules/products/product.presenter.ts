@@ -1,4 +1,4 @@
-﻿import {
+import {
   currencyMinorUnits,
   type ProductDetail,
   type ProductListItem,
@@ -23,6 +23,7 @@ export function detailFields(access: AccessContext) {
   return {
     ...listFields,
     acquisitionCost: showCost,
+    acquisitionCostPerGram: showCost,
     acquisitionCurrency: showCost,
     note: true,
     createdAt: true,
@@ -67,12 +68,22 @@ function presentMoney(value: Prisma.Decimal, currency: string) {
   };
 }
 
+export function canEditAcquisition(row: DetailRow) {
+  return (
+    row.status === "IN_STOCK" &&
+    !row.sale &&
+    row.movements.every(({ kind }) => kind === "PRODUCT_ADDED")
+  );
+}
+
 export function presentDetail(
   row: DetailRow,
   photoUrl: string | null,
+  access: AccessContext,
 ): ProductDetail {
   const {
     acquisitionCost,
+    acquisitionCostPerGram,
     acquisitionCurrency,
     note,
     createdAt,
@@ -87,6 +98,17 @@ export function presentDetail(
       acquisitionCurrency && {
         acquisitionCost: presentMoney(acquisitionCost, acquisitionCurrency),
       }),
+    ...(acquisitionCostPerGram &&
+      acquisitionCurrency && {
+        acquisitionCostPerGram: presentMoney(
+          acquisitionCostPerGram,
+          acquisitionCurrency,
+        ),
+      }),
+    ...(access.role === "OWNER" && {
+      canEditAcquisition: canEditAcquisition(row),
+      canDelete: row.status === "IN_STOCK" && !sale && movements.length === 0,
+    }),
     note,
     createdAt: createdAt.toISOString(),
     photo:

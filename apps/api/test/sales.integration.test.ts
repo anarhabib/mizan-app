@@ -28,6 +28,7 @@ test.skipIf(!db)(
       },
       onboardingDb: db,
       salesDb: db,
+      products: { db },
     });
     try {
       const registration = await app.inject({
@@ -145,6 +146,16 @@ test.skipIf(!db)(
         product: { code: "R-1", weight: "2.333", status: "SOLD" },
         tradeIns: [{ acceptedValue: "30", appliedRate: "15" }],
       });
+      const deletion = await app.inject({
+        method: "DELETE",
+        url: `/api/v1/products/${product.id}?${query}`,
+        headers: { authorization: "Bearer owner" },
+      });
+      expect(deletion.statusCode).toBe(409);
+      expect(deletion.json()).toHaveProperty("code", "PRODUCT_DELETE_CONFLICT");
+      expect(
+        await db.tradeIn.count({ where: { ...scope, saleId: created.id } }),
+      ).toBe(1);
       expect((await send(winningKey)).json()).toEqual(created);
       expect(
         (await send(winningKey, { ...payload, saleAmount: "201" })).statusCode,

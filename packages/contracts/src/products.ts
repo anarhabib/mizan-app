@@ -1,16 +1,19 @@
-﻿import { parseDecimal } from "./decimal.js";
-import { parseMoney, type MoneyInput } from "./money.js";
+import { parseDecimal, roundMoneyHalfUp } from "./decimal.js";
+import { currencyMinorUnits, type MoneyInput } from "./money.js";
 import { parsePurity } from "./settings.js";
 
 export type ProductStatus = "IN_STOCK" | "SOLD";
 
-export interface ProductCreateInput {
+export interface ProductAcquisitionInput {
+  weight: string;
+  acquisitionCostPerGram: MoneyInput;
+}
+
+export interface ProductCreateInput extends ProductAcquisitionInput {
   code: string;
   name: string;
   category: string;
   purity: number;
-  weight: string;
-  acquisitionCost: MoneyInput;
   note?: string;
 }
 
@@ -26,6 +29,9 @@ export interface ProductListItem {
 
 export interface ProductDetail extends ProductListItem {
   acquisitionCost?: MoneyInput;
+  acquisitionCostPerGram?: MoneyInput;
+  canEditAcquisition?: boolean;
+  canDelete?: boolean;
   note: string | null;
   createdAt: string;
   photo: { url: string; contentType: string; size: number } | null;
@@ -61,7 +67,9 @@ function cleanText(value: unknown, maxLength: number) {
 
 export function parseProductCreate(
   value: unknown,
-): { input: ProductCreateInput } | { field: keyof ProductCreateInput } {
+):
+  | { input: ProductCreateInput; total: MoneyInput }
+  | { field: keyof ProductCreateInput } {
   const raw = (value && typeof value === "object" ? value : {}) as Record<
     string,
     unknown
@@ -74,43 +82,82 @@ export function parseProductCreate(
   if (!category) return { field: "category" };
   const purity = parsePurity(raw.purity);
   if (purity === null) return { field: "purity" };
-  const weight = raw.weight;
-  try {
-    if (
-      typeof weight !== "string" ||
-      weight.length > 16 ||
-      !/[1-9]/.test(parseDecimal(weight, 3)) ||
-      weight.split(".")[0].length > 12
-    )
-      return { field: "weight" };
-  } catch {
-    return { field: "weight" };
-  }
-
-  const cost = raw.acquisitionCost as Partial<MoneyInput> | undefined;
-  let acquisitionCost: MoneyInput;
-  try {
-    if (
-      typeof cost?.amount !== "string" ||
-      typeof cost.currency !== "string" ||
-      cost.amount.length > 21 ||
-      cost.amount.split(".")[0].length > 16 ||
-      !/[1-9]/.test(parseDecimal(cost.amount, 4))
-    )
-      return { field: "acquisitionCost" };
-    acquisitionCost = parseMoney({
-      amount: cost.amount,
-      currency: cost.currency,
-    });
-  } catch {
-    return { field: "acquisitionCost" };
-  }
+  const acquisition = parseProductAcquisition(raw);
+  if ("field" in acquisition) return acquisition;
   const note =
     raw.note === undefined || raw.note === ""
       ? undefined
       : cleanText(raw.note, 2000);
   if (note === null) return { field: "note" };
   return {
-    input: { code, name, category, purity, weight, acquisitionCost, note },
+    input: { ...acquisition.input, code, name, category, purity, note },
+    total: acquisition.total,
   };
+}
+
+const weightScale = 3;
+const rateScale = 16;
+const totalScale = 4;
+const productScale = weightScale + rateScale;
+
+function isPositiveDecimal(
+  value: unknown,
+  digits: number,
+  scale: number,
+): value is string {
+  return (
+    typeof value === "string" &&
+    value.length <= digits + scale + 1 &&
+    value.split(".")[0].length <= digits &&
+    /[1-9]/.test(parseDecimal(value, scale))
+  );
+}
+
+export function parseProductAcquisition(
+  value: unknown,
+):
+  | { input: ProductAcquisitionInput; total: MoneyInput }
+  | { field: keyof ProductAcquisitionInput } {
+  const raw = value as Partial<ProductAcquisitionInput> | undefined;
+  const weight = raw?.weight;
+  try {
+    if (!isPositiveDecimal(weight, 12, weightScale)) return { field: "weight" };
+  } catch {
+    return { field: "weight" };
+  }
+
+  const rate = raw?.acquisitionCostPerGram;
+  try {
+    if (
+      !isPositiveDecimal(rate?.amount, 19, rateScale) ||
+      typeof rate.currency !== "string"
+    )
+      return { field: "acquisitionCostPerGram" };
+    currencyMinorUnits(rate.currency);
+    const grams = BigInt(
+      roundMoneyHalfUp(weight, weightScale).replace(".", ""),
+    );
+    const perGram = BigInt(
+      roundMoneyHalfUp(rate.amount, rateScale).replace(".", ""),
+    );
+    const digits = (grams * perGram).toString().padStart(productScale + 1, "0");
+    const amount = roundMoneyHalfUp(
+      digits.slice(0, -productScale) + "." + digits.slice(-productScale),
+      totalScale,
+    );
+    if (!isPositiveDecimal(amount, 16, totalScale))
+      return { field: "acquisitionCostPerGram" };
+    return {
+      input: {
+        weight,
+        acquisitionCostPerGram: {
+          amount: rate.amount,
+          currency: rate.currency,
+        },
+      },
+      total: { amount, currency: rate.currency },
+    };
+  } catch {
+    return { field: "acquisitionCostPerGram" };
+  }
 }

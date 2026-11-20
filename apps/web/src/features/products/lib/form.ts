@@ -1,4 +1,8 @@
-import { parseProductCreate, type ProductCreateInput } from "@mizan/contracts";
+import {
+  parseProductAcquisition,
+  parseProductCreate,
+  type ProductCreateInput,
+} from "@mizan/contracts";
 import type { FieldPath, ResolverResult } from "react-hook-form";
 import type { ApiError } from "@/shared/lib/api";
 
@@ -13,31 +17,36 @@ const fields = {
   category: "category",
   purity: "purity",
   weight: "weight",
-  acquisitionCost: "acquisitionCost.amount",
-  "acquisitionCost.amount": "acquisitionCost.amount",
-  "acquisitionCost.currency": "acquisitionCost.currency",
+  acquisitionCostPerGram: "acquisitionCostPerGram.amount",
+  "acquisitionCostPerGram.amount": "acquisitionCostPerGram.amount",
+  "acquisitionCostPerGram.currency": "acquisitionCostPerGram.currency",
   note: "note",
 } as const satisfies Record<string, ProductField>;
 
 export function resolveProductForm(
   values: ProductFormValues,
+  acquisitionOnly = false,
 ): ResolverResult<ProductFormValues, ProductCreateInput> {
-  const parsed = parseProductCreate({
+  const input = {
     ...values,
-    purity: values.purity ? Number(values.purity) : undefined,
-    acquisitionCost: {
-      amount: values.acquisitionCost.amount,
-      currency: values.acquisitionCost.currency.trim().toUpperCase(),
+    purity: Number(values.purity),
+    acquisitionCostPerGram: {
+      amount: values.acquisitionCostPerGram.amount,
+      currency: values.acquisitionCostPerGram.currency.trim().toUpperCase(),
     },
-  });
-  if ("input" in parsed) return { values: parsed.input, errors: {} };
+  };
+  const parsed = acquisitionOnly
+    ? parseProductAcquisition(input)
+    : parseProductCreate(input);
+  if ("input" in parsed)
+    return { values: { ...input, ...parsed.input }, errors: {} };
 
   const error = { type: "validate" };
   return {
     values: {},
     errors:
-      parsed.field === "acquisitionCost"
-        ? { acquisitionCost: { amount: error } }
+      parsed.field === "acquisitionCostPerGram"
+        ? { acquisitionCostPerGram: { amount: error } }
         : { [parsed.field]: error },
   };
 }

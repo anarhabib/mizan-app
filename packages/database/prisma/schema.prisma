@@ -159,26 +159,27 @@ model OldGoldRate {
 }
 
 model Product {
-  organizationId      String              @db.Uuid
-  storeId             String              @db.Uuid
-  id                  String              @default(uuid()) @db.Uuid
-  code                String
-  name                String
-  category            String
-  purity              Int
-  weight              Decimal             @db.Decimal(15, 3)
-  acquisitionCost     Decimal             @db.Decimal(20, 4)
-  acquisitionCurrency String              @db.Char(3)
-  photoObjectKey      String?
-  photoContentType    String?
-  photoSize           Int?
-  note                String?
-  status              ProductStatus       @default(IN_STOCK)
-  createdAt           DateTime            @default(now())
-  store               Store               @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
-  grade               PurityGrade         @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
-  sale                Sale?
-  movements           InventoryMovement[]
+  organizationId         String              @db.Uuid
+  storeId                String              @db.Uuid
+  id                     String              @default(uuid()) @db.Uuid
+  code                   String
+  name                   String
+  category               String
+  purity                 Int
+  weight                 Decimal             @db.Decimal(15, 3)
+  acquisitionCost        Decimal             @db.Decimal(20, 4)
+  acquisitionCostPerGram Decimal?            @db.Decimal(35, 16)
+  acquisitionCurrency    String              @db.Char(3)
+  photoObjectKey         String?
+  photoContentType       String?
+  photoSize              Int?
+  note                   String?
+  status                 ProductStatus       @default(IN_STOCK)
+  createdAt              DateTime            @default(now())
+  store                  Store               @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
+  grade                  PurityGrade         @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
+  sale                   Sale?
+  movements              InventoryMovement[]
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, code])

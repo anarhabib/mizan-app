@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
+  ProductAcquisitionInput,
   ProductCreateInput,
   ProductDetail,
   ProductPhotoConfirmInput,
@@ -26,6 +27,62 @@ export function useCreateProduct(scope: ProductScope) {
     onSuccess: refresh,
     onError: (error: ApiError) => {
       if (error.isNetwork) return refresh();
+    },
+  });
+}
+
+export function useEditProductAcquisition(scope: ProductScope, id: string) {
+  const client = useQueryClient();
+  const refresh = () =>
+    Promise.all([
+      client.invalidateQueries({
+        queryKey: productKeys.detail(scope, id),
+        exact: true,
+      }),
+      invalidateProductInventory(client, scope),
+    ]);
+
+  return useMutation({
+    mutationKey: productKeys.edit(scope, id),
+    retry: false,
+    mutationFn: ({ weight, acquisitionCostPerGram }: ProductAcquisitionInput) =>
+      apiRequest<void>(
+        productPath(scope, `/${encodeURIComponent(id)}/acquisition`),
+        {
+          method: "PATCH",
+          body: { weight, acquisitionCostPerGram },
+        },
+      ),
+    onSuccess: refresh,
+    onError: (error: ApiError) => {
+      if (error.isNetwork || error.status === 409 || error.status === 404)
+        return refresh();
+    },
+  });
+}
+
+export function useDeleteProduct(scope: ProductScope, id: string) {
+  const client = useQueryClient();
+  const refresh = () =>
+    Promise.all([
+      client.invalidateQueries({
+        queryKey: productKeys.detail(scope, id),
+        exact: true,
+      }),
+      invalidateProductInventory(client, scope),
+    ]);
+
+  return useMutation({
+    mutationKey: productKeys.delete(scope, id),
+    retry: false,
+    mutationFn: () =>
+      apiRequest<void>(productPath(scope, `/${encodeURIComponent(id)}`), {
+        method: "DELETE",
+      }),
+    onSuccess: refresh,
+    onError: (error: ApiError) => {
+      if (error.isNetwork || error.status === 409 || error.status === 404)
+        return refresh();
     },
   });
 }
