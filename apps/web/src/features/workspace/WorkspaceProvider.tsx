@@ -1,0 +1,166 @@
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import type { StoreContext } from "@mizan/contracts";
+import { AuthPanel, SignOutButton } from "@/features/auth";
+import { ApiError } from "@/shared/lib/api";
+import { ErrorState } from "@/shared/ui/ErrorState";
+import { ListSkeleton } from "@/shared/ui/ListSkeleton";
+import { accessQuery, contextsQuery } from "./api";
+import { WorkspaceContext } from "./context";
+import { OnboardingForm } from "./OnboardingForm";
+import {
+  readSelection,
+  resolveSelection,
+  saveSelection,
+  type StoreScope,
+} from "./selection";
+import { StoreSwitcher } from "./StoreSwitcher";
+
+export function WorkspaceProvider({
+  userId,
+  children,
+}: {
+  userId: string;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation("workspace");
+  const [selection, setSelection] = useState(() => readSelection(userId));
+  const contexts = useQuery(contextsQuery(userId));
+  const active = contexts.data && resolveSelection(contexts.data, selection);
+
+  function selectStore(scope: StoreScope) {
+    setSelection(scope);
+  }
+
+  if (contexts.isError) {
+    return (
+      <WorkspaceError
+        error={contexts.error}
+        retry={() => void contexts.refetch()}
+        pending={contexts.isFetching}
+      />
+    );
+  }
+  if (!contexts.data)
+    return (
+      <AuthPanel title={t("loading")}>
+        <ListSkeleton />
+      </AuthPanel>
+    );
+  if (!active) {
+    return (
+      <OnboardingForm
+        onCreated={selectStore}
+        reloadContexts={() => contexts.refetch()}
+      />
+    );
+  }
+  return (
+    <SelectedWorkspace
+      userId={userId}
+      active={active}
+      contexts={contexts.data}
+      selectStore={selectStore}
+      reloadContexts={async () => {
+        await contexts.refetch();
+      }}
+    >
+      {children}
+    </SelectedWorkspace>
+  );
+}
+
+function SelectedWorkspace({
+  userId,
+  active,
+  contexts,
+  children,
+  selectStore,
+  reloadContexts,
+}: {
+  userId: string;
+  active: StoreContext;
+  contexts: StoreContext[];
+  children: ReactNode;
+  selectStore: (scope: StoreScope) => void;
+  reloadContexts: () => Promise<void>;
+}) {
+  const { t } = useTranslation("workspace");
+  const access = useQuery(accessQuery(userId, active));
+  const { organizationId, storeId } = active;
+  useEffect(() => {
+    saveSelection(userId, { organizationId, storeId });
+  }, [userId, organizationId, storeId]);
+
+  if (access.isError) {
+    return (
+      <WorkspaceError
+        error={access.error}
+        pending={access.isFetching}
+        retry={() =>
+          void (async () => {
+            await reloadContexts();
+            await access.refetch();
+          })()
+        }
+      >
+        <StoreSwitcher
+          active={active}
+          contexts={contexts}
+          onSelect={selectStore}
+        />
+      </WorkspaceError>
+    );
+  }
+  if (!access.data)
+    return (
+      <AuthPanel title={t("loading")}>
+        <ListSkeleton />
+      </AuthPanel>
+    );
+  return (
+    <WorkspaceContext
+      value={{
+        ...active,
+        role: access.data.role,
+        settings: access.data.settings,
+        contexts,
+        selectStore,
+      }}
+    >
+      {children}
+    </WorkspaceContext>
+  );
+}
+
+function WorkspaceError({
+  error,
+  retry,
+  pending,
+  children,
+}: {
+  error: Error;
+  retry: () => void;
+  pending: boolean;
+  children?: ReactNode;
+}) {
+  const { t } = useTranslation("workspace");
+  return (
+    <AuthPanel title={t("title")}>
+      <ErrorState
+        error={
+          error instanceof ApiError
+            ? error
+            : new ApiError(500, "INTERNAL_ERROR", "")
+        }
+        retry={retry}
+        pending={pending}
+      />
+      {children}
+      <div className="self-start">
+        <SignOutButton />
+      </div>
+    </AuthPanel>
+  );
+}

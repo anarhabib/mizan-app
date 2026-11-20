@@ -63,6 +63,71 @@ describe("API boundary", () => {
       message: "Missing",
     });
   });
+  it("replays a 401 once with a refreshed token and the original request", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('{"code":"UNAUTHENTICATED"}', { status: 401 }),
+      )
+      .mockResolvedValueOnce(new Response('{"ok":true}'));
+    vi.stubGlobal("fetch", fetcher);
+    setAccessTokenGetter(() => ({ token: "expired", generation: 1 }));
+    setOnUnauthorized(() => "refreshed");
+    await expect(
+      apiRequest("/test", { method: "POST", body: { id: "example" } }),
+    ).resolves.toEqual({ ok: true });
+    expect(
+      fetcher.mock.calls.map(([, options]) =>
+        options.headers.get("Authorization"),
+      ),
+    ).toEqual(["Bearer expired", "Bearer refreshed"]);
+    expect(fetcher.mock.calls[1][1].body).toBe(fetcher.mock.calls[0][1].body);
+  });
+  it("stops after a refreshed token is rejected", async () => {
+    const fetcher = vi
+      .fn()
+      .mockImplementation(
+        () => new Response('{"code":"UNAUTHENTICATED"}', { status: 401 }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    setAccessTokenGetter(() => "expired");
+    const hook = vi.fn(() => "refreshed");
+    setOnUnauthorized(hook);
+    await expect(apiRequest("/test")).rejects.toMatchObject({
+      status: 401,
+      code: "UNAUTHENTICATED",
+    });
+    expect(hook.mock.calls).toEqual([
+      [expect.any(ApiError), "expired", false],
+      [expect.any(ApiError), "refreshed", true],
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it.each([
+    [503, "AUTH_UNAVAILABLE"],
+    [409, "INVITATION_UNAVAILABLE"],
+    [403, "ACCESS_DENIED"],
+  ])(
+    "maps %s %s without attempting to refresh the session",
+    async (status, code) => {
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValue(
+            new Response(JSON.stringify({ code }), { status }),
+          ),
+      );
+      const hook = vi.fn();
+      setOnUnauthorized(hook);
+      await expect(apiRequest("/test")).rejects.toMatchObject({
+        status,
+        code,
+        isNetwork: false,
+      });
+      expect(hook).not.toHaveBeenCalled();
+    },
+  );
   it("normalizes network failures without retries", async () => {
     const fetcher = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
     vi.stubGlobal("fetch", fetcher);
