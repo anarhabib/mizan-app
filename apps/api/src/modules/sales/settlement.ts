@@ -1,4 +1,5 @@
 import { currencyMinorUnits } from "@mizan/contracts";
+import type { SaleTradeInInput, SaleTradeInPreview } from "@mizan/contracts";
 import { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
 
@@ -8,6 +9,37 @@ export interface CashTender {
   currency: string;
   amount: string;
   exchangeRate: string;
+}
+
+export function calculateTradeIns(
+  lines: SaleTradeInInput[],
+  rates: { id: string; purity: number; amountPerGram: Prisma.Decimal }[],
+) {
+  const tradeIns: SaleTradeInPreview[] = lines.map((line) => {
+    const rate = rates.find(({ purity }) => purity === line.purity);
+    if (rate?.id !== line.rateId)
+      throw new AccessError("SALE_CONFLICT", "rateId");
+    const calculatedValue = new SaleDecimal(line.weight).times(
+      rate.amountPerGram,
+    );
+    if (calculatedValue.gte("1e17"))
+      throw new AccessError("INVALID_SALE", "weight");
+    return {
+      purity: line.purity,
+      weight: line.weight,
+      rateId: rate.id,
+      appliedRate: rate.amountPerGram.toFixed(),
+      calculatedValue: calculatedValue.toFixed(),
+      acceptedValue: line.overrideAmount ?? calculatedValue.toFixed(),
+      overridden: line.overrideAmount !== undefined,
+    };
+  });
+  const total = tradeIns.reduce(
+    (sum, line) => sum.plus(line.acceptedValue),
+    new SaleDecimal(0),
+  );
+  if (total.gte("1e17")) throw new AccessError("INVALID_SALE", "tradeIns");
+  return { tradeIns, tradeInTotal: total.toFixed() };
 }
 
 export function calculateSettlement(

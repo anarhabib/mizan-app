@@ -3,6 +3,7 @@ import type {
   SaleItem,
   SaleList,
   SaleLoss,
+  SalePreview,
   SaleResult,
 } from "@mizan/contracts";
 import { Prisma, type createDatabase } from "@mizan/database";
@@ -14,10 +15,14 @@ import {
   uuidPattern,
   type AccessContext,
 } from "../access/access.service.js";
-import { parseSaleInput } from "./sale-input.js";
+import { parseSaleInput, parseSalePreview } from "./sale-input.js";
 import { calculateProfit } from "./profit.js";
 import { requireSaleConfirmation } from "./sale-confirmation.js";
-import { calculateSettlement, SaleDecimal } from "./settlement.js";
+import {
+  calculateSettlement,
+  calculateTradeIns,
+  SaleDecimal,
+} from "./settlement.js";
 
 export type SalesDatabase = ReturnType<typeof createDatabase>;
 const include = {
@@ -79,6 +84,27 @@ export async function getSaleOptions(
       purity,
       amountPerGram: amountPerGram.toFixed(),
     })),
+  };
+}
+
+export async function previewSale(
+  db: SalesDatabase,
+  context: AccessContext,
+  body: unknown,
+): Promise<SalePreview> {
+  const currency = context.settings.defaultCurrency;
+  const input = parseSalePreview(body, currency);
+  const rates = input.tradeIns.length
+    ? await currentRates(
+        db,
+        context.organizationId,
+        currency,
+        input.tradeIns.map(({ purity }) => purity),
+      )
+    : [];
+  return {
+    currency,
+    ...calculateTradeIns(input.tradeIns, rates),
   };
 }
 
@@ -439,33 +465,13 @@ export async function recordSale(
             input.tradeIns.map(({ purity }) => purity),
           )
         : [];
-      const tradeIns = input.tradeIns.map((line) => {
-        const rate = rates.find(({ purity }) => purity === line.purity);
-        if (rate?.id !== line.rateId)
-          throw new AccessError("SALE_CONFLICT", "rateId");
-        const calculatedValue = new SaleDecimal(line.weight).times(
-          rate.amountPerGram,
-        );
-        if (calculatedValue.gte("1e17"))
-          throw new AccessError("INVALID_SALE", "weight");
-        return {
-          purity: line.purity,
-          weight: line.weight,
-          rateId: rate.id,
-          appliedRate: rate.amountPerGram,
-          calculatedValue: calculatedValue.toFixed(),
-          acceptedValue: line.overrideAmount ?? calculatedValue.toFixed(),
-          overridden: line.overrideAmount !== undefined,
-        };
-      });
+      const { tradeIns } = calculateTradeIns(input.tradeIns, rates);
       const settlement = calculateSettlement(
         currency,
         saleAmount,
         tradeIns.map(({ acceptedValue }) => acceptedValue),
         input.tender,
       );
-      if (new SaleDecimal(settlement.tradeInTotal).gte("1e17"))
-        throw new AccessError("INVALID_SALE", "tradeIns");
       const losses = saleItems.flatMap((item): SaleLoss[] => {
         const cost = item.acquisitionCost;
         return cost &&

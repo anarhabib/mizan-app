@@ -11,16 +11,39 @@ export interface SaleItemInput {
   saleAmount: string;
 }
 
+export interface SaleTradeInInput {
+  purity: number;
+  weight: string;
+  rateId: string;
+  overrideAmount?: string;
+}
+
+export interface SalePreviewInput {
+  expectedCurrency?: string;
+  tradeIns: SaleTradeInInput[];
+}
+
+export interface SaleTradeInPreview {
+  purity: number;
+  weight: string;
+  rateId: string;
+  appliedRate: string;
+  calculatedValue: string;
+  acceptedValue: string;
+  overridden: boolean;
+}
+
+export interface SalePreview {
+  currency: string;
+  tradeInTotal: string;
+  tradeIns: SaleTradeInPreview[];
+}
+
 export const maxSaleItems = 100;
 
 interface SaleTerms {
   expectedCurrency?: string;
-  tradeIns?: Array<{
-    purity: number;
-    weight: string;
-    rateId: string;
-    overrideAmount?: string;
-  }>;
+  tradeIns?: SaleTradeInInput[];
   payment?: {
     currency: string;
     amount: string;
@@ -96,14 +119,5 @@ export interface SaleResult {
     weight: string;
     status: "SOLD";
   };
-  tradeIns: Array<{
-    id: string;
-    purity: number;
-    rateId: string;
-    weight: string;
-    appliedRate: string;
-    calculatedValue: string;
-    acceptedValue: string;
-    overridden: boolean;
-  }>;
+  tradeIns: Array<SaleTradeInPreview & { id: string }>;
 }

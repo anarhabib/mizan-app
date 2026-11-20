@@ -3,6 +3,7 @@ import {
   parseMoney,
   parsePurity,
   maxSaleItems,
+  type SalePreviewInput,
   type SaleCreateInput,
 } from "@mizan/contracts";
 import type { FieldErrors, FieldPath, Resolver } from "react-hook-form";
@@ -114,6 +115,30 @@ export function buildSalePayload(
     }
   }
   return { input };
+}
+
+export function buildSalePreviewInput(
+  rows: SaleFormValues["tradeIns"],
+  { currency, rates }: SaleOptions,
+): SalePreviewInput | undefined {
+  if (!rows.length || rows.length > maxTradeIns) return undefined;
+  const tradeIns: NonNullable<SalePreviewInput["tradeIns"]> = [];
+  for (const row of rows) {
+    const rate = rates.find(({ id }) => id === row.rateId);
+    const purity = parsePurity(rate?.purity);
+    if (!rate || purity === null) return undefined;
+    const weight = validDecimal(row.weight, 12, (input) =>
+      parseDecimal(input, 3),
+    );
+    if (weight === undefined) return undefined;
+    const overrideAmount = row.overrideAmount.trim()
+      ? amount(row.overrideAmount, currency, true)
+      : undefined;
+    if (row.overrideAmount.trim() && overrideAmount === undefined)
+      return undefined;
+    tradeIns.push({ purity, weight, rateId: rate.id, overrideAmount });
+  }
+  return { expectedCurrency: currency, tradeIns };
 }
 
 export function saleResolver(
