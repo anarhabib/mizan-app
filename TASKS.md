@@ -37,7 +37,7 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
 
 ## Backend (parallel, does not block Prompts 1 to 3)
 
-- [ ] Read-only audit (`docs/BACKEND_AUDIT.md`): owner-only enforcement, acquisition-cost hiding, sale transaction, idempotency replay, float arithmetic, test coverage
+- [x] Read-only audit (`docs/BACKEND_AUDIT.md`): owner-only enforcement, acquisition-cost hiding, sale transaction, idempotency replay, float arithmetic, test coverage
 - [ ] Fix serious audit findings before Prompt 4
 - [ ] Return 400/404 in `{code,message}` shape for malformed JSON and unknown routes (not 500)
 - [ ] Validate route params (UUID ids) on membership and settings routes

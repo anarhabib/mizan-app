@@ -1,5 +1,10 @@
 # Mizan project state
 
+## Task B1 — backend audit (November 20, 2026)
+
+- [Backend audit](docs/BACKEND_AUDIT.md) records server-side owner enforcement, acquisition-cost visibility, transaction and replay behavior, decimal arithmetic, and test coverage for the four backend services at `9f0fe02`. The audit required no implementation changes.
+- Three settlement unit tests passed. Integration coverage was reviewed statically. Endpoint-specific denial and redaction assertions and a concurrent successful-replay body comparison remain coverage gaps.
+
 ## Task 3 — products (November 20, 2026)
 
 - Replaced the products placeholder with scoped search, facet filters, cursor pagination, a responsive detail panel, creation, and photo upload. The reference feature lives in `apps/web/src/features/products`; the route entry is `apps/web/src/routes/products.tsx`.
