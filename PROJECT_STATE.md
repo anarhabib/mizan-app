@@ -18,8 +18,8 @@
 
 ## Task B1 — backend audit (November 20, 2026)
 
-- [Backend audit](docs/BACKEND_AUDIT.md) records server-side owner enforcement, acquisition-cost visibility, transaction and replay behavior, decimal arithmetic, and test coverage for the four backend services at `9f0fe02`. The audit required no implementation changes.
-- Three settlement unit tests passed. Integration coverage was reviewed statically. Endpoint-specific denial and redaction assertions and a concurrent successful-replay body comparison remain coverage gaps.
+- [Backend audit](docs/BACKEND_AUDIT.md) refreshes the findings against `b407628`. The reviewed services enforce owner-only management, redact acquisition cost, and record a sale atomically using decimal arithmetic and scoped idempotency.
+- Four settlement unit tests passed. Integration coverage was reviewed statically. Endpoint-specific denial and redaction assertions and a test requiring two matching successful responses to concurrent identical requests remain coverage gaps.
 
 ## Task 3 — products (November 20, 2026)
 
