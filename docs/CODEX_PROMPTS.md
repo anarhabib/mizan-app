@@ -48,16 +48,14 @@ Finish with: files created, checks run and results, anything unverified, open qu
 ## Prompt 2 — Auth, workspace and onboarding
 
 Reasoning: high. Branch: `task/2-auth-workspace`.
-Before running, create `apps/web/.env.local` (not committed) with `VITE_SUPABASE_URL=` and `VITE_SUPABASE_PUBLISHABLE_KEY=` from your Supabase project, and run:
-
-```powershell
-pnpm --filter web add @supabase/supabase-js
-```
+Before running, create `apps/web/.env.local` (not committed) with `VITE_SUPABASE_URL=` and `VITE_SUPABASE_PUBLISHABLE_KEY=` from your Supabase project (publishable key only). Codex installs the Supabase package itself.
 
 ```text
 Task 2: authentication, workspace selection and onboarding for apps/web. Branch: task/2-auth-workspace.
 
 Read AGENTS.md, docs/FRONTEND.md, DESIGN.md and docs/API_NOTES.md (sections: Connection and authentication, Errors, Onboarding, Access, Memberships accept). Read only the [auth] section of supabase/config.toml to learn which sign-in methods and email confirmation are enabled. Do not read other backend code.
+
+If @supabase/supabase-js is not already a dependency of apps/web, install it with `pnpm --filter web add @supabase/supabase-js`. Add nothing else.
 
 Build:
 1. Supabase client in shared/lib/auth, used for Auth only (persist session, auto refresh). Env: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, added to .env.example without values. Never use the Supabase Data API or Storage from the browser.
