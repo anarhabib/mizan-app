@@ -3,6 +3,7 @@ import {
   parseMoney,
   parsePurity,
   maxSaleItems,
+  type SalePreviewInput,
   type SaleCreateInput,
 } from "@mizan/contracts";
 import type { FieldErrors, FieldPath, Resolver } from "react-hook-form";
@@ -114,6 +115,52 @@ export function buildSalePayload(
     }
   }
   return { input };
+}
+
+export function buildSalePreviewInput(
+  values: Pick<SaleFormValues, "saleAmount" | "items" | "tradeIns">,
+  { currency, rates }: SaleOptions,
+): SalePreviewInput | undefined {
+  const { tradeIns: rows } = values;
+  if (rows.length > maxTradeIns) return undefined;
+  const tradeIns: NonNullable<SalePreviewInput["tradeIns"]> = [];
+  for (const row of rows) {
+    const rate = rates.find(({ id }) => id === row.rateId);
+    const purity = parsePurity(rate?.purity);
+    if (!rate || purity === null) return undefined;
+    const weight = validDecimal(row.weight, 12, (input) =>
+      parseDecimal(input, 3),
+    );
+    if (weight === undefined) return undefined;
+    const overrideAmount = row.overrideAmount.trim()
+      ? amount(row.overrideAmount, currency, true)
+      : undefined;
+    if (row.overrideAmount.trim() && overrideAmount === undefined)
+      return undefined;
+    tradeIns.push({ purity, weight, rateId: rate.id, overrideAmount });
+  }
+  let saleAmounts: string[] | undefined;
+  if ((values.items?.length ?? 0) < maxSaleItems) {
+    const mainAmount = amount(values.saleAmount, currency, true);
+    const extraAmounts = (values.items ?? []).map((item) =>
+      amount(item.saleAmount, currency, true),
+    );
+    if (
+      mainAmount !== undefined &&
+      extraAmounts.every((value) => value !== undefined)
+    ) {
+      saleAmounts = [
+        mainAmount,
+        ...extraAmounts.filter((value): value is string => value !== undefined),
+      ];
+    }
+  }
+  if (!tradeIns.length && !saleAmounts) return undefined;
+  return {
+    expectedCurrency: currency,
+    tradeIns,
+    ...(saleAmounts && { saleAmounts }),
+  };
 }
 
 export function saleResolver(

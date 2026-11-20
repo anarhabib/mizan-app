@@ -76,6 +76,33 @@ test.skipIf(!db)(
         tradeIns: [{ purity: 585, weight: "2.000", rateId: rate.id }],
         payment: { currency: "USD", amount: "110", exchangeRate: "1.70" },
       };
+      const preview = await app.inject({
+        method: "POST",
+        url: `/api/v1/sales/preview?${query}`,
+        headers: { authorization: "Bearer owner" },
+        payload: {
+          expectedCurrency: "AZN",
+          saleAmounts: ["200"],
+          tradeIns: payload.tradeIns,
+        },
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(preview.json()).toMatchObject({
+        currency: "AZN",
+        tradeInTotal: "30",
+        amountDue: "170.00",
+        tradeIns: [
+          {
+            purity: 585,
+            weight: "2",
+            appliedRate: "15",
+            calculatedValue: "30",
+            acceptedValue: "30",
+          },
+        ],
+      });
+      expect(await db.sale.count({ where: scope })).toBe(0);
+      expect(await db.inventoryMovement.count({ where: scope })).toBe(0);
       const send = (
         key: string,
         body: SaleCreateInput = payload,
@@ -188,7 +215,11 @@ test.skipIf(!db)(
         });
       expect((await inventoryHistory("q=R-1")).json()).toMatchObject({
         items: [
-          { id: created.id, product: { name: "Ring" }, saleAmount: "200" },
+          {
+            id: created.id,
+            product: { name: "Ring" },
+            saleAmount: "200",
+          },
         ],
       });
       expect(

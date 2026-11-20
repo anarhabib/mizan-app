@@ -4,7 +4,13 @@ import {
   queryOptions,
   type InfiniteData,
 } from "@tanstack/react-query";
-import type { SaleList, SaleResult, StoreContext } from "@mizan/contracts";
+import type {
+  SaleList,
+  SalePreview,
+  SalePreviewInput,
+  SaleResult,
+  StoreContext,
+} from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
 
 export type SaleScope = Pick<StoreContext, "organizationId" | "storeId">;
@@ -26,6 +32,8 @@ export const saleKeys = {
   detail: (scope: SaleScope, id: string) =>
     [...scopeKey(scope), "detail", id] as const,
   options: (scope: SaleScope) => [...scopeKey(scope), "options"] as const,
+  preview: (scope: SaleScope, input?: string) =>
+    [...scopeKey(scope), "preview", input] as const,
   create: (scope: SaleScope) => [...scopeKey(scope), "create"] as const,
 };
 
@@ -79,5 +87,20 @@ export function saleOptionsQuery(scope: SaleScope) {
     queryFn: ({ signal }) =>
       apiRequest<SaleOptions>(salePath(scope, "/options"), { signal }),
     staleTime: 5 * 60_000,
+  });
+}
+
+export function salePreviewQuery(scope: SaleScope, input?: SalePreviewInput) {
+  const serialized = input ? JSON.stringify(input) : undefined;
+  return queryOptions<SalePreview, ApiError>({
+    queryKey: saleKeys.preview(scope, serialized),
+    queryFn: ({ signal }) =>
+      apiRequest<SalePreview>(salePath(scope, "/preview"), {
+        method: "POST",
+        body: input,
+        signal,
+      }),
+    enabled: input !== undefined,
+    retry: false,
   });
 }

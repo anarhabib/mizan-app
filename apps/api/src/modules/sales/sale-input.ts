@@ -41,13 +41,65 @@ function decimal(
   }
 }
 
-export function parseSaleInput(body: unknown, currency: string) {
-  const input = object(body, "sale");
+function checkCurrency(input: Record<string, unknown>, currency: string) {
   if (
     input.expectedCurrency !== undefined &&
     input.expectedCurrency !== currency
   )
     throw new AccessError("SALE_CONFLICT", "currency");
+}
+
+function parseTradeIns(value: unknown, currency: string) {
+  const scale = currencyMinorUnits(currency);
+  const lines = value === undefined ? [] : value;
+  if (!Array.isArray(lines) || lines.length > 100)
+    throw new AccessError("INVALID_SALE", "tradeIns");
+  return lines.map((value: unknown) => {
+    const line = object(value, "tradeIns");
+    if (
+      typeof line.purity !== "number" ||
+      !Number.isInteger(line.purity) ||
+      line.purity < 1 ||
+      line.purity > 999
+    )
+      throw new AccessError("INVALID_SALE", "purity");
+    return {
+      purity: line.purity,
+      weight: decimal(line.weight, 3, 12, "weight"),
+      rateId: id(line.rateId, "rateId"),
+      overrideAmount:
+        line.overrideAmount === undefined
+          ? undefined
+          : decimal(line.overrideAmount, scale, 16, "overrideAmount", true),
+    };
+  });
+}
+
+export function parseSalePreview(body: unknown, currency: string) {
+  const input = object(body, "sale");
+  checkCurrency(input, currency);
+  let saleAmounts: string[] | undefined;
+  if (input.saleAmounts !== undefined) {
+    if (
+      !Array.isArray(input.saleAmounts) ||
+      input.saleAmounts.length < 1 ||
+      input.saleAmounts.length > maxSaleItems
+    )
+      throw new AccessError("INVALID_SALE", "saleAmounts");
+    const scale = currencyMinorUnits(currency);
+    saleAmounts = input.saleAmounts.map((value: unknown) =>
+      decimal(value, scale, 16, "saleAmounts", true),
+    );
+  }
+  return {
+    tradeIns: parseTradeIns(input.tradeIns, currency),
+    saleAmounts,
+  };
+}
+
+export function parseSaleInput(body: unknown, currency: string) {
+  const input = object(body, "sale");
+  checkCurrency(input, currency);
   const scale = currencyMinorUnits(currency);
   const parseItem = (line: Record<string, unknown>) => ({
     productId: id(line.productId, "productId"),
@@ -71,28 +123,7 @@ export function parseSaleInput(body: unknown, currency: string) {
     if (new Set(items.map(({ productId }) => productId)).size !== items.length)
       throw new AccessError("INVALID_SALE", "items");
   }
-  const lines = input.tradeIns === undefined ? [] : input.tradeIns;
-  if (!Array.isArray(lines) || lines.length > 100)
-    throw new AccessError("INVALID_SALE", "tradeIns");
-  const tradeIns = lines.map((value: unknown) => {
-    const line = object(value, "tradeIns");
-    if (
-      typeof line.purity !== "number" ||
-      !Number.isInteger(line.purity) ||
-      line.purity < 1 ||
-      line.purity > 999
-    )
-      throw new AccessError("INVALID_SALE", "purity");
-    return {
-      purity: line.purity,
-      weight: decimal(line.weight, 3, 12, "weight"),
-      rateId: id(line.rateId, "rateId"),
-      overrideAmount:
-        line.overrideAmount === undefined
-          ? undefined
-          : decimal(line.overrideAmount, scale, 16, "overrideAmount", true),
-    };
-  });
+  const tradeIns = parseTradeIns(input.tradeIns, currency);
   let tender;
   if (input.payment !== undefined) {
     const payment = object(input.payment, "payment");

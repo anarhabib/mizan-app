@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { SalePreviewInput } from "@mizan/contracts";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import { AccessError } from "../access/access.errors.js";
@@ -8,6 +9,7 @@ import {
   getSale,
   getSaleOptions,
   listSales,
+  previewSale,
   recordSale,
   type SalesDatabase,
 } from "./sale.service.js";
@@ -67,6 +69,12 @@ export function registerSaleRoutes(
       });
     }
   });
+
+  app.post<Scope & { Body: SalePreviewInput }>(
+    "/sales/preview",
+    { preHandler },
+    (request) => previewSale(db!, request.access!, request.body),
+  );
 
   app.get<Scope>("/sales/options", { preHandler }, (request) =>
     getSaleOptions(db!, request.access!),

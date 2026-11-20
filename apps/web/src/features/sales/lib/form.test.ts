@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/shared/lib/api";
 import {
   buildSalePayload,
+  buildSalePreviewInput,
   saleError,
   saleResolver,
   type SaleFormValues,
@@ -21,6 +22,58 @@ const build = (form: SaleFormValues) =>
   buildSalePayload(form, "product-1", options);
 
 describe("sale payload", () => {
+  it("builds a preview only from complete, valid trade-in rows", () => {
+    expect(
+      buildSalePreviewInput(
+        {
+          saleAmount: "100.00",
+          items: [{ productId: "product-2", label: "Ring", saleAmount: "50" }],
+          tradeIns: [
+            { rateId: "rate-585", weight: "1.005", overrideAmount: "12.50" },
+            { rateId: "rate-585", weight: "2", overrideAmount: "" },
+          ],
+        },
+        options,
+      ),
+    ).toEqual({
+      expectedCurrency: "AZN",
+      saleAmounts: ["100.00", "50"],
+      tradeIns: [
+        {
+          purity: 585,
+          weight: "1.005",
+          rateId: "rate-585",
+          overrideAmount: "12.50",
+        },
+        {
+          purity: 585,
+          weight: "2",
+          rateId: "rate-585",
+          overrideAmount: undefined,
+        },
+      ],
+    });
+    expect(
+      buildSalePreviewInput(
+        {
+          saleAmount: "100",
+          tradeIns: [{ rateId: "rate-585", weight: "", overrideAmount: "" }],
+        },
+        options,
+      ),
+    ).toBeUndefined();
+    expect(
+      buildSalePreviewInput({ saleAmount: "", tradeIns: [] }, options),
+    ).toBeUndefined();
+    expect(
+      buildSalePreviewInput({ saleAmount: "100", tradeIns: [] }, options),
+    ).toEqual({
+      expectedCurrency: "AZN",
+      saleAmounts: ["100"],
+      tradeIns: [],
+    });
+  });
+
   it("includes expected currency and omits unused sections", () => {
     expect(build(values)).toEqual({
       input: {

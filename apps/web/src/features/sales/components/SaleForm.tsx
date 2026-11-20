@@ -7,6 +7,7 @@ import {
   type FieldError,
   type UseFormRegisterReturn,
 } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 import { maxSaleItems, type SaleCreateInput } from "@mizan/contracts";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,9 +18,18 @@ import { ProductSelect } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { formatMoney } from "@/shared/lib/format";
 import { MoneyText } from "@/shared/ui/MoneyText";
-import type { SaleOptions, SaleScope } from "../api/queries";
+import {
+  salePreviewQuery,
+  type SaleOptions,
+  type SaleScope,
+} from "../api/queries";
 import type { useSaleSubmission } from "../hooks/useSaleSubmission";
-import { maxTradeIns, saleResolver, type SaleFormValues } from "../lib/form";
+import {
+  buildSalePreviewInput,
+  maxTradeIns,
+  saleResolver,
+  type SaleFormValues,
+} from "../lib/form";
 import { SaleProductPicker } from "./SaleProductPicker";
 
 const currencies = Intl.supportedValuesOf("currency").map((value) => ({
@@ -74,6 +84,18 @@ export function SaleForm({
   });
   const tradeIns = useFieldArray({ control: form.control, name: "tradeIns" });
   const items = useFieldArray({ control: form.control, name: "items" });
+  const tradeInValues = useWatch({
+    control: form.control,
+    name: "tradeIns",
+  });
+  const saleAmountValue = useWatch({
+    control: form.control,
+    name: "saleAmount",
+  });
+  const saleItemValues = useWatch({
+    control: form.control,
+    name: "items",
+  });
   const paymentEnabled = useWatch({
     control: form.control,
     name: "includePayment",
@@ -83,6 +105,37 @@ export function SaleForm({
     name: "payment.currency",
   });
   const { errors } = form.formState;
+  const previewInput = buildSalePreviewInput(
+    {
+      saleAmount: saleAmountValue,
+      items: saleItemValues,
+      tradeIns: tradeInValues ?? [],
+    },
+    options,
+  );
+  const previewKey = previewInput ? JSON.stringify(previewInput) : undefined;
+  const [debouncedPreview, setDebouncedPreview] = useState<{
+    key: string;
+    input: NonNullable<typeof previewInput>;
+  }>();
+  useEffect(() => {
+    if (!previewKey) {
+      setDebouncedPreview(undefined);
+      return;
+    }
+    const timeout = setTimeout(() => {
+      setDebouncedPreview({
+        key: previewKey,
+        input: JSON.parse(previewKey) as NonNullable<typeof previewInput>,
+      });
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [previewKey]);
+  const activePreview =
+    debouncedPreview && debouncedPreview.key === previewKey
+      ? debouncedPreview.input
+      : undefined;
+  const previewQuery = useQuery(salePreviewQuery(scope, activePreview));
   const rateOptions = rates.map((rate) => ({
     value: rate.id,
     label: t("rateOption", {
@@ -297,6 +350,33 @@ export function SaleForm({
                   id={`sale-override-${row.id}`}
                   error={error?.overrideAmount}
                 />
+                {activePreview && previewQuery.data?.tradeIns[index] && (
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    {(
+                      ["rate", "calculatedValue", "acceptedValue"] as const
+                    ).map((field) => {
+                      const line = previewQuery.data?.tradeIns[index];
+                      if (!line) return null;
+                      const amount =
+                        field === "rate"
+                          ? line.appliedRate
+                          : field === "calculatedValue"
+                            ? line.calculatedValue
+                            : line.acceptedValue;
+                      return (
+                        <div key={field} className="min-w-0">
+                          <dt className="text-xs text-muted-foreground">
+                            {t(`fields.${field}`)}
+                          </dt>
+                          <dd className="wrap-anywhere tabular-nums">
+                            <MoneyText value={{ amount, currency }} />
+                            {field === "rate" && " /g"}
+                          </dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -312,6 +392,34 @@ export function SaleForm({
               </div>
             );
           })}
+          {activePreview && previewQuery.isPending && (
+            <p role="status" className="text-muted-foreground">
+              {t("previewLoading")}
+            </p>
+          )}
+          {activePreview && previewQuery.isError && (
+            <div className="flex flex-wrap items-center gap-3">
+              <p role="alert" className="text-destructive">
+                {t("previewFailed")}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 lg:min-h-9"
+                onClick={() => void previewQuery.refetch()}
+              >
+                {t("retryPreview")}
+              </Button>
+            </div>
+          )}
+          {activePreview && tradeIns.fields.length > 0 && previewQuery.data && (
+            <div className="flex justify-between gap-3 border-t pt-3 font-medium">
+              <span>{t("fields.tradeInTotal")}</span>
+              <MoneyText
+                value={{ amount: previewQuery.data.tradeInTotal, currency }}
+              />
+            </div>
+          )}
           {rates.length > 0 && tradeIns.fields.length < maxTradeIns && (
             <Button
               type="button"
@@ -337,6 +445,17 @@ export function SaleForm({
               ? t("paymentCoverage")
               : t("defaultPayment", { currency })}
           </p>
+          {activePreview && previewQuery.data?.amountDue !== undefined && (
+            <div className="flex justify-between gap-3 border-t pt-3 font-medium">
+              <span>{t("fields.amountDue")}</span>
+              <MoneyText
+                value={{
+                  amount: previewQuery.data.amountDue,
+                  currency: previewQuery.data.currency,
+                }}
+              />
+            </div>
+          )}
           <Button
             type="button"
             variant="outline"
@@ -362,24 +481,34 @@ export function SaleForm({
                     label={t("fields.paymentCurrency")}
                     error={errors.payment?.currency}
                   >
-                    <ProductSelect
+                    <Input
                       id="sale-payment-currency"
-                      value={field.value}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        form.clearErrors("payment");
-                      }}
-                      onBlur={field.onBlur}
-                      ref={field.ref}
-                      options={currencies}
-                      invalid={Boolean(errors.payment?.currency)}
-                      describedBy={
+                      list="sale-currency-options"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      maxLength={3}
+                      inputMode="text"
+                      className="min-h-11 uppercase lg:min-h-9"
+                      aria-invalid={Boolean(errors.payment?.currency)}
+                      aria-describedby={
                         errors.payment?.currency
                           ? "sale-payment-currency-error"
                           : undefined
                       }
+                      {...field}
+                      onChange={(event) => {
+                        field.onChange(event.target.value.toUpperCase());
+                        form.clearErrors("payment");
+                      }}
                       disabled={disabled}
                     />
+                    <datalist id="sale-currency-options">
+                      {currencies.map(({ value, label }) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </datalist>
                   </FormField>
                 )}
               />
