@@ -1,0 +1,21 @@
+{
+  "generic": "Something went wrong. Try again.",
+  "NETWORK_ERROR": "Unable to connect. Check your connection.",
+  "INVALID_ONBOARDING": "Check workspace details.",
+  "INVALID_MEMBERSHIP": "Check membership details.",
+  "INVALID_SETTINGS": "Check settings.",
+  "INVALID_PRODUCT": "Check product details.",
+  "INVALID_SALE": "Check sale details.",
+  "UNAUTHENTICATED": "Sign in to continue.",
+  "ACCESS_DENIED": "Access denied.",
+  "PRODUCT_NOT_FOUND": "Product not found.",
+  "SALE_NOT_FOUND": "Sale not found.",
+  "INVITATION_UNAVAILABLE": "Invitation is no longer available.",
+  "PURITY_CONFLICT": "Purity already exists.",
+  "PRODUCT_CODE_CONFLICT": "Product code already exists.",
+  "PHOTO_CONFLICT": "Photo has changed. Refresh and try again.",
+  "SALE_CONFLICT": "Sale details have changed. Refresh and try again.",
+  "AUTH_UNAVAILABLE": "Authentication is unavailable. Try again.",
+  "PHOTO_UNAVAILABLE": "Photo service is unavailable. Try again.",
+  "INTERNAL_ERROR": "Something went wrong. Try again."
+}

@@ -1,5 +1,13 @@
 # Mizan project state
 
+## Task 1 — frontend foundation (November 20, 2026)
+
+- Added `apps/web/src/app` providers, file routes, responsive shell, typed Azerbaijani/English resources, shared UI states and exact money/weight/purity formatters. API client in `src/shared/lib/api` supports injected bearer-token and unauthorized hooks; auth remains deferred.
+- Preserved Radix Nova/Mist tokens, fonts, radius, Lucide and generated primitives in `src/components/ui`. No Mizan logo asset exists; `src/shared/ui/BrandMark.tsx` owns the text wordmark. `DESIGN.md` now documents the current foundation.
+- Enabled React Compiler using the Vite 8 React plugin's Babel bridge, root ESLint Hooks rules, strict TypeScript, contracts workspace dependency and `/api` proxy. Vite reads VITE-prefixed variables from the root env directory. Existing scaffold zod/decimal.js dependencies were not added or used by this task.
+- Verification: contracts build, web typecheck, lint, 37 shared-library tests and one production build passed. Browser access host was unavailable: 390px/1280px light/dark visual checks remain unverified. No backend changes, database operations, merge or deployment.
+- Remaining: visual review; later auth/workspace and feature tasks. Branch `task/1-frontend-foundation` targets `main`.
+
 ## Task 0 — frontend API contract (November 19, 2026)
 
 - Added `docs/API_NOTES.md` (under 150 lines) from current route/auth/error code, Prisma field types, Supabase configuration and shared-package public declarations. Backend code and dependencies are unchanged.
