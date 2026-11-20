@@ -30,7 +30,7 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
   - [ ] Check re-renders with React DevTools "highlight updates"
   - [ ] Test photo upload from a real phone camera
   - [ ] Fix anything wrong now, every later feature copies this one
-- [ ] Prompt 4: sales (needs the backend audit below first)
+- [x] Prompt 4: sales (needs the backend audit below first)
   - [ ] Test double tap, slow network and retry: only one sale must exist
 - [ ] Prompt 5: settings (owner)
 - [ ] Prompt 6: team (owner)
