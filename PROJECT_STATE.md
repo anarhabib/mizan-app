@@ -1,5 +1,12 @@
 # Mizan project state
 
+## Task 0 — frontend API contract (November 19, 2026)
+
+- Added `docs/API_NOTES.md` (under 150 lines) from current route/auth/error code, Prisma field types, Supabase configuration and shared-package public declarations. Backend code and dependencies are unchanged.
+- Documents existing endpoints, decimal formats, bearer authentication, errors, validation and shared exports. `@mizan/contracts` has no Node/Prisma runtime dependency; `@mizan/database` remains backend-only.
+- Findings: no CORS or API auth/session endpoints; inconsistent handling of non-AccessError failures; response/pagination details, owner enforcement, cost redaction, transactions and retry semantics delegated to business services remain unverified under the requested inspection scope. Direct Supabase Auth versus API-only auth needs a later decision.
+- Documentation line count and Git whitespace checks verified. App, builds and tests intentionally not run for this documentation-only task. Branch: `task/0-api-notes`; PR targets `main`, with no merge/deployment authorized.
+
 - The Next.js frontend and design document were removed at the user’s request. The API, contracts, and database packages remain. API tests: 13 passed; 7 database integration tests skipped.
 
 ## Frontend design requirements
