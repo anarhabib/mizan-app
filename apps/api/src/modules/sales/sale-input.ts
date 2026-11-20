@@ -78,7 +78,23 @@ function parseTradeIns(value: unknown, currency: string) {
 export function parseSalePreview(body: unknown, currency: string) {
   const input = object(body, "sale");
   checkCurrency(input, currency);
-  return { tradeIns: parseTradeIns(input.tradeIns, currency) };
+  let saleAmounts: string[] | undefined;
+  if (input.saleAmounts !== undefined) {
+    if (
+      !Array.isArray(input.saleAmounts) ||
+      input.saleAmounts.length < 1 ||
+      input.saleAmounts.length > maxSaleItems
+    )
+      throw new AccessError("INVALID_SALE", "saleAmounts");
+    const scale = currencyMinorUnits(currency);
+    saleAmounts = input.saleAmounts.map((value: unknown) =>
+      decimal(value, scale, 16, "saleAmounts", true),
+    );
+  }
+  return {
+    tradeIns: parseTradeIns(input.tradeIns, currency),
+    saleAmounts,
+  };
 }
 
 export function parseSaleInput(body: unknown, currency: string) {

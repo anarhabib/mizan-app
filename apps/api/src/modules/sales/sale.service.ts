@@ -102,9 +102,20 @@ export async function previewSale(
         input.tradeIns.map(({ purity }) => purity),
       )
     : [];
+  const tradeInPreview = calculateTradeIns(input.tradeIns, rates);
+  if (!input.saleAmounts) return { currency, ...tradeInPreview };
+  const saleAmount = input.saleAmounts
+    .reduce((total, amount) => total.plus(amount), new SaleDecimal(0))
+    .toFixed();
+  const settlement = calculateSettlement(
+    currency,
+    saleAmount,
+    tradeInPreview.tradeIns.map(({ acceptedValue }) => acceptedValue),
+  );
   return {
     currency,
-    ...calculateTradeIns(input.tradeIns, rates),
+    ...tradeInPreview,
+    amountDue: settlement.amountDue,
   };
 }
 

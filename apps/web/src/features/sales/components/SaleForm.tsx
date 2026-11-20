@@ -88,6 +88,14 @@ export function SaleForm({
     control: form.control,
     name: "tradeIns",
   });
+  const saleAmountValue = useWatch({
+    control: form.control,
+    name: "saleAmount",
+  });
+  const saleItemValues = useWatch({
+    control: form.control,
+    name: "items",
+  });
   const paymentEnabled = useWatch({
     control: form.control,
     name: "includePayment",
@@ -97,7 +105,14 @@ export function SaleForm({
     name: "payment.currency",
   });
   const { errors } = form.formState;
-  const previewInput = buildSalePreviewInput(tradeInValues ?? [], options);
+  const previewInput = buildSalePreviewInput(
+    {
+      saleAmount: saleAmountValue,
+      items: saleItemValues,
+      tradeIns: tradeInValues ?? [],
+    },
+    options,
+  );
   const previewKey = previewInput ? JSON.stringify(previewInput) : undefined;
   const [debouncedPreview, setDebouncedPreview] = useState<{
     key: string;
@@ -335,7 +350,7 @@ export function SaleForm({
                   id={`sale-override-${row.id}`}
                   error={error?.overrideAmount}
                 />
-                {previewQuery.data?.tradeIns[index] && (
+                {activePreview && previewQuery.data?.tradeIns[index] && (
                   <dl className="grid grid-cols-2 gap-3 text-sm">
                     {(
                       ["rate", "calculatedValue", "acceptedValue"] as const
@@ -397,7 +412,7 @@ export function SaleForm({
               </Button>
             </div>
           )}
-          {previewQuery.data && (
+          {activePreview && tradeIns.fields.length > 0 && previewQuery.data && (
             <div className="flex justify-between gap-3 border-t pt-3 font-medium">
               <span>{t("fields.tradeInTotal")}</span>
               <MoneyText
@@ -430,6 +445,17 @@ export function SaleForm({
               ? t("paymentCoverage")
               : t("defaultPayment", { currency })}
           </p>
+          {activePreview && previewQuery.data?.amountDue !== undefined && (
+            <div className="flex justify-between gap-3 border-t pt-3 font-medium">
+              <span>{t("fields.amountDue")}</span>
+              <MoneyText
+                value={{
+                  amount: previewQuery.data.amountDue,
+                  currency: previewQuery.data.currency,
+                }}
+              />
+            </div>
+          )}
           <Button
             type="button"
             variant="outline"

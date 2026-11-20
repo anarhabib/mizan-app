@@ -20,6 +20,7 @@ export interface SaleTradeInInput {
 
 export interface SalePreviewInput {
   expectedCurrency?: string;
+  saleAmounts?: string[];
   tradeIns: SaleTradeInInput[];
 }
 
@@ -36,6 +37,7 @@ export interface SaleTradeInPreview {
 export interface SalePreview {
   currency: string;
   tradeInTotal: string;
+  amountDue?: string;
   tradeIns: SaleTradeInPreview[];
 }
 

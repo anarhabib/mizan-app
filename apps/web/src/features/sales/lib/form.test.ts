@@ -25,14 +25,19 @@ describe("sale payload", () => {
   it("builds a preview only from complete, valid trade-in rows", () => {
     expect(
       buildSalePreviewInput(
-        [
-          { rateId: "rate-585", weight: "1.005", overrideAmount: "12.50" },
-          { rateId: "rate-585", weight: "2", overrideAmount: "" },
-        ],
+        {
+          saleAmount: "100.00",
+          items: [{ productId: "product-2", label: "Ring", saleAmount: "50" }],
+          tradeIns: [
+            { rateId: "rate-585", weight: "1.005", overrideAmount: "12.50" },
+            { rateId: "rate-585", weight: "2", overrideAmount: "" },
+          ],
+        },
         options,
       ),
     ).toEqual({
       expectedCurrency: "AZN",
+      saleAmounts: ["100.00", "50"],
       tradeIns: [
         {
           purity: 585,
@@ -50,11 +55,23 @@ describe("sale payload", () => {
     });
     expect(
       buildSalePreviewInput(
-        [{ rateId: "rate-585", weight: "", overrideAmount: "" }],
+        {
+          saleAmount: "100",
+          tradeIns: [{ rateId: "rate-585", weight: "", overrideAmount: "" }],
+        },
         options,
       ),
     ).toBeUndefined();
-    expect(buildSalePreviewInput([], options)).toBeUndefined();
+    expect(
+      buildSalePreviewInput({ saleAmount: "", tradeIns: [] }, options),
+    ).toBeUndefined();
+    expect(
+      buildSalePreviewInput({ saleAmount: "100", tradeIns: [] }, options),
+    ).toEqual({
+      expectedCurrency: "AZN",
+      saleAmounts: ["100"],
+      tradeIns: [],
+    });
   });
 
   it("includes expected currency and omits unused sections", () => {

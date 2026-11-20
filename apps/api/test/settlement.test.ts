@@ -77,6 +77,7 @@ describe("sale settlement", () => {
       }),
     ).toMatchObject({
       balance: "170.00",
+      amountDue: "170.00",
       convertedPayment: "187.00",
       change: "17.00",
       payout: "0.00",

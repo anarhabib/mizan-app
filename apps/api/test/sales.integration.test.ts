@@ -82,6 +82,7 @@ test.skipIf(!db)(
         headers: { authorization: "Bearer owner" },
         payload: {
           expectedCurrency: "AZN",
+          saleAmounts: ["200"],
           tradeIns: payload.tradeIns,
         },
       });
@@ -89,6 +90,7 @@ test.skipIf(!db)(
       expect(preview.json()).toMatchObject({
         currency: "AZN",
         tradeInTotal: "30",
+        amountDue: "170.00",
         tradeIns: [
           {
             purity: 585,

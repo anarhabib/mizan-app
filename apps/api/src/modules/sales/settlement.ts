@@ -70,6 +70,7 @@ export function calculateSettlement(
   }
   return {
     tradeInTotal: tradeInTotal.toFixed(),
+    amountDue: due.toFixed(scale),
     balance: balance.toFixed(scale),
     convertedPayment: converted.toFixed(scale),
     change: converted.minus(due).toFixed(scale),
