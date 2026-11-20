@@ -11,6 +11,10 @@
   "retry": "Повторить",
   "notFound": "Страница не найдена",
   "home": "Перейти к товарам",
+  "theme": {
+    "switchToLight": "Включить светлую тему",
+    "switchToDark": "Включить тёмную тему"
+  },
   "displayMode": {
     "owner": "Владелец",
     "salesperson": "Продавец",

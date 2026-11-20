@@ -4,6 +4,7 @@ import { Package, Receipt, Settings, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { LanguageButton } from "@/shared/ui/LanguageButton";
+import { ThemeButton } from "@/shared/ui/ThemeButton";
 import { SignOutButton } from "@/features/auth";
 import { DisplayModeControl } from "@/features/settings";
 import { StoreSwitcher, useWorkspace } from "@/features/workspace";
@@ -56,6 +57,7 @@ export function Shell() {
             )}
           </div>
           <DisplayModeControl concealWorkspace={() => setConcealed(true)} />
+          <ThemeButton />
           <LanguageButton />
           <SignOutButton compact />
         </div>

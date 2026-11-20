@@ -11,6 +11,10 @@
   "retry": "Try again",
   "notFound": "Page not found",
   "home": "Go to products",
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
   "displayMode": {
     "owner": "Owner",
     "salesperson": "Salesperson",
