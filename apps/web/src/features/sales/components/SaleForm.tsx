@@ -171,7 +171,7 @@ export function SaleForm({
         {t(financials ? "confirmBelowCost" : "confirmGeneric")}
       </p>
       {financials && (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y rounded-lg border border-border bg-card">
           {financials.losses.map((loss) => (
             <li key={loss.productId} className="grid gap-2 p-3">
               <p className="font-medium wrap-anywhere">{loss.code}</p>
@@ -208,7 +208,7 @@ export function SaleForm({
         <Button
           ref={cancelButton}
           type="button"
-          variant="outline"
+          variant="secondary"
           disabled={submission.busy}
           className="min-h-11 lg:min-h-9"
           onClick={submission.cancelConfirmation}
@@ -239,7 +239,10 @@ export function SaleForm({
           error={errors.saleAmount}
         />
         {items.fields.map((item, index) => (
-          <div className="grid gap-3 rounded-lg border p-3" key={item.id}>
+          <div
+            className="grid gap-3 rounded-lg border border-border bg-card p-3"
+            key={item.id}
+          >
             <p className="font-medium wrap-anywhere">{item.label}</p>
             <DecimalInput
               name={form.register(`items.${index}.saleAmount`)}
@@ -294,7 +297,7 @@ export function SaleForm({
             </Button>
           )
         )}
-        <section className="grid gap-3 border-t pt-4">
+        <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("tradeIns")}</h3>
           {!rates.length && (
             <p className="text-muted-foreground">{t("noRates")}</p>
@@ -308,7 +311,10 @@ export function SaleForm({
             const error = errors.tradeIns?.[index];
             const rateId = `sale-rate-${row.id}`;
             return (
-              <div className="grid gap-3 rounded-lg border p-3" key={row.id}>
+              <div
+                className="grid gap-3 rounded-lg border border-border bg-card p-3"
+                key={row.id}
+              >
                 <Controller
                   control={form.control}
                   name={`tradeIns.${index}.rateId`}
@@ -438,7 +444,7 @@ export function SaleForm({
             </Button>
           )}
         </section>
-        <section className="grid gap-3 border-t pt-4">
+        <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("payment")}</h3>
           <p className="text-muted-foreground">
             {paymentEnabled

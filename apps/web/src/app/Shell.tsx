@@ -39,10 +39,10 @@ export function Shell() {
       >
         {t("skip")}
       </a>
-      <div className="fixed inset-y-0 left-0 hidden w-56 border-r bg-sidebar p-6 lg:block">
+      <div className="fixed inset-y-0 left-0 hidden w-56 border-r border-border bg-card p-6 lg:block">
         <BrandMark />
       </div>
-      <header className="shell-top border-b bg-background">
+      <header className="shell-top border-b border-border bg-card">
         <div className="mx-auto flex min-h-14 max-w-5xl items-center gap-2 px-4">
           <span className="lg:hidden">
             <BrandMark />
@@ -65,7 +65,7 @@ export function Shell() {
       {!concealed && (
         <nav
           aria-label={t("navigation")}
-          className="shell-nav fixed inset-x-0 bottom-0 z-20 border-t bg-background lg:inset-x-auto lg:inset-y-0 lg:left-0 lg:top-20 lg:w-56 lg:border-0 lg:bg-sidebar lg:p-4"
+          className="shell-nav fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card lg:inset-x-auto lg:inset-y-0 lg:left-0 lg:top-20 lg:w-56 lg:border-0 lg:bg-card lg:p-4"
         >
           <ul
             className={

@@ -38,7 +38,10 @@ export function SaleList({
 
   return (
     <div className="space-y-4">
-      <div role="search" className="grid gap-3 sm:flex sm:items-end">
+      <div
+        role="search"
+        className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:flex sm:items-end"
+      >
         <div className="grid min-w-0 gap-2 sm:w-72">
           <Label htmlFor="sale-search">{t("search")}</Label>
           <Input
@@ -92,13 +95,13 @@ export function SaleList({
             />
           )}
         {rows.length > 0 && (
-          <ul className="divide-y overflow-hidden rounded-lg border">
+          <ul className="divide-y overflow-hidden rounded-lg border border-border bg-card">
             {rows.map((sale) => (
               <li key={sale.id}>
                 <button
                   type="button"
                   onClick={(event) => inspect(sale.id, event.currentTarget)}
-                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:gap-4 lg:py-2"
+                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:gap-4 lg:py-2"
                 >
                   <span className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
                     <span className="wrap-anywhere text-xs text-muted-foreground">

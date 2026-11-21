@@ -24,7 +24,7 @@ export function TeamPage() {
           scope={workspace}
         />
       ) : (
-        <p role="alert" className="rounded-lg border p-6">
+        <p role="alert" className="rounded-lg border border-border bg-card p-6">
           {t("errors.accessDenied")}
         </p>
       )}
@@ -59,7 +59,7 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
   if (directory.isPending) return <ListSkeleton rows={3} />;
   if (directory.isError) {
     return (
-      <div className="grid justify-items-start gap-3 rounded-lg border p-6">
+      <div className="grid justify-items-start gap-3 rounded-lg border border-border bg-card p-6">
         <p role="alert">{t(teamErrorKey(directory.error))}</p>
         <Button
           type="button"
@@ -76,7 +76,7 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
-      <div className="rounded-lg border p-4 lg:col-span-2">
+      <div className="rounded-lg border border-border bg-card p-4 lg:col-span-2">
         <InviteForm
           stores={directory.data.stores}
           currentStoreId={scope.storeId}
@@ -84,7 +84,7 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
           run={run}
         />
       </div>
-      <div className="grid gap-6 [&>section]:rounded-lg [&>section]:border [&>section]:p-4 lg:col-span-2 lg:grid-cols-subgrid lg:[&>section:first-child]:row-span-2">
+      <div className="grid gap-6 [&>section]:rounded-lg [&>section]:border [&>section]:border-border [&>section]:bg-card [&>section]:p-4 lg:col-span-2 lg:grid-cols-subgrid lg:[&>section:first-child]:row-span-2">
         <DirectoryLists
           directory={directory.data}
           busy={mutation.isPending}

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ProductDetail as Detail } from "@mizan/contracts";
+import { ShoppingCart } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ export function ProductDetail({
             }}
           />
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={() => setView("detail")}
             disabled={edit.isPending}
             className="min-h-11 lg:min-h-9"
@@ -103,7 +104,7 @@ export function ProductDetail({
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               autoFocus
-              variant="outline"
+              variant="secondary"
               onClick={() => setView("detail")}
               disabled={removal.isPending}
               className="min-h-11 lg:min-h-9"
@@ -142,6 +143,7 @@ export function ProductDetail({
                   className="min-h-11 justify-self-start lg:min-h-9"
                 >
                   <Link to="/sales" search={{ product: detail.data.id }}>
+                    <ShoppingCart aria-hidden="true" />
                     {t("sell", { ns: "sales" })}
                   </Link>
                 </Button>
@@ -232,7 +234,7 @@ function ProductRecord({
         {product.note && <Fact label={t("fields.note")}>{product.note}</Fact>}
       </dl>
       {sale && (
-        <section className="grid gap-3 border-t pt-4">
+        <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("sale.title")}</h3>
           <dl className="grid grid-cols-2 gap-3">
             <Fact label={t("sale.total")}>
@@ -242,7 +244,7 @@ function ProductRecord({
           </dl>
         </section>
       )}
-      <section className="grid gap-3 border-t pt-4">
+      <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("movements.title")}</h3>
         {product.movements.length ? (
           <ol className="space-y-3 border-l pl-4">

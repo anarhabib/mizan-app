@@ -44,7 +44,7 @@ export function SaleProductPicker({
         ) ?? []);
   return (
     <div
-      className="grid gap-2 rounded-lg border p-3"
+      className="grid gap-2 rounded-lg border border-border bg-muted p-3"
       aria-busy={query.isFetching}
     >
       <Label htmlFor="sale-product-search">{t("searchProducts")}</Label>
@@ -106,7 +106,7 @@ export function SaleProductPicker({
         )}
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           onClick={close}
           className="min-h-11 lg:min-h-9"
         >

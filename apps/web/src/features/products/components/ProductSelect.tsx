@@ -33,7 +33,7 @@ export function ProductSelect({
         onBlur={onBlur}
         aria-invalid={invalid}
         aria-describedby={describedBy}
-        className="flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 text-left text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 aria-invalid:border-destructive lg:min-h-9 [&>span]:truncate"
+        className="flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-control-border bg-control px-3 text-left text-sm shadow-[0_1px_2px_rgba(16,24,40,0.06)] outline-none hover:border-control-hover-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 aria-invalid:border-destructive dark:hover:border-foreground/40 dark:shadow-none lg:min-h-9 [&>span]:truncate"
       >
         <Select.Value placeholder={placeholder} />
         <Select.Icon asChild>
@@ -44,14 +44,14 @@ export function ProductSelect({
         <Select.Content
           position="popper"
           sideOffset={4}
-          className="z-[60] max-h-(--radix-select-content-available-height) min-w-(--radix-select-trigger-width) overflow-hidden rounded-md border bg-popover text-sm text-popover-foreground"
+          className="z-[60] max-h-(--radix-select-content-available-height) min-w-(--radix-select-trigger-width) overflow-hidden rounded-md border border-border bg-popover text-sm text-popover-foreground shadow-md"
         >
           <Select.Viewport className="p-2">
             {options.map(({ value, label }) => (
               <Select.Item
                 key={value}
                 value={value}
-                className="relative flex min-h-11 cursor-default items-center rounded-md py-2 pr-9 pl-3 outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground lg:min-h-8"
+                className="relative flex min-h-11 cursor-default items-center rounded-md py-2 pr-9 pl-3 outline-none data-highlighted:bg-muted data-highlighted:text-foreground lg:min-h-8"
               >
                 <Select.ItemText>{label}</Select.ItemText>
                 <Select.ItemIndicator className="absolute right-3">

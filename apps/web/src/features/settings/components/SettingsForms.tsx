@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ export function PurityForm({
           />
         </div>
         <Button type="submit" className="min-h-10 lg:min-h-8">
+          <Plus aria-hidden="true" />
           {t("addPurity")}
         </Button>
       </fieldset>
@@ -101,7 +103,7 @@ export function RateForm({
           <Label htmlFor="settings-rate-purity">{t("purity")}</Label>
           <select
             id="settings-rate-purity"
-            className="h-10 w-full rounded-md border border-input bg-background px-2 focus-visible:outline-2 focus-visible:outline-ring aria-invalid:border-destructive lg:h-8"
+            className="h-10 w-full rounded-md border border-control-border bg-control px-2 text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)] outline-none hover:border-control-hover-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 aria-invalid:border-destructive dark:hover:border-foreground/40 dark:shadow-none lg:h-8"
             aria-invalid={!!errors.purity}
             aria-describedby={
               errors.purity ? "settings-rate-purity-error" : undefined
@@ -174,6 +176,7 @@ export function RateForm({
           )}
         </div>
         <Button type="submit" className="min-h-10 sm:mt-6 lg:min-h-8">
+          <Plus aria-hidden="true" />
           {t("addRate")}
         </Button>
       </fieldset>

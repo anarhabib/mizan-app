@@ -43,15 +43,10 @@ function SaleRecord({ sale }: { sale: Result }) {
       <p className="text-xs text-muted-foreground">
         <SaleDate value={sale.createdAt} />
       </p>
-      <dl className="grid grid-cols-2 gap-4 border-t pt-4">
-        <Fact label={t("fields.saleTotal")}>{money(sale.saleAmount)}</Fact>
-        <Fact label={t("fields.tradeInTotal")}>{money(sale.tradeInTotal)}</Fact>
-        <Fact label={t("fields.balance")}>{money(sale.balance)}</Fact>
-        <Fact label={t("fields.payout")}>{money(sale.payout)}</Fact>
-      </dl>
-      <section className="grid gap-3 border-t pt-4">
+
+      <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y rounded-lg border border-border bg-card">
           {sale.items.map(({ product, saleAmount, profit }) => (
             <li key={product.id} className="grid gap-3 p-3">
               <div className="grid gap-1">
@@ -80,38 +75,20 @@ function SaleRecord({ sale }: { sale: Result }) {
         </ul>
       </section>
       {canManageAsOwner && sale.profit && sale.items.length > 1 && (
-        <section className="grid gap-3 border-t pt-4">
+        <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("saleProfit")}</h3>
           <dl className="grid grid-cols-2 gap-3">
             <ProfitFacts profit={sale.profit} currency={sale.currency} />
           </dl>
         </section>
       )}
-      <section className="grid gap-3 border-t pt-4">
-        <h3 className="font-medium">{t("payment")}</h3>
-        {sale.payment ? (
-          <dl className="grid grid-cols-2 gap-4">
-            <Fact label={t("fields.paymentAmount")}>
-              {money(sale.payment.amount, sale.payment.currency)}
-            </Fact>
-            <Fact label={t("fields.exchangeRate")}>
-              <span className="tabular-nums">{sale.payment.exchangeRate}</span>
-            </Fact>
-            <Fact label={t("fields.convertedAmount")}>
-              {money(sale.payment.convertedAmount)}
-            </Fact>
-            <Fact label={t("fields.change")}>{money(sale.payment.change)}</Fact>
-          </dl>
-        ) : (
-          <p className="text-muted-foreground">{t("noPayment")}</p>
-        )}
-      </section>
-      <section className="grid gap-3 border-t pt-4">
+
+      <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("tradeIns")}</h3>
         {sale.tradeIns.length === 0 ? (
           <p className="text-muted-foreground">{t("noTradeIns")}</p>
         ) : (
-          <ul className="divide-y rounded-lg border">
+          <ul className="divide-y rounded-lg border border-border bg-card">
             {sale.tradeIns.map((trade) => (
               <li key={trade.id} className="p-3">
                 <dl className="grid grid-cols-2 gap-3">
@@ -142,6 +119,33 @@ function SaleRecord({ sale }: { sale: Result }) {
           </ul>
         )}
       </section>
+
+      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-muted p-4">
+        <Fact label={t("fields.saleTotal")}>{money(sale.saleAmount)}</Fact>
+        <Fact label={t("fields.tradeInTotal")}>{money(sale.tradeInTotal)}</Fact>
+        <Fact label={t("fields.balance")}>{money(sale.balance)}</Fact>
+        <Fact label={t("fields.payout")}>{money(sale.payout)}</Fact>
+      </dl>
+
+      <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
+        <h3 className="font-medium">{t("payment")}</h3>
+        {sale.payment ? (
+          <dl className="grid grid-cols-2 gap-4">
+            <Fact label={t("fields.paymentAmount")}>
+              {money(sale.payment.amount, sale.payment.currency)}
+            </Fact>
+            <Fact label={t("fields.exchangeRate")}>
+              <span className="tabular-nums">{sale.payment.exchangeRate}</span>
+            </Fact>
+            <Fact label={t("fields.convertedAmount")}>
+              {money(sale.payment.convertedAmount)}
+            </Fact>
+            <Fact label={t("fields.change")}>{money(sale.payment.change)}</Fact>
+          </dl>
+        ) : (
+          <p className="text-muted-foreground">{t("noPayment")}</p>
+        )}
+      </section>
     </div>
   );
 }
@@ -168,7 +172,13 @@ function ProfitFacts({
         {profit.grossProfit === null ? (
           t("notAvailable")
         ) : (
-          <span className={loss ? "font-medium text-destructive" : undefined}>
+          <span
+            className={
+              loss
+                ? "font-medium text-danger-foreground"
+                : "font-medium text-success-foreground"
+            }
+          >
             <MoneyText value={{ amount: profit.grossProfit, currency }} />
           </span>
         )}
@@ -178,7 +188,11 @@ function ProfitFacts({
           t("notAvailable")
         ) : (
           <span
-            className={loss ? "tabular-nums text-destructive" : "tabular-nums"}
+            className={
+              loss
+                ? "tabular-nums text-danger-foreground"
+                : "tabular-nums text-success-foreground"
+            }
           >
             {t("percent", {
               value: i18n.resolvedLanguage?.startsWith("az")

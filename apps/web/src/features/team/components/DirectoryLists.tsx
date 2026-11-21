@@ -1,4 +1,5 @@
 import type { MembershipDirectory } from "@mizan/contracts";
+import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ export function DirectoryLists({
                         {displayName}
                       </h3>
                       <Badge
-                        variant={status === "active" ? "secondary" : "outline"}
+                        variant={status === "active" ? "success" : "danger"}
                       >
                         {t(`status.${status}`)}
                       </Badge>
@@ -61,12 +62,13 @@ export function DirectoryLists({
                     ) : (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="success"
                         size="sm"
                         disabled={busy}
                         className="min-h-11 lg:min-h-8"
                         onClick={() => void run({ kind: "reactivate", userId })}
                       >
+                        <RotateCcw aria-hidden="true" />
                         {t("actions.reactivate")}
                       </Button>
                     )}
@@ -136,7 +138,7 @@ export function DirectoryLists({
                 <div className="min-w-0 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium wrap-anywhere">{email}</h3>
-                    <Badge variant="outline">{t("status.pending")}</Badge>
+                    <Badge variant="warning">{t("status.pending")}</Badge>
                   </div>
                   <p className="text-muted-foreground wrap-anywhere">
                     {storeName(storeId)}

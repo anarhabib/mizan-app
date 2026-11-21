@@ -180,7 +180,7 @@ export function ProductForm({
             {...accessibility}
             rows={3}
             readOnly={busy}
-            className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+            className="min-h-20 w-full rounded-md border border-control-border bg-control px-3 py-2 text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)] outline-none placeholder:text-muted-foreground hover:border-control-hover-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 aria-invalid:border-destructive dark:hover:border-foreground/40 dark:shadow-none"
           />
         ) : (
           <Input
@@ -320,7 +320,7 @@ function AcquisitionPreview({
   });
 
   return (
-    <div className="grid gap-2 rounded-md border p-3">
+    <div className="grid gap-2 rounded-md border border-border bg-muted p-3">
       <span id="acquisition-total-label" className="text-muted-foreground">
         {t("fields.acquisitionCost")}
       </span>

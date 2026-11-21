@@ -18,7 +18,7 @@ export function AuthPanel({
       <main className="flex flex-1 flex-col justify-center gap-6 py-6">
         <section
           aria-labelledby="auth-title"
-          className="flex flex-col gap-4 rounded-lg border p-6"
+          className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6"
         >
           <h1 id="auth-title" className="text-xl font-semibold">
             {title}
