@@ -83,7 +83,7 @@ export function SaleCreate({
             </div>
           )}
           {submission.needsCheck && (
-            <section className="grid gap-3 rounded-lg border p-3">
+            <section className="grid gap-3 rounded-lg border border-border bg-muted p-3">
               <p role="status">
                 {t(submission.busy ? "checking" : "checkRequired")}
               </p>

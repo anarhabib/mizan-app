@@ -136,7 +136,7 @@ export function DisplayModeControl({
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               className="min-h-11 lg:min-h-9"
               disabled={isSubmitting}
               onClick={() => {

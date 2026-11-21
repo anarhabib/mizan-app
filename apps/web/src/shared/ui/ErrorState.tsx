@@ -18,7 +18,7 @@ export function ErrorState({
   return (
     <section
       role="alert"
-      className="flex flex-col items-start gap-3 rounded-lg border p-6"
+      className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-6"
     >
       <p>{t(key, { ns: "errors" })}</p>
       <Button

@@ -22,7 +22,7 @@ import { ProductFilters } from "./ProductFilters";
 export function ProductStatusBadge({ status }: { status: ProductStatus }) {
   const { t } = useTranslation("products");
   return (
-    <Badge variant={status === "IN_STOCK" ? "secondary" : "outline"}>
+    <Badge variant={status === "IN_STOCK" ? "success" : "outline"}>
       {t(`status.${status}`)}
     </Badge>
   );
@@ -42,7 +42,7 @@ export function ProductList({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2 lg:block">
+      <div className="flex items-end gap-2 rounded-lg border border-border bg-card p-3 lg:block">
         <ProductSearch onSearch={setSearch} />
         <div className="lg:mt-4">
           <ProductFilters
@@ -127,13 +127,13 @@ function ProductResults({
         />
       )}
       {products.length > 0 && (
-        <ul className="divide-y overflow-hidden rounded-lg border">
+        <ul className="divide-y overflow-hidden rounded-lg border border-border bg-card">
           {products.map((product) => (
             <li key={product.id}>
               <button
                 type="button"
                 onClick={(event) => inspect(product.id, event.currentTarget)}
-                className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_6rem_auto] lg:gap-4 lg:py-2"
+                className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_6rem_auto] lg:gap-4 lg:py-2"
               >
                 <span className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
                   <span className="break-words text-xs text-muted-foreground">

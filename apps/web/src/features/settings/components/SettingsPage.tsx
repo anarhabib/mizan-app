@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { RotateCcw } from "lucide-react";
 import { Switch } from "radix-ui";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ export function SettingsPage() {
 function AccessDenied() {
   const { t } = useTranslation("settings");
   return (
-    <p role="alert" className="rounded-lg border p-6">
+    <p role="alert" className="rounded-lg border border-border bg-card p-6">
       {t("accessDenied")}
     </p>
   );
@@ -69,7 +70,7 @@ function OwnerSettings({
     return (
       <div
         role="alert"
-        className="grid justify-items-start gap-3 rounded-lg border p-6"
+        className="grid justify-items-start gap-3 rounded-lg border border-border bg-card p-6"
       >
         <p>{t(settingsErrorKey(query.error))}</p>
         <Button
@@ -95,7 +96,7 @@ function OwnerSettings({
     <div className="grid gap-6">
       <section
         aria-labelledby="settings-visibility-title"
-        className="flex items-center justify-between gap-4 rounded-lg border p-4"
+        className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4"
       >
         <div>
           <h2
@@ -117,7 +118,7 @@ function OwnerSettings({
           )}
         </div>
         <Switch.Root
-          className="group flex min-h-10 w-11 shrink-0 items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          className="group flex min-h-10 w-11 shrink-0 items-center rounded-md outline-none hover:border-foreground/40 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
           aria-labelledby="settings-visibility-title"
           aria-describedby="settings-visibility-description"
           checked={settings.salespersonCanViewAcquisitionCost}
@@ -129,7 +130,7 @@ function OwnerSettings({
             })
           }
         >
-          <span className="flex h-6 w-full items-center rounded-full border border-border bg-muted p-0.5 group-data-[state=checked]:bg-primary">
+          <span className="flex h-6 w-full items-center rounded-full border border-control-border bg-control p-0.5 group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary">
             <Switch.Thumb className="size-4 rounded-full bg-muted-foreground transition-transform motion-reduce:transition-none data-[state=checked]:translate-x-5 data-[state=checked]:bg-primary-foreground" />
           </span>
         </Switch.Root>
@@ -137,7 +138,7 @@ function OwnerSettings({
 
       <section
         aria-labelledby="settings-purities-title"
-        className="grid gap-4 rounded-lg border p-4"
+        className="grid gap-4 rounded-lg border border-border bg-card p-4"
       >
         <h2
           id="settings-purities-title"
@@ -168,7 +169,7 @@ function OwnerSettings({
               >
                 <div className="flex items-center gap-3">
                   <span className="font-medium tabular-nums">{value}</span>
-                  <Badge variant={active ? "secondary" : "outline"}>
+                  <Badge variant={active ? "success" : "danger"}>
                     {t(active ? "active" : "inactive")}
                   </Badge>
                 </div>
@@ -185,12 +186,13 @@ function OwnerSettings({
                   />
                 ) : (
                   <Button
-                    variant="outline"
+                    variant="success"
                     className="min-h-10 lg:min-h-8"
                     disabled={busy}
                     aria-label={t("reactivatePurity", { value })}
                     onClick={() => void save({ action: "reactivate", value })}
                   >
+                    <RotateCcw aria-hidden="true" />
                     {t("reactivate")}
                   </Button>
                 )}
@@ -202,7 +204,7 @@ function OwnerSettings({
 
       <section
         aria-labelledby="settings-rates-title"
-        className="grid gap-4 rounded-lg border p-4"
+        className="grid gap-4 rounded-lg border border-border bg-card p-4"
       >
         <h2
           id="settings-rates-title"
@@ -249,7 +251,7 @@ function OwnerSettings({
                 </span>
                 <Badge
                   className="col-start-2 row-start-1 justify-self-end sm:col-start-3"
-                  variant={rate.current ? "secondary" : "outline"}
+                  variant={rate.current ? "success" : "outline"}
                 >
                   {t(rate.current ? "current" : "historical")}
                 </Badge>

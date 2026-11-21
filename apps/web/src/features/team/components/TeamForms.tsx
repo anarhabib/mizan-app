@@ -16,7 +16,7 @@ function StoreSelect({
   const { t } = useTranslation("team");
   return (
     <select
-      className="h-11 w-full min-w-0 rounded-md border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 lg:h-8 lg:text-sm"
+      className="h-11 w-full min-w-0 rounded-md border border-control-border bg-control px-3 text-base text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)] outline-none hover:border-control-hover-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 dark:hover:border-foreground/40 dark:shadow-none lg:h-8 lg:text-sm"
       {...props}
     >
       <option value="" disabled>
