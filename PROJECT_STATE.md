@@ -1,5 +1,25 @@
 # Mizan project state
 
+## Task 11 — sale payments and customer debt (November 22, 2026)
+
+- `apps/api/src/modules/sales` records split checkout payments with original tender, payment method, exchange rate and AZN equivalent. The calculated balance after trade-ins and monetary payments drives the customer requirement and confirmation. Repayments use the same conversion policy and a scoped idempotency key. They reduce the originating sale balance without creating sales revenue.
+- `apps/web/src/features/sales` and `apps/web/src/features/customers` show settlement totals and offer repayment from sale and customer details. `apps/web/src/features/products` shows a localized sold-on-credit badge while the linked sale has debt. Products leave available inventory at checkout.
+- Migration `202611220002_sale_debt` preserves historical tender, backfills linked balances and adds the payment ledger. Prisma validation, schema parity, historical backfill, TypeScript, changed-file formatting and lint, API and web builds, and 190 tests passed. Chromium checked checkout, confirmation, repayment replay after a lost response, and inventory badges at 390px and 1280px in light and dark. Live Storage testing was skipped.
+- Applied the migration to the configured development database for manual testing. Prisma reports the schema is current. Read-only API checks returned HTTP 200 for an existing receipt, its product, sales history and the customer directory. The running local app is at `http://127.0.0.1:3000`.
+
+## Task 10 — customers and sales (November 22, 2026)
+
+- `apps/web/src/features/customers` and `apps/web/src/routes/customers.tsx` provide the searchable directory, contact management, AZN totals and purchase history with links to sales receipts. The sale form can select or create a contact and explicitly record an unpaid balance. Fully paid sales can stay anonymous.
+- `apps/api/src/modules/customers` enforces store scope and Owner-mode deletion. Migration `202611220001_customers` adds store-scoped contacts and a restrictive sale relation. Totals come from stored sales and tender. Linked non-AZN sales capture an AZN reporting rate at checkout. Purchase history shows checkout tender. The API has no later debt collections, voids or cancellations.
+- Type checks, changed-file lint and formatting, API and web builds, 23 contracts tests, 128 web tests and 34 API tests passed. Migrations and schema parity passed on disposable PostgreSQL. The live Storage test was skipped. Chromium fixtures covered the directory, purchase history and sale workflow at 390px and 1280px in light and dark.
+- Customer creation and editing accept optional multiline notes. Notes appear in customer details. The hosted development database now has migration `202611220001_customers` and two labeled sample contacts in LE GOLD. Customer integration tests verified note creation and editing, and the development API returned both sample contacts and the saved note.
+- Customer details use the same desktop side panel and mobile drawer as product details. Closing restores focus and preserves the directory search. Receipt links open the same panel. Chromium verified opening, editing notes, closing, and receipt links at 390px and 1280px in both themes.
+
+## Development migration checks (November 22, 2026)
+
+- Migration 202611200003_sale_items was initially pending on the hosted development database used by the local API. At follow-up Prisma found all eight migrations applied. Product details, sales history, and sale details returned HTTP 200 in Fastify injection checks using existing hosted development records and a test verifier.
+- AGENTS.md now calls for checking migration status against the database used by the development API when a branch adds a migration. docs/LOCAL_SETUP.md records the PowerShell commands.
+
 ## Task 9 — sale confirmation and profit (November 20, 2026)
 
 - Sales accept multiple products with individual final prices. The API checks each price against its acquisition cost before changing stock and issues an attempt-bound confirmation for losses. Active Owner mode sees the loss breakdown and receipt profit. Salesperson sessions receive a generic confirmation and receipts without profit data.

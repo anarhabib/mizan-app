@@ -139,8 +139,8 @@ test.skipIf(!db)(
       });
       expect(underpaid.statusCode).toBe(400);
       expect(underpaid.json()).toMatchObject({
-        code: "SALE_PAYMENT_TOO_LOW",
-        field: "payment.amount",
+        code: "SALE_CUSTOMER_REQUIRED",
+        field: "customerId",
       });
       expect(
         await db.product.findUnique({
@@ -292,7 +292,13 @@ test.skipIf(!db)(
       });
 
       const rollbackItem = await makeProduct("TASK10-ROLLBACK");
-      const rollbackPayload = { ...payload, productId: rollbackItem.id };
+      const rollbackPayload = {
+        ...payload,
+        productId: rollbackItem.id,
+        payment: undefined,
+        payments: [{ method: "CARD" as const, currency: "AZN", amount: "170" }],
+      };
+      const paymentCount = await db.salePayment.count({ where: scope });
       await db.$executeRaw`CREATE FUNCTION "mizan".test_task10_rollback() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN
           IF NEW.kind = 'OLD_GOLD_RECEIVED' AND EXISTS (
@@ -310,6 +316,7 @@ test.skipIf(!db)(
         expect(await db.tradeIn.count({ where: scope })).toBe(2);
         expect(await db.receivedOldGold.count({ where: scope })).toBe(2);
         expect(await db.inventoryMovement.count({ where: scope })).toBe(5);
+        expect(await db.salePayment.count({ where: scope })).toBe(paymentCount);
         expect(
           await db.product.findFirst({
             where: { ...scope, id: rollbackItem.id },

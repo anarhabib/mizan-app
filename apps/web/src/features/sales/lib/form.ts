@@ -3,6 +3,9 @@ import {
   parseMoney,
   parsePurity,
   maxSaleItems,
+  maxSalePayments,
+  salePaymentMethods,
+  type SalePaymentInput,
   type SalePreviewInput,
   type SaleCreateInput,
 } from "@mizan/contracts";
@@ -13,11 +16,20 @@ import type { SaleOptions } from "../api/queries";
 export const maxTradeIns = 100;
 
 export type SaleFormValues = {
+  customerId?: string;
+  customerReportingRate?: string;
+  noPayment: boolean;
   saleAmount: string;
   items?: { productId: string; label: string; saleAmount: string }[];
   tradeIns: { rateId: string; weight: string; overrideAmount: string }[];
-  includePayment: boolean;
-  payment: { currency: string; amount: string; exchangeRate: string };
+  payments: PaymentValues[];
+};
+
+export type PaymentValues = {
+  method: SalePaymentInput["method"];
+  currency: string;
+  amount: string;
+  exchangeRate: string;
 };
 
 type SaleField = FieldPath<SaleFormValues>;
@@ -49,6 +61,70 @@ function amount(value: string, currency: string, allowZero = false) {
     (input) => parseMoney({ amount: input, currency }).amount,
     allowZero,
   );
+}
+
+export function buildPayment(
+  values: PaymentValues,
+): { input: SalePaymentInput } | { field: keyof PaymentValues } {
+  const currency = values.currency.trim().toUpperCase();
+  try {
+    parseMoney({ amount: "0", currency });
+  } catch {
+    return { field: "currency" };
+  }
+  if (!salePaymentMethods.includes(values.method)) return { field: "method" };
+  const paid = amount(values.amount, currency);
+  if (paid === undefined) return { field: "amount" };
+  const input: SalePaymentInput = {
+    method: values.method,
+    currency,
+    amount: paid,
+  };
+  if (currency !== "AZN") {
+    const exchangeRate = validDecimal(values.exchangeRate, 12, (value) =>
+      parseDecimal(value, 8),
+    );
+    if (exchangeRate === undefined) return { field: "exchangeRate" };
+    input.exchangeRate = exchangeRate;
+  }
+  return { input };
+}
+
+function buildPayments(
+  values: Pick<
+    SaleFormValues,
+    "payments" | "noPayment" | "customerReportingRate" | "customerId"
+  >,
+  currency: string,
+):
+  | { input: Pick<SaleCreateInput, "payments" | "customerReportingRate"> }
+  | Invalid {
+  if (values.payments.length > maxSalePayments) return { field: "payments" };
+  const payments: SalePaymentInput[] | undefined =
+    values.noPayment || values.payments.length ? [] : undefined;
+  for (const [index, row] of values.payments.entries()) {
+    const payment = buildPayment(row);
+    if ("field" in payment)
+      return { field: `payments.${index}.${payment.field}` };
+    payments!.push(payment.input);
+  }
+  const needsRate =
+    currency !== "AZN" &&
+    (values.customerId || !values.noPayment || !!payments?.length);
+  const rate = needsRate
+    ? validDecimal(values.customerReportingRate ?? "", 12, (input) =>
+        parseDecimal(input, 8),
+      )
+    : undefined;
+  if (needsRate && rate === undefined) {
+    return { field: "customerReportingRate" };
+  }
+  return {
+    input: {
+      ...(payments && { payments }),
+      ...(rate && { customerReportingRate: rate }),
+    },
+  };
 }
 
 export function buildSalePayload(
@@ -94,31 +170,20 @@ export function buildSalePayload(
       ? { items, expectedCurrency: currency }
       : { productId, saleAmount, expectedCurrency: currency };
   if (tradeIns.length) input.tradeIns = tradeIns;
-  if (values.includePayment) {
-    const paymentCurrency = values.payment.currency.trim().toUpperCase();
-    try {
-      parseMoney({ amount: "0", currency: paymentCurrency });
-    } catch {
-      return { field: "payment.currency" };
-    }
-    const paymentAmount = amount(values.payment.amount, paymentCurrency);
-    if (paymentAmount === undefined) return { field: "payment.amount" };
-    input.payment = { currency: paymentCurrency, amount: paymentAmount };
-    if (paymentCurrency !== currency) {
-      const exchangeRate = validDecimal(
-        values.payment.exchangeRate,
-        12,
-        (value) => parseDecimal(value, 8),
-      );
-      if (exchangeRate === undefined) return { field: "payment.exchangeRate" };
-      input.payment.exchangeRate = exchangeRate;
-    }
-  }
-  return { input };
+  if (values.customerId) input.customerId = values.customerId;
+  const payments = buildPayments(values, currency);
+  if ("field" in payments) return payments;
+  return { input: { ...input, ...payments.input } };
 }
 
 export function buildSalePreviewInput(
-  values: Pick<SaleFormValues, "saleAmount" | "items" | "tradeIns">,
+  values: Pick<SaleFormValues, "saleAmount" | "items" | "tradeIns"> &
+    Partial<
+      Pick<
+        SaleFormValues,
+        "payments" | "noPayment" | "customerReportingRate" | "customerId"
+      >
+    >,
   { currency, rates }: SaleOptions,
 ): SalePreviewInput | undefined {
   const { tradeIns: rows } = values;
@@ -156,10 +221,19 @@ export function buildSalePreviewInput(
     }
   }
   if (!tradeIns.length && !saleAmounts) return undefined;
+  const payments = buildPayments(
+    {
+      ...values,
+      payments: values.payments ?? [],
+      noPayment: values.noPayment ?? false,
+    },
+    currency,
+  );
   return {
     expectedCurrency: currency,
     tradeIns,
     ...(saleAmounts && { saleAmounts }),
+    ...("input" in payments && payments.input),
   };
 }
 
@@ -195,8 +269,18 @@ export function saleError(error: ApiError, tradeInCount: number) {
   if (error.code === "SALE_CONFLICT" && error.field === "currency") {
     return { message: "currencyChanged", refresh: true } as const;
   }
-  if (error.code === "SALE_PAYMENT_TOO_LOW") {
-    return { message: "paymentTooLow", field: "payment.amount" } as const;
+  if (error.code === "SALE_PAYMENT_EXCEEDS_BALANCE")
+    return { message: "paymentExceedsBalance" } as const;
+  if (error.code === "SALE_PAYMENT_TOO_SMALL")
+    return {
+      message: "paymentTooSmall",
+      field: error.field as SaleField,
+    } as const;
+  if (error.code === "SALE_CUSTOMER_REQUIRED") {
+    return { message: "customerRequired", field: "customerId" } as const;
+  }
+  if (error.code === "CUSTOMER_NOT_FOUND") {
+    return { message: "customerMissing", field: "customerId" } as const;
   }
   if (error.code === "SALE_PAYMENT_NOT_DUE") {
     return { message: "paymentNotDue" } as const;
@@ -205,8 +289,9 @@ export function saleError(error: ApiError, tradeInCount: number) {
     const field = error.field;
     if (
       field === "saleAmount" ||
+      field === "customerReportingRate" ||
       field === "tradeIns" ||
-      /^payment\.(currency|amount|exchangeRate)$/.test(field ?? "")
+      /^payments\.\d+\.(method|currency|amount|exchangeRate)$/.test(field ?? "")
     ) {
       return { message: "invalid", field: field as SaleField } as const;
     }

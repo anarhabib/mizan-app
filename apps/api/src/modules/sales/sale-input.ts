@@ -1,7 +1,9 @@
 import {
   currencyMinorUnits,
   maxSaleItems,
+  maxSalePayments,
   parseDecimal,
+  salePaymentMethods,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { uuidPattern } from "../access/access.service.js";
@@ -49,6 +51,51 @@ function checkCurrency(input: Record<string, unknown>, currency: string) {
     throw new AccessError("SALE_CONFLICT", "currency");
 }
 
+export function parsePayment(value: unknown, field = "payment") {
+  const payment = object(value, field);
+  const { currency, method } = payment;
+  if (typeof currency !== "string")
+    throw new AccessError("INVALID_SALE", `${field}.currency`);
+  let scale;
+  try {
+    scale = currencyMinorUnits(currency);
+  } catch {
+    throw new AccessError("INVALID_SALE", `${field}.currency`);
+  }
+  const paymentMethod = salePaymentMethods.find((option) => option === method);
+  if (!paymentMethod) throw new AccessError("INVALID_SALE", `${field}.method`);
+  const exchangeRate =
+    currency === "AZN" && payment.exchangeRate === undefined
+      ? "1"
+      : decimal(payment.exchangeRate, 8, 12, `${field}.exchangeRate`);
+  if (currency === "AZN" && exchangeRate !== "1")
+    throw new AccessError("INVALID_SALE", `${field}.exchangeRate`);
+  return {
+    currency,
+    method: paymentMethod,
+    amount: decimal(payment.amount, scale, 16, `${field}.amount`),
+    exchangeRate,
+  };
+}
+
+function parsePayments(value: unknown) {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length > maxSalePayments)
+    throw new AccessError("INVALID_SALE", "payments");
+  return value.map((line, index) => parsePayment(line, `payments.${index}`));
+}
+
+function reportingRate(value: unknown, currency: string, required: boolean) {
+  if (currency === "AZN") {
+    if (value !== undefined)
+      throw new AccessError("INVALID_SALE", "customerReportingRate");
+    return "1";
+  }
+  return required || value !== undefined
+    ? decimal(value, 8, 12, "customerReportingRate")
+    : undefined;
+}
+
 function parseTradeIns(value: unknown, currency: string) {
   const scale = currencyMinorUnits(currency);
   const lines = value === undefined ? [] : value;
@@ -91,9 +138,16 @@ export function parseSalePreview(body: unknown, currency: string) {
       decimal(value, scale, 16, "saleAmounts", true),
     );
   }
+  const payments = parsePayments(input.payments);
   return {
     tradeIns: parseTradeIns(input.tradeIns, currency),
     saleAmounts,
+    payments,
+    reportingRate: reportingRate(
+      input.customerReportingRate,
+      currency,
+      !!payments?.length,
+    ),
   };
 }
 
@@ -124,6 +178,28 @@ export function parseSaleInput(body: unknown, currency: string) {
       throw new AccessError("INVALID_SALE", "items");
   }
   const tradeIns = parseTradeIns(input.tradeIns, currency);
+  const customerId =
+    input.customerId === undefined
+      ? undefined
+      : id(input.customerId, "customerId");
+  if (input.recordDebt !== undefined && typeof input.recordDebt !== "boolean")
+    throw new AccessError("INVALID_SALE", "recordDebt");
+  const recordDebt = input.recordDebt === true ? true : undefined;
+  const payments = parsePayments(input.payments);
+  if (
+    payments &&
+    (input.payment !== undefined || input.recordDebt !== undefined)
+  )
+    throw new AccessError("INVALID_SALE", "payments");
+  const rate = reportingRate(
+    input.customerReportingRate,
+    currency,
+    !!customerId || !!payments?.length,
+  );
+  const customerReportingRate =
+    customerId || payments || input.customerReportingRate !== undefined
+      ? rate
+      : undefined;
   let tender;
   if (input.payment !== undefined) {
     const payment = object(input.payment, "payment");
@@ -152,5 +228,9 @@ export function parseSaleInput(body: unknown, currency: string) {
     items,
     tradeIns,
     tender,
+    payments,
+    customerId,
+    customerReportingRate,
+    recordDebt,
   };
 }

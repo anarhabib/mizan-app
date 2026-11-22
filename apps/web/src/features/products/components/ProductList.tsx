@@ -19,8 +19,16 @@ import {
 } from "../api/queries";
 import { ProductFilters } from "./ProductFilters";
 
-export function ProductStatusBadge({ status }: { status: ProductStatus }) {
+export function ProductStatusBadge({
+  status,
+  hasOutstandingDebt,
+}: {
+  status: ProductStatus;
+  hasOutstandingDebt?: boolean;
+}) {
   const { t } = useTranslation("products");
+  if (status === "SOLD" && hasOutstandingDebt)
+    return <Badge variant="warning">{t("status.SOLD_ON_CREDIT")}</Badge>;
   return (
     <Badge variant={status === "IN_STOCK" ? "success" : "outline"}>
       {t(`status.${status}`)}
@@ -144,7 +152,10 @@ function ProductResults({
                   </span>
                 </span>
                 <span className="justify-self-end lg:order-3">
-                  <ProductStatusBadge status={product.status} />
+                  <ProductStatusBadge
+                    status={product.status}
+                    hasOutstandingDebt={product.hasOutstandingDebt}
+                  />
                 </span>
                 <span className="flex flex-wrap gap-x-3 gap-y-2 text-muted-foreground lg:order-2">
                   <WeightText value={product.weight} />

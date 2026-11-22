@@ -62,7 +62,8 @@
   },
   "status": {
     "IN_STOCK": "Stokda",
-    "SOLD": "Satılıb"
+    "SOLD": "Satılıb",
+    "SOLD_ON_CREDIT": "Nisyə satılıb"
   },
   "sale": {
     "title": "Satış",

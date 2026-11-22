@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { SaleProfit, SaleResult as Result } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/features/workspace";
 import { formatDateTime } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -10,6 +12,8 @@ import { MoneyText } from "@/shared/ui/MoneyText";
 import { PurityText } from "@/shared/ui/PurityText";
 import { WeightText } from "@/shared/ui/WeightText";
 import { saleDetailQuery, type SaleScope } from "../api/queries";
+import { SaleRepayment } from "./SaleRepayment";
+import { SaleTotals } from "./SaleTotals";
 
 export function SaleDate({ value }: { value: string }) {
   const { i18n } = useTranslation("sales");
@@ -29,20 +33,36 @@ export function SaleDetail({ scope, id }: { scope: SaleScope; id: string }) {
       />
     );
   if (detail.isPending) return <ListSkeleton rows={3} />;
-  return <SaleRecord sale={detail.data} />;
+  return <SaleRecord sale={detail.data} scope={scope} />;
 }
 
-function SaleRecord({ sale }: { sale: Result }) {
+function SaleRecord({ sale, scope }: { sale: Result; scope: SaleScope }) {
   const { t } = useTranslation("sales");
+  const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
   const money = (amount: string, currency = sale.currency) => (
     <MoneyText value={{ amount, currency }} />
   );
+  const outstanding = { amount: sale.outstandingDebt, currency: sale.currency };
   return (
     <div className="grid gap-6">
-      <p className="text-xs text-muted-foreground">
-        <SaleDate value={sale.createdAt} />
-      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs text-muted-foreground">
+          <SaleDate value={sale.createdAt} />
+        </p>
+        <Badge variant={sale.paymentStatus === "PAID" ? "success" : "warning"}>
+          {t(`paymentStatus.${sale.paymentStatus}`)}
+        </Badge>
+      </div>
+      {sale.customerId && (
+        <Link
+          to="/customers"
+          search={{ customer: sale.customerId }}
+          className="inline-flex min-h-11 items-center justify-self-start underline underline-offset-4 lg:min-h-9"
+        >
+          {customerText("detail")}
+        </Link>
+      )}
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>
@@ -120,28 +140,77 @@ function SaleRecord({ sale }: { sale: Result }) {
         )}
       </section>
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-muted p-4">
-        <Fact label={t("fields.saleTotal")}>{money(sale.saleAmount)}</Fact>
-        <Fact label={t("fields.tradeInTotal")}>{money(sale.tradeInTotal)}</Fact>
-        <Fact label={t("fields.balance")}>{money(sale.balance)}</Fact>
-        <Fact label={t("fields.payout")}>{money(sale.payout)}</Fact>
-      </dl>
+      <SaleTotals
+        total={{ amount: sale.saleAmount, currency: sale.currency }}
+        tradeIn={{ amount: sale.tradeInTotal, currency: sale.currency }}
+        paid={{ amount: sale.paidAmount, currency: sale.currency }}
+        outstanding={outstanding}
+      />
+      {sale.payout !== "0" && (
+        <dl>
+          <Fact label={t("fields.payout")}>{money(sale.payout)}</Fact>
+        </dl>
+      )}
+      {sale.customerId && sale.paymentStatus !== "PAID" && (
+        <SaleRepayment
+          scope={scope}
+          saleId={sale.id}
+          customerId={sale.customerId}
+          outstanding={outstanding}
+        />
+      )}
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
-        <h3 className="font-medium">{t("payment")}</h3>
-        {sale.payment ? (
-          <dl className="grid grid-cols-2 gap-4">
-            <Fact label={t("fields.paymentAmount")}>
-              {money(sale.payment.amount, sale.payment.currency)}
-            </Fact>
-            <Fact label={t("fields.exchangeRate")}>
-              <span className="tabular-nums">{sale.payment.exchangeRate}</span>
-            </Fact>
-            <Fact label={t("fields.convertedAmount")}>
-              {money(sale.payment.convertedAmount)}
-            </Fact>
-            <Fact label={t("fields.change")}>{money(sale.payment.change)}</Fact>
-          </dl>
+        <h3 className="font-medium">{t("paymentHistory")}</h3>
+        {sale.payments.length > 0 ? (
+          <ul className="divide-y rounded-lg border border-border bg-card">
+            {sale.payments.map((payment) => (
+              <li key={payment.id} className="grid gap-2 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-medium">
+                    {t(`paymentKind.${payment.kind}`)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <SaleDate value={payment.createdAt} />
+                  </p>
+                </div>
+                <dl className="grid grid-cols-2 gap-3">
+                  <Fact label={t("fields.paymentAmount")}>
+                    {money(payment.amount, payment.currency)}
+                  </Fact>
+                  {payment.method && (
+                    <Fact label={t("fields.paymentMethod")}>
+                      {t(`methods.${payment.method}`)}
+                    </Fact>
+                  )}
+                  {payment.currency !== sale.currency && (
+                    <Fact label={t("fields.convertedAmount")}>
+                      {money(payment.convertedAmount)}
+                    </Fact>
+                  )}
+                  {payment.amountAzn !== null &&
+                    payment.currency !== "AZN" &&
+                    sale.currency !== "AZN" && (
+                      <Fact label={t("fields.amountAzn")}>
+                        {money(payment.amountAzn, "AZN")}
+                      </Fact>
+                    )}
+                  {payment.exchangeRate !== "1" && (
+                    <Fact label={t("fields.exchangeRate")}>
+                      <span className="tabular-nums">
+                        {payment.exchangeRate}
+                      </span>
+                    </Fact>
+                  )}
+                  {payment.change !== "0" && (
+                    <Fact label={t("fields.change")}>
+                      {money(payment.change)}
+                    </Fact>
+                  )}
+                </dl>
+              </li>
+            ))}
+          </ul>
         ) : (
           <p className="text-muted-foreground">{t("noPayment")}</p>
         )}

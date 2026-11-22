@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type {
   SaleItem,
+  SalePayment,
+  SalePaymentInput,
   SaleList,
   SaleLoss,
   SalePreview,
@@ -15,12 +17,20 @@ import {
   uuidPattern,
   type AccessContext,
 } from "../access/access.service.js";
-import { parseSaleInput, parseSalePreview } from "./sale-input.js";
+import {
+  parsePayment,
+  parseSaleInput,
+  parseSalePreview,
+} from "./sale-input.js";
 import { calculateProfit } from "./profit.js";
 import { requireSaleConfirmation } from "./sale-confirmation.js";
 import {
   calculateSettlement,
   calculateTradeIns,
+  convertPayment,
+  outstandingSaleDebt,
+  paidSaleAmount,
+  paymentStatus,
   SaleDecimal,
 } from "./settlement.js";
 
@@ -28,8 +38,33 @@ export type SalesDatabase = ReturnType<typeof createDatabase>;
 const include = {
   tradeIns: { orderBy: { id: "asc" } },
   items: { orderBy: { position: "asc" } },
-} as const;
+  payments: {
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+  },
+} satisfies Prisma.SaleInclude;
 type SaleRecord = Prisma.SaleGetPayload<{ include: typeof include }>;
+
+async function resolveSaleMutationAccess(
+  tx: Prisma.TransactionClient,
+  context: AccessContext,
+  sessionId: string | undefined,
+) {
+  const { organizationId, storeId, userId } = context;
+  await lockOrganization(tx, organizationId);
+  const restricted =
+    context.salespersonDisplay ||
+    (sessionId &&
+      (await tx.salespersonDisplaySession.findUnique({
+        where: { sessionId, userId },
+        select: { sessionId: true },
+      })));
+  return resolveAccessContext(
+    tx,
+    restricted ? { ...context, salespersonDisplay: true } : context,
+    organizationId,
+    storeId,
+  );
+}
 
 function productSnapshot(
   row: Pick<
@@ -112,11 +147,38 @@ export async function previewSale(
     saleAmount,
     tradeInPreview.tradeIns.map(({ acceptedValue }) => acceptedValue),
   );
+  const due = new SaleDecimal(settlement.amountDue);
+  const payments = input.payments?.map((payment, index) =>
+    convertPayment(
+      payment,
+      currency,
+      input.reportingRate!,
+      `payments.${index}`,
+    ),
+  );
+  const paid = payments ? sumPayments(payments) : due;
   return {
     currency,
     ...tradeInPreview,
+    saleAmount,
     amountDue: settlement.amountDue,
+    paidAmount: SaleDecimal.min(due, paid).toFixed(),
+    outstandingDebt: outstandingSaleDebt(due, paid).toFixed(),
+    overpayment: SaleDecimal.max(paid.minus(due), 0).toFixed(),
+    ...(payments && {
+      payments: payments.map(({ convertedAmount, amountAzn }) => ({
+        convertedAmount,
+        amountAzn,
+      })),
+    }),
   };
+}
+
+function sumPayments(payments: { convertedAmount: string }[]) {
+  return payments.reduce(
+    (total, payment) => total.plus(payment.convertedAmount),
+    new SaleDecimal(0),
+  );
 }
 
 function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
@@ -169,8 +231,55 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
           new SaleDecimal(0),
         )
       : null;
+  const payment =
+    sale.paymentCurrency &&
+    sale.paymentAmount &&
+    sale.paymentExchangeRate &&
+    sale.convertedPayment &&
+    sale.changeAmount
+      ? {
+          currency: sale.paymentCurrency,
+          amount: sale.paymentAmount.toFixed(),
+          exchangeRate: sale.paymentExchangeRate.toFixed(),
+          convertedAmount: sale.convertedPayment.toFixed(),
+          change: sale.changeAmount.toFixed(),
+        }
+      : null;
+  const payments: SalePayment[] = sale.payments.map((row) => ({
+    id: row.id,
+    createdAt: row.createdAt.toISOString(),
+    kind: row.position === null ? "REPAYMENT" : "CHECKOUT",
+    method: row.method as SalePaymentInput["method"],
+    currency: row.currency,
+    amount: row.amount.toFixed(),
+    exchangeRate: row.exchangeRate.toFixed(),
+    convertedAmount: row.convertedAmount.toFixed(),
+    amountAzn: row.amountAzn.toFixed(2),
+    change: "0",
+  }));
+  if (payment && !payments.some(({ kind }) => kind === "CHECKOUT")) {
+    const aznRate = currency === "AZN" ? "1" : sale.customerReportingRate;
+    payments.unshift({
+      ...payment,
+      id: sale.id,
+      createdAt: sale.createdAt.toISOString(),
+      kind: "CHECKOUT",
+      method: null,
+      amountAzn: aznRate
+        ? new SaleDecimal(payment.amount)
+            .times(payment.exchangeRate)
+            .times(aznRate)
+            .toFixed(2, SaleDecimal.ROUND_HALF_UP)
+        : null,
+    });
+  }
   return {
     id: sale.id,
+    ...(sale.customerId && { customerId: sale.customerId }),
+    outstandingDebt: sale.outstandingDebt.toFixed(),
+    paymentStatus: paymentStatus(sale.defaultSettlement, sale.outstandingDebt),
+    paidAmount: paidSaleAmount(sale.defaultSettlement, sale.outstandingDebt),
+    payments,
     actorId: sale.actorId,
     createdAt: sale.createdAt.toISOString(),
     currency,
@@ -187,20 +296,7 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
     tradeInTotal: sale.acceptedTradeInTotal.toFixed(),
     balance: sale.defaultSettlement.toFixed(),
     payout: SaleDecimal.max(sale.defaultSettlement.negated(), 0).toFixed(),
-    payment:
-      sale.paymentCurrency &&
-      sale.paymentAmount &&
-      sale.paymentExchangeRate &&
-      sale.convertedPayment &&
-      sale.changeAmount
-        ? {
-            currency: sale.paymentCurrency,
-            amount: sale.paymentAmount.toFixed(),
-            exchangeRate: sale.paymentExchangeRate.toFixed(),
-            convertedAmount: sale.convertedPayment.toFixed(),
-            change: sale.changeAmount.toFixed(),
-          }
-        : null,
+    payment,
     product: items[0].product,
     tradeIns: sale.tradeIns.map((line) => ({
       id: line.id,
@@ -349,6 +445,7 @@ export async function listSales(
       defaultCurrency: true,
       defaultSaleAmount: true,
       defaultSettlement: true,
+      outstandingDebt: true,
       paymentCurrency: true,
       productId: true,
       productCode: true,
@@ -367,6 +464,11 @@ export async function listSales(
       currency: sale.defaultCurrency,
       saleAmount: sale.defaultSaleAmount.toFixed(),
       balance: sale.defaultSettlement.toFixed(),
+      outstandingDebt: sale.outstandingDebt.toFixed(),
+      paymentStatus: paymentStatus(
+        sale.defaultSettlement,
+        sale.outstandingDebt,
+      ),
       paymentCurrency: sale.paymentCurrency,
       product: productSnapshot(sale),
       itemCount: sale._count.items || 1,
@@ -387,20 +489,7 @@ export async function recordSale(
   const scope = { organizationId, storeId };
   return db.$transaction(
     async (tx) => {
-      await lockOrganization(tx, organizationId);
-      const restricted =
-        context.salespersonDisplay ||
-        (sessionId &&
-          (await tx.salespersonDisplaySession.findUnique({
-            where: { sessionId, userId: actorId },
-            select: { sessionId: true },
-          })));
-      const access = await resolveAccessContext(
-        tx,
-        restricted ? { ...context, salespersonDisplay: true } : context,
-        organizationId,
-        storeId,
-      );
+      const access = await resolveSaleMutationAccess(tx, context, sessionId);
       const key = { ...scope, actorId, idempotencyKey };
       const previous = await tx.sale.findUnique({
         where: { organizationId_storeId_actorId_idempotencyKey: key },
@@ -423,6 +512,10 @@ export async function recordSale(
                   ...items[0],
                   tradeIns: requestedTradeIns,
                   tender: requestedTender,
+                  customerId: input.customerId,
+                  customerReportingRate: input.customerReportingRate,
+                  recordDebt: input.recordDebt,
+                  payments: input.payments,
                 }
               : input,
           ),
@@ -433,6 +526,17 @@ export async function recordSale(
           throw new AccessError("SALE_CONFLICT", "idempotencyKey");
         return presentSale(previous, access);
       }
+
+      if (
+        input.customerId &&
+        !(await tx.customer.findUnique({
+          where: {
+            organizationId_storeId_id: { ...scope, id: input.customerId },
+          },
+          select: { id: true },
+        }))
+      )
+        throw new AccessError("CUSTOMER_NOT_FOUND", "customerId");
 
       const productWhere = {
         ...scope,
@@ -482,7 +586,29 @@ export async function recordSale(
         saleAmount,
         tradeIns.map(({ acceptedValue }) => acceptedValue),
         input.tender,
+        input.recordDebt,
       );
+      const due = new SaleDecimal(settlement.amountDue);
+      const payments = input.payments?.map((payment, position) => ({
+        ...convertPayment(
+          payment,
+          currency,
+          input.customerReportingRate!,
+          `payments.${position}`,
+        ),
+        position,
+        actorId,
+      }));
+      const paid = payments
+        ? sumPayments(payments)
+        : new SaleDecimal(settlement.convertedPayment);
+      if (payments?.length && due.isZero())
+        throw new AccessError("SALE_PAYMENT_NOT_DUE", "payments");
+      if (payments && paid.gt(due))
+        throw new AccessError("SALE_PAYMENT_EXCEEDS_BALANCE", "payments");
+      const outstandingDebt = outstandingSaleDebt(due, paid);
+      if (outstandingDebt.gt(0) && !input.customerId)
+        throw new AccessError("SALE_CUSTOMER_REQUIRED", "customerId");
       const losses = saleItems.flatMap((item): SaleLoss[] => {
         const cost = item.acquisitionCost;
         return cost &&
@@ -508,6 +634,14 @@ export async function recordSale(
         currency,
         losses,
         ownerMode,
+        outstandingDebt.gt(0)
+          ? {
+              total: { amount: saleAmount, currency },
+              tradeIn: { amount: settlement.tradeInTotal, currency },
+              paid: { amount: paid.toFixed(), currency },
+              outstanding: { amount: outstandingDebt.toFixed(), currency },
+            }
+          : undefined,
       );
       const claimed = await tx.product.updateMany({
         where: { ...productWhere, status: "IN_STOCK" },
@@ -518,18 +652,37 @@ export async function recordSale(
       const first = saleItems[0];
       const tender =
         input.tender ??
-        (new SaleDecimal(settlement.balance).gt(0)
+        (!payments && !input.recordDebt && due.gt(0)
           ? {
               amount: settlement.balance,
               currency,
               exchangeRate: "1",
             }
           : undefined);
+      const cashRate = currency === "AZN" ? "1" : input.customerReportingRate;
+      const checkoutPayments =
+        payments ??
+        (!input.tender && tender && cashRate
+          ? [
+              {
+                ...convertPayment(
+                  { ...tender, method: "CASH", exchangeRate: cashRate },
+                  currency,
+                  cashRate,
+                  "payment",
+                ),
+                position: 0,
+                actorId,
+              },
+            ]
+          : []);
       const sale = await tx.sale.create({
         data: {
           ...key,
           requestDigest,
           productId: first.productId,
+          customerId: input.customerId,
+          customerReportingRate: input.customerReportingRate,
           currency,
           defaultCurrency: currency,
           exchangeRate: "1",
@@ -546,14 +699,18 @@ export async function recordSale(
           paymentExchangeRate: tender?.exchangeRate,
           convertedPayment: tender && settlement.convertedPayment,
           changeAmount: tender && settlement.change,
+          outstandingDebt,
           productCode: first.productCode,
           productName: first.productName,
           productCategory: first.productCategory,
           productPurity: first.productPurity,
           productWeight: first.productWeight,
           items: { create: saleItems },
+          ...(checkoutPayments.length && {
+            payments: { createMany: { data: checkoutPayments } },
+          }),
         },
-        include: { items: include.items },
+        include: { items: include.items, payments: include.payments },
       });
       const movement = { ...scope, actorId, saleId: sale.id };
       await tx.inventoryMovement.createMany({
@@ -589,6 +746,64 @@ export async function recordSale(
         },
         access,
       );
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+  );
+}
+
+export async function recordRepayment(
+  db: SalesDatabase,
+  context: AccessContext,
+  saleId: string,
+  idempotencyKey: string,
+  body: unknown,
+  sessionId: string | undefined,
+) {
+  if (!uuidPattern.test(saleId)) throw new AccessError("SALE_NOT_FOUND");
+  const payment = parsePayment(body);
+  const { organizationId, storeId, userId: actorId } = context;
+  const key = { organizationId, storeId, saleId, actorId, idempotencyKey };
+  const where = {
+    organizationId_storeId_id: { organizationId, storeId, id: saleId },
+  };
+  const requestDigest = createHash("sha256")
+    .update(JSON.stringify(payment))
+    .digest("hex");
+  return db.$transaction(
+    async (tx) => {
+      const access = await resolveSaleMutationAccess(tx, context, sessionId);
+      const sale = await tx.sale.findUnique({ where, include });
+      if (!sale) throw new AccessError("SALE_NOT_FOUND");
+      const previous = await tx.salePayment.findUnique({
+        where: { organizationId_storeId_saleId_actorId_idempotencyKey: key },
+        select: { requestDigest: true },
+      });
+      if (previous) {
+        if (previous.requestDigest !== requestDigest)
+          throw new AccessError("SALE_CONFLICT", "idempotencyKey");
+        return presentSale(sale, access);
+      }
+      if (!sale.customerId || !sale.outstandingDebt.gt(0))
+        throw new AccessError("SALE_PAYMENT_NOT_DUE", "payment");
+      const currency = sale.defaultCurrency;
+      const rate =
+        currency === "AZN" ? "1" : sale.customerReportingRate?.toFixed();
+      if (!rate)
+        throw new AccessError("SALE_CONFLICT", "customerReportingRate");
+      const converted = convertPayment(payment, currency, rate, "payment");
+      if (sale.outstandingDebt.lt(converted.convertedAmount))
+        throw new AccessError("SALE_PAYMENT_EXCEEDS_BALANCE", "payment.amount");
+      const updated = await tx.sale.update({
+        where,
+        data: {
+          outstandingDebt: { decrement: converted.convertedAmount },
+          payments: {
+            create: { ...converted, actorId, idempotencyKey, requestDigest },
+          },
+        },
+        include,
+      });
+      return presentSale(updated, access);
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
   );

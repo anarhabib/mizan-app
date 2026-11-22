@@ -22,6 +22,8 @@ export interface SalePreviewInput {
   expectedCurrency?: string;
   saleAmounts?: string[];
   tradeIns: SaleTradeInInput[];
+  payments?: SalePaymentInput[];
+  customerReportingRate?: string;
 }
 
 export interface SaleTradeInPreview {
@@ -38,14 +40,43 @@ export interface SalePreview {
   currency: string;
   tradeInTotal: string;
   amountDue?: string;
+  saleAmount?: string;
+  paidAmount?: string;
+  outstandingDebt?: string;
+  overpayment?: string;
+  payments?: Array<Pick<SalePayment, "convertedAmount" | "amountAzn">>;
   tradeIns: SaleTradeInPreview[];
 }
 
 export const maxSaleItems = 100;
+export const maxSalePayments = 20;
+export const salePaymentMethods = ["CASH", "CARD", "TRANSFER"] as const;
+
+export interface SalePaymentInput extends MoneyInput {
+  method: (typeof salePaymentMethods)[number];
+  exchangeRate?: string;
+}
+
+export interface SalePayment extends Omit<SalePaymentInput, "method"> {
+  id: string;
+  createdAt: string;
+  kind: "CHECKOUT" | "REPAYMENT";
+  method: SalePaymentInput["method"] | null;
+  exchangeRate: string;
+  convertedAmount: string;
+  amountAzn: string | null;
+  change: string;
+}
+
+export type SalePaymentStatus = "PAID" | "PARTIALLY_PAID" | "UNPAID";
 
 interface SaleTerms {
   expectedCurrency?: string;
+  customerId?: string;
+  customerReportingRate?: string;
+  recordDebt?: boolean;
   tradeIns?: SaleTradeInInput[];
+  payments?: SalePaymentInput[];
   payment?: {
     currency: string;
     amount: string;
@@ -63,6 +94,13 @@ export interface SaleLoss {
 
 export interface SaleConfirmation {
   token: string;
+  debt?: {
+    total: MoneyInput;
+    tradeIn: MoneyInput;
+    paid: MoneyInput;
+    outstanding: MoneyInput;
+  };
+  belowCost?: boolean;
   financials?: { currency: string; losses: SaleLoss[] };
 }
 
@@ -89,6 +127,8 @@ export interface SaleList {
       | "saleAmount"
       | "product"
       | "balance"
+      | "paymentStatus"
+      | "outstandingDebt"
     > & { paymentCurrency: string | null; itemCount: number }
   >;
   nextCursor?: string;
@@ -96,6 +136,11 @@ export interface SaleList {
 
 export interface SaleResult {
   id: string;
+  customerId?: string;
+  outstandingDebt: string;
+  paymentStatus: SalePaymentStatus;
+  paidAmount: string;
+  payments: SalePayment[];
   actorId: string;
   createdAt: string;
   currency: string;

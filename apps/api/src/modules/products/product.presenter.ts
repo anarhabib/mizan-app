@@ -18,6 +18,8 @@ export const listFields = {
   purity: true,
   weight: true,
   status: true,
+  sale: { select: { outstandingDebt: true } },
+  saleItem: { select: { sale: { select: { outstandingDebt: true } } } },
 } as const satisfies Prisma.ProductSelect;
 
 export function detailFields(access: AccessContext) {
@@ -37,12 +39,25 @@ export function detailFields(access: AccessContext) {
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     },
     sale: {
-      select: { id: true, saleAmount: true, currency: true, createdAt: true },
+      select: {
+        id: true,
+        saleAmount: true,
+        currency: true,
+        createdAt: true,
+        outstandingDebt: true,
+      },
     },
     saleItem: {
       select: {
         saleAmount: true,
-        sale: { select: { id: true, currency: true, createdAt: true } },
+        sale: {
+          select: {
+            id: true,
+            currency: true,
+            createdAt: true,
+            outstandingDebt: true,
+          },
+        },
       },
     },
   } as const satisfies Prisma.ProductSelect;
@@ -56,6 +71,7 @@ export function presentListItem(
   row: Prisma.ProductGetPayload<{ select: typeof listFields }>,
 ): ProductListItem {
   const { id, code, name, category, purity, weight, status } = row;
+  const sale = row.saleItem?.sale ?? row.sale;
   return {
     id,
     code,
@@ -64,6 +80,8 @@ export function presentListItem(
     purity,
     weight: weight.toFixed(3),
     status,
+    ...(status === "SOLD" &&
+      sale?.outstandingDebt.gt(0) && { hasOutstandingDebt: true }),
   };
 }
 

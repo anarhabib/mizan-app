@@ -25,6 +25,7 @@ export interface ProductListItem {
   purity: number;
   weight: string;
   status: ProductStatus;
+  hasOutstandingDebt?: boolean;
 }
 
 export interface ProductDetail extends ProductListItem {

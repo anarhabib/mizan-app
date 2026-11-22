@@ -1,18 +1,16 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  Controller,
-  useFieldArray,
-  useForm,
-  useWatch,
-  type FieldError,
-  type UseFormRegisterReturn,
-} from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
-import { maxSaleItems, type SaleCreateInput } from "@mizan/contracts";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  maxSaleItems,
+  maxSalePayments,
+  salePaymentMethods,
+  type CustomerContact,
+  type SaleCreateInput,
+} from "@mizan/contracts";
+import { Plus, RotateCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProductSelect } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
@@ -31,11 +29,10 @@ import {
   type SaleFormValues,
 } from "../lib/form";
 import { SaleProductPicker } from "./SaleProductPicker";
-
-const currencies = Intl.supportedValuesOf("currency").map((value) => ({
-  value,
-  label: value,
-}));
+import { SaleCustomerPicker } from "./SaleCustomerPicker";
+import { PaymentFields } from "./PaymentFields";
+import { DecimalInput, FormField } from "./SaleFields";
+import { SaleTotals } from "./SaleTotals";
 type Submission = ReturnType<typeof useSaleSubmission>;
 
 export function SaleForm({
@@ -52,8 +49,19 @@ export function SaleForm({
   submission: Submission;
 }) {
   const { t, i18n } = useTranslation("sales");
+  const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
   const [picking, setPicking] = useState(false);
+  const [pickingCustomer, setPickingCustomer] = useState(false);
+  const [customer, setCustomer] = useState<CustomerContact>();
+  const customerButton = useRef<HTMLButtonElement>(null);
+  const pickerHeading = useRef<HTMLDivElement>(null);
+  const wasPickingCustomer = useRef(false);
+  useEffect(() => {
+    if (pickingCustomer) pickerHeading.current?.focus();
+    else if (wasPickingCustomer.current) customerButton.current?.focus();
+    wasPickingCustomer.current = pickingCustomer;
+  }, [pickingCustomer]);
   const cancelButton = useRef<HTMLButtonElement>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
   const confirmationToken = submission.confirmation?.token;
@@ -71,11 +79,13 @@ export function SaleForm({
   const { currency, rates } = options;
   const form = useForm<SaleFormValues, unknown, SaleCreateInput>({
     defaultValues: {
+      customerId: "",
+      customerReportingRate: "",
+      noPayment: false,
       saleAmount: "",
       items: [],
       tradeIns: [],
-      includePayment: false,
-      payment: { currency, amount: "", exchangeRate: "" },
+      payments: [],
     },
     mode: "onSubmit",
     // Keep inline errors in place while a submit click moves focus off an input.
@@ -84,6 +94,7 @@ export function SaleForm({
   });
   const tradeIns = useFieldArray({ control: form.control, name: "tradeIns" });
   const items = useFieldArray({ control: form.control, name: "items" });
+  const payments = useFieldArray({ control: form.control, name: "payments" });
   const tradeInValues = useWatch({
     control: form.control,
     name: "tradeIns",
@@ -96,13 +107,12 @@ export function SaleForm({
     control: form.control,
     name: "items",
   });
-  const paymentEnabled = useWatch({
+  const paymentValues =
+    useWatch({ control: form.control, name: "payments" }) ?? [];
+  const noPayment = useWatch({ control: form.control, name: "noPayment" });
+  const customerReportingRate = useWatch({
     control: form.control,
-    name: "includePayment",
-  });
-  const paymentCurrency = useWatch({
-    control: form.control,
-    name: "payment.currency",
+    name: "customerReportingRate",
   });
   const { errors } = form.formState;
   const previewInput = buildSalePreviewInput(
@@ -110,6 +120,10 @@ export function SaleForm({
       saleAmount: saleAmountValue,
       items: saleItemValues,
       tradeIns: tradeInValues ?? [],
+      payments: paymentValues,
+      noPayment,
+      customerId: customer?.id,
+      customerReportingRate,
     },
     options,
   );
@@ -119,10 +133,7 @@ export function SaleForm({
     input: NonNullable<typeof previewInput>;
   }>();
   useEffect(() => {
-    if (!previewKey) {
-      setDebouncedPreview(undefined);
-      return;
-    }
+    if (!previewKey) return;
     const timeout = setTimeout(() => {
       setDebouncedPreview({
         key: previewKey,
@@ -136,6 +147,9 @@ export function SaleForm({
       ? debouncedPreview.input
       : undefined;
   const previewQuery = useQuery(salePreviewQuery(scope, activePreview));
+  const preview = activePreview ? previewQuery.data : undefined;
+  const previewHasPayments =
+    !payments.fields.length || !!activePreview?.payments;
   const rateOptions = rates.map((rate) => ({
     value: rate.id,
     label: t("rateOption", {
@@ -155,7 +169,7 @@ export function SaleForm({
     const error = await action();
     if (error) {
       if (error.field) form.setError(error.field, { type: error.message });
-      if (!error.field) setMessage(error.message);
+      else setMessage(error.message);
     }
   }
   const submit = form.handleSubmit((payload) =>
@@ -164,12 +178,29 @@ export function SaleForm({
   const financials = canManageAsOwner
     ? submission.confirmation?.financials
     : undefined;
+  const debt = submission.confirmation?.debt;
 
   const confirmation = confirmOpen && (
     <div className="grid gap-4 pb-1">
-      <p id="sale-confirmation-description" className="text-muted-foreground">
-        {t(financials ? "confirmBelowCost" : "confirmGeneric")}
-      </p>
+      {debt && (
+        <>
+          <p
+            id="sale-confirmation-description"
+            className="text-muted-foreground"
+          >
+            {t("confirmDebt")}
+          </p>
+          <SaleTotals {...debt} />
+        </>
+      )}
+      {(submission.confirmation?.belowCost || !debt) && (
+        <p
+          id={debt ? undefined : "sale-confirmation-description"}
+          className="text-muted-foreground"
+        >
+          {t(financials ? "confirmBelowCost" : "confirmGeneric")}
+        </p>
+      )}
       {financials && (
         <ul className="divide-y rounded-lg border border-border bg-card">
           {financials.losses.map((loss) => (
@@ -227,7 +258,7 @@ export function SaleForm({
     </div>
   );
   const formContent = (
-    <form noValidate onSubmit={submit} hidden={confirmOpen}>
+    <form noValidate onSubmit={submit} hidden={confirmOpen || pickingCustomer}>
       <fieldset disabled={disabled} className="grid min-w-0 gap-6">
         <DecimalInput
           name={form.register("saleAmount")}
@@ -414,16 +445,9 @@ export function SaleForm({
                 className="min-h-11 lg:min-h-9"
                 onClick={() => void previewQuery.refetch()}
               >
+                <RotateCw aria-hidden="true" />
                 {t("retryPreview")}
               </Button>
-            </div>
-          )}
-          {activePreview && tradeIns.fields.length > 0 && previewQuery.data && (
-            <div className="flex justify-between gap-3 border-t pt-3 font-medium">
-              <span>{t("fields.tradeInTotal")}</span>
-              <MoneyText
-                value={{ amount: previewQuery.data.tradeInTotal, currency }}
-              />
             </div>
           )}
           {rates.length > 0 && tradeIns.fields.length < maxTradeIns && (
@@ -445,105 +469,187 @@ export function SaleForm({
           )}
         </section>
         <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
+          <h3 className="font-medium">{customerText("optionalCustomer")}</h3>
+          {customer && (
+            <p className="wrap-anywhere">
+              {customer.name} · {customer.phone}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              ref={customerButton}
+              type="button"
+              variant="outline"
+              className="min-h-11 lg:min-h-9"
+              aria-describedby={
+                errors.customerId ? "sale-customer-error" : undefined
+              }
+              onClick={() => setPickingCustomer(true)}
+            >
+              {customerText(customer ? "change" : "select")}
+            </Button>
+            {customer && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 lg:min-h-9"
+                onClick={() => {
+                  setCustomer(undefined);
+                  form.setValue("customerId", "");
+                  form.setValue("customerReportingRate", "");
+                  form.clearErrors(["customerId", "customerReportingRate"]);
+                  customerButton.current?.focus();
+                }}
+              >
+                {customerText("remove")}
+              </Button>
+            )}
+          </div>
+          {errors.customerId && (
+            <p
+              id="sale-customer-error"
+              role="alert"
+              className="text-destructive"
+            >
+              {customerText(
+                errors.customerId.type === "customerMissing"
+                  ? "missing"
+                  : "requiredForDebt",
+              )}
+            </p>
+          )}
+          {(customer || !noPayment || payments.fields.length > 0) &&
+            currency !== "AZN" && (
+              <DecimalInput
+                name={form.register("customerReportingRate")}
+                id="sale-customer-reporting-rate"
+                label={customerText("reportingRate", { currency })}
+                error={errors.customerReportingRate}
+              />
+            )}
+        </section>
+        <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("payment")}</h3>
-          <p className="text-muted-foreground">
-            {paymentEnabled
-              ? t("paymentCoverage")
-              : t("defaultPayment", { currency })}
-          </p>
-          {activePreview && previewQuery.data?.amountDue !== undefined && (
-            <div className="flex justify-between gap-3 border-t pt-3 font-medium">
-              <span>{t("fields.amountDue")}</span>
-              <MoneyText
-                value={{
-                  amount: previewQuery.data.amountDue,
-                  currency: previewQuery.data.currency,
+          {!payments.fields.length && (
+            <Label
+              htmlFor="sale-no-payment"
+              className="min-h-11 gap-3 lg:min-h-9"
+            >
+              <input
+                id="sale-no-payment"
+                type="checkbox"
+                className="size-4 accent-primary"
+                {...form.register("noPayment", {
+                  onChange: () => form.clearErrors("customerId"),
+                })}
+              />
+              {t("noPaymentAtCheckout")}
+            </Label>
+          )}
+          {!noPayment && !payments.fields.length && (
+            <p className="text-muted-foreground">
+              {t("defaultPayment", { currency })}
+            </p>
+          )}
+          {payments.fields.map((row, index) => (
+            <div
+              key={row.id}
+              className="grid gap-3 rounded-lg border border-border bg-card p-3"
+            >
+              <PaymentFields
+                currency={paymentValues[index]?.currency ?? row.currency}
+                method={paymentValues[index]?.method ?? row.method}
+                selectMethod={(method) => {
+                  const value = salePaymentMethods.find(
+                    (option) => option === method,
+                  );
+                  if (value) form.setValue(`payments.${index}.method`, value);
+                }}
+                errors={errors.payments?.[index]}
+                disabled={disabled}
+                fields={{
+                  currency: form.register(`payments.${index}.currency`),
+                  amount: form.register(`payments.${index}.amount`),
+                  exchangeRate: form.register(`payments.${index}.exchangeRate`),
                 }}
               />
-            </div>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            aria-expanded={paymentEnabled}
-            className="min-h-11 justify-self-start lg:min-h-9"
-            onClick={() => {
-              if (!paymentEnabled) form.setValue("payment.currency", currency);
-              form.setValue("includePayment", !paymentEnabled);
-              form.clearErrors("payment");
-              setMessage(undefined);
-            }}
-          >
-            {t(paymentEnabled ? "removePayment" : "addPayment")}
-          </Button>
-          {paymentEnabled && (
-            <>
-              <Controller
-                control={form.control}
-                name="payment.currency"
-                render={({ field }) => (
-                  <FormField
-                    id="sale-payment-currency"
-                    label={t("fields.paymentCurrency")}
-                    error={errors.payment?.currency}
-                  >
-                    <Input
-                      id="sale-payment-currency"
-                      list="sale-currency-options"
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      maxLength={3}
-                      inputMode="text"
-                      className="min-h-11 uppercase lg:min-h-9"
-                      aria-invalid={Boolean(errors.payment?.currency)}
-                      aria-describedby={
-                        errors.payment?.currency
-                          ? "sale-payment-currency-error"
-                          : undefined
-                      }
-                      {...field}
-                      onChange={(event) => {
-                        field.onChange(event.target.value.toUpperCase());
-                        form.clearErrors("payment");
-                      }}
-                      disabled={disabled}
-                    />
-                    <datalist id="sale-currency-options">
-                      {currencies.map(({ value, label }) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </datalist>
-                  </FormField>
-                )}
-              />
-              <DecimalInput
-                name={form.register("payment.amount")}
-                label={t("amountCurrency", {
-                  label: t("fields.paymentAmount"),
-                  currency: paymentCurrency,
-                })}
-                id="sale-payment-amount"
-                error={errors.payment?.amount}
-              />
-              {paymentCurrency !== currency && (
-                <DecimalInput
-                  name={form.register("payment.exchangeRate")}
-                  label={t("fields.exchangeRate")}
-                  id="sale-exchange-rate"
-                  error={errors.payment?.exchangeRate}
-                  hint={t("exchangeRateHint", { paymentCurrency, currency })}
-                />
+              {preview?.payments?.[index] && (
+                <div className="text-sm text-muted-foreground">
+                  {t("fields.convertedAmount")}{" "}
+                  <MoneyText
+                    value={{
+                      amount: preview.payments[index].convertedAmount,
+                      currency,
+                    }}
+                  />
+                </div>
               )}
-            </>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 justify-self-start lg:min-h-9"
+                onClick={() => {
+                  payments.remove(index);
+                  form.setValue("noPayment", true);
+                  form.clearErrors("payments");
+                  setMessage(undefined);
+                }}
+              >
+                <Trash2 aria-hidden="true" />
+                {t("removePayment")}
+              </Button>
+            </div>
+          ))}
+          {payments.fields.length < maxSalePayments && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 justify-self-start lg:min-h-9"
+              onClick={() => {
+                payments.append({
+                  method: "CASH",
+                  currency,
+                  amount: "",
+                  exchangeRate: "",
+                });
+                form.setValue("noPayment", false);
+                setMessage(undefined);
+              }}
+            >
+              <Plus aria-hidden="true" />
+              {t("addPayment")}
+            </Button>
+          )}
+          {preview?.saleAmount !== undefined && (
+            <SaleTotals
+              total={{ amount: preview.saleAmount, currency }}
+              tradeIn={{ amount: preview.tradeInTotal, currency }}
+              paid={
+                previewHasPayments && preview.paidAmount !== undefined
+                  ? { amount: preview.paidAmount, currency }
+                  : undefined
+              }
+              outstanding={
+                previewHasPayments && preview.outstandingDebt !== undefined
+                  ? { amount: preview.outstandingDebt, currency }
+                  : undefined
+              }
+            />
+          )}
+          {preview?.overpayment && preview.overpayment !== "0" && (
+            <p role="status" className="text-destructive">
+              {t("errors.paymentExceedsBalance")}
+            </p>
           )}
         </section>
-        {message && message !== "unknownOutcome" && (
-          <p role="alert" className="text-destructive">
-            {t(`errors.${message}`)}
-          </p>
-        )}
+        {message &&
+          message !== "unknownOutcome" &&
+          message !== "customerRequired" &&
+          message !== "customerMissing" && (
+            <p role="alert" className="text-destructive">
+              {t(`errors.${message}`)}
+            </p>
+          )}
         {submission.checkedInStock && !submission.busy && (
           <p role="status">{t("checkedInStock")}</p>
         )}
@@ -561,72 +667,21 @@ export function SaleForm({
   return (
     <>
       {formContent}
+      {pickingCustomer && (
+        <div ref={pickerHeading} tabIndex={-1}>
+          <SaleCustomerPicker
+            scope={scope}
+            close={() => setPickingCustomer(false)}
+            select={(selected) => {
+              setCustomer(selected);
+              form.setValue("customerId", selected.id);
+              form.clearErrors("customerId");
+              setPickingCustomer(false);
+            }}
+          />
+        </div>
+      )}
       {confirmation}
     </>
-  );
-}
-
-function FormField({
-  id,
-  label,
-  error,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: FieldError;
-  hint?: string;
-  children: ReactNode;
-}) {
-  const { t } = useTranslation("sales");
-  return (
-    <div className="grid min-w-0 gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
-          {error.type === "paymentTooLow"
-            ? t("errors.paymentTooLow")
-            : t("invalidField")}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function DecimalInput({
-  name,
-  label,
-  id,
-  error,
-  hint,
-}: {
-  name: UseFormRegisterReturn;
-  label: string;
-  id: string;
-  error?: FieldError;
-  hint?: string;
-}) {
-  const describedBy =
-    [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
-    undefined;
-  return (
-    <FormField id={id} label={label} error={error} hint={hint}>
-      <Input
-        id={id}
-        inputMode="decimal"
-        autoComplete="off"
-        aria-invalid={Boolean(error)}
-        aria-describedby={describedBy}
-        className="min-h-11 tabular-nums lg:min-h-9"
-        {...name}
-      />
-    </FormField>
   );
 }

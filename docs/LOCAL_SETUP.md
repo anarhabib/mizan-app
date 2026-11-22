@@ -59,6 +59,24 @@ pnpm.cmd dev
 
 Each independently opened terminal needs its own environment configuration. `pnpm dev` builds the shared packages, then starts Fastify and Next.js. For a production build locally, run `pnpm.cmd build`, then run `pnpm.cmd --filter @mizan/api start` and `pnpm.cmd --filter @mizan/web start` in separate configured terminals.
 
+## Check the schema used by the running API
+
+After switching to a branch with a new migration, check the database used by the local API. For the standard setup that loads apps/api/.env, run this from the repository root. If the API was started with a shell override, use that same shell value for DATABASE_URL. The commands keep the connection string out of terminal output.
+
+~~~powershell
+$env:DATABASE_URL = node --env-file=apps/api/.env -p 'process.env.DATABASE_URL'
+if ($LASTEXITCODE -ne 0 -or !$env:DATABASE_URL) { throw 'Missing development database configuration' }
+pnpm.cmd --filter @mizan/database exec prisma migrate status
+~~~
+
+For a confirmed development database with pending migrations, run the following in the same shell and retry an affected request.
+
+~~~powershell
+pnpm.cmd --filter @mizan/database exec prisma migrate deploy
+if ($LASTEXITCODE -ne 0) { throw 'Development migration failed' }
+pnpm.cmd --filter @mizan/database exec prisma migrate status
+~~~
+
 ## Local addresses and workflows
 
 | Service | Address |

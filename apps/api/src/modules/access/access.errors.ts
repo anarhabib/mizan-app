@@ -7,8 +7,13 @@ export type AccessFailure =
   | "INVALID_SETTINGS"
   | "PURITY_CONFLICT"
   | "INVALID_SALE"
-  | "SALE_PAYMENT_TOO_LOW"
+  | "SALE_CUSTOMER_REQUIRED"
+  | "INVALID_CUSTOMER"
+  | "CUSTOMER_NOT_FOUND"
+  | "CUSTOMER_DELETE_CONFLICT"
   | "SALE_PAYMENT_NOT_DUE"
+  | "SALE_PAYMENT_TOO_SMALL"
+  | "SALE_PAYMENT_EXCEEDS_BALANCE"
   | "SALE_CONFLICT"
   | "SALE_NOT_FOUND"
   | "INVALID_PRODUCT"
@@ -20,14 +25,31 @@ export type AccessFailure =
   | "PHOTO_UNAVAILABLE";
 
 const details = {
-  INVALID_SALE: { statusCode: 400, message: "Satış məlumatlarını yoxlayın." },
-  SALE_PAYMENT_TOO_LOW: {
+  SALE_CUSTOMER_REQUIRED: {
     statusCode: 400,
-    message: "Ödəniş qalan borcu tam qarşılamır.",
+    message: "Borc üçün müştəri seçin.",
   },
+  INVALID_CUSTOMER: {
+    statusCode: 400,
+    message: "Müştəri məlumatlarını yoxlayın.",
+  },
+  CUSTOMER_NOT_FOUND: { statusCode: 404, message: "Müştəri tapılmadı." },
+  CUSTOMER_DELETE_CONFLICT: {
+    statusCode: 409,
+    message: "Alış tarixçəsi olan müştərini silmək mümkün deyil.",
+  },
+  INVALID_SALE: { statusCode: 400, message: "Satış məlumatlarını yoxlayın." },
   SALE_PAYMENT_NOT_DUE: {
     statusCode: 400,
     message: "Bu satış üzrə ödəniş tələb olunmur.",
+  },
+  SALE_PAYMENT_TOO_SMALL: {
+    statusCode: 400,
+    message: "Ödəniş məbləği çevirmədən sonra sıfıra yuvarlaqlaşır.",
+  },
+  SALE_PAYMENT_EXCEEDS_BALANCE: {
+    statusCode: 409,
+    message: "Ödəniş məbləği qalan borcdan çoxdur.",
   },
   SALE_CONFLICT: {
     statusCode: 409,
