@@ -5,6 +5,16 @@ import { AccessError } from "../access/access.errors.js";
 
 export const SaleDecimal = Prisma.Decimal.clone({ precision: 64 });
 
+export function outstandingSaleDebt(
+  balance: Prisma.Decimal,
+  convertedPayment: Prisma.Decimal | null,
+) {
+  return SaleDecimal.max(
+    new SaleDecimal(balance).minus(convertedPayment ?? 0),
+    0,
+  );
+}
+
 export interface CashTender {
   currency: string;
   amount: string;
@@ -47,6 +57,7 @@ export function calculateSettlement(
   saleAmount: string,
   acceptedValues: string[],
   tender?: CashTender,
+  recordDebt = false,
 ) {
   const scale = currencyMinorUnits(currency);
   const tradeInTotal = acceptedValues.reduce(
@@ -61,11 +72,13 @@ export function calculateSettlement(
     ? new SaleDecimal(tender.amount)
         .times(tender.exchangeRate)
         .toDecimalPlaces(scale, SaleDecimal.ROUND_HALF_UP)
-    : due;
+    : recordDebt
+      ? new SaleDecimal(0)
+      : due;
   if (tender && due.isZero()) {
     throw new AccessError("SALE_PAYMENT_NOT_DUE", "payment");
   }
-  if (converted.lessThan(due)) {
+  if (converted.lessThan(due) && !recordDebt) {
     throw new AccessError("SALE_PAYMENT_TOO_LOW", "payment.amount");
   }
   return {
@@ -73,7 +86,7 @@ export function calculateSettlement(
     amountDue: due.toFixed(scale),
     balance: balance.toFixed(scale),
     convertedPayment: converted.toFixed(scale),
-    change: converted.minus(due).toFixed(scale),
+    change: SaleDecimal.max(converted.minus(due), 0).toFixed(scale),
     payout: SaleDecimal.max(balance.negated(), 0).toFixed(scale),
   };
 }

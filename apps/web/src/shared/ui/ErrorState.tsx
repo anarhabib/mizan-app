@@ -1,3 +1,4 @@
+import { RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/lib/api";
@@ -26,6 +27,7 @@ export function ErrorState({
         disabled={pending}
         className="min-h-11 lg:min-h-9"
       >
+        <RotateCw aria-hidden="true" />
         {t("retry", { ns: "shell" })}
       </Button>
     </section>

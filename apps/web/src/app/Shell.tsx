@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Package, Receipt, Settings, Users } from "lucide-react";
+import { ContactRound, Package, Receipt, Settings, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { LanguageButton } from "@/shared/ui/LanguageButton";
@@ -11,6 +11,7 @@ import { StoreSwitcher, useWorkspace } from "@/features/workspace";
 const items = [
   { to: "/products", namespace: "products", icon: Package },
   { to: "/sales", namespace: "sales", icon: Receipt },
+  { to: "/customers", namespace: "customers", icon: ContactRound },
   { to: "/settings", namespace: "settings", icon: Settings, ownerOnly: true },
   { to: "/team", namespace: "team", icon: Users, ownerOnly: true },
 ] as const;
@@ -22,6 +23,7 @@ export function Shell() {
     "shell",
     "products",
     "sales",
+    "customers",
     "settings",
     "team",
   ]);
@@ -70,8 +72,8 @@ export function Shell() {
           <ul
             className={
               owner
-                ? "grid grid-cols-4 gap-2 lg:flex lg:flex-col"
-                : "grid grid-cols-2 gap-2 lg:flex lg:flex-col"
+                ? "grid grid-cols-5 gap-1 lg:flex lg:flex-col lg:gap-2"
+                : "grid grid-cols-3 gap-2 lg:flex lg:flex-col"
             }
           >
             {items

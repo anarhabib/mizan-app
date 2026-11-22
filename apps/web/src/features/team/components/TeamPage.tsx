@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
           disabled={directory.isFetching || mutation.isPending}
           className="min-h-11 lg:min-h-8"
         >
+          <RotateCw aria-hidden="true" />
           {t("retry")}
         </Button>
       </div>

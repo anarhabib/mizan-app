@@ -22,6 +22,26 @@ const build = (form: SaleFormValues) =>
   buildSalePayload(form, "product-1", options);
 
 describe("sale payload", () => {
+  it("requires a customer for debt and a reporting rate for linked non-AZN sales", () => {
+    expect(build({ ...values, recordDebt: true })).toEqual({
+      field: "customerId",
+    });
+    const linked = { ...values, recordDebt: true, customerId: "customer-1" };
+    expect(build(linked)).toMatchObject({
+      input: { customerId: "customer-1", recordDebt: true },
+    });
+    const foreign = { currency: "USD", rates: [] };
+    expect(buildSalePayload(linked, "product-1", foreign)).toEqual({
+      field: "customerReportingRate",
+    });
+    expect(
+      buildSalePayload(
+        { ...linked, customerReportingRate: "1.70512345" },
+        "product-1",
+        foreign,
+      ),
+    ).toMatchObject({ input: { customerReportingRate: "1.70512345" } });
+  });
   it("builds a preview only from complete, valid trade-in rows", () => {
     expect(
       buildSalePreviewInput(

@@ -1,5 +1,13 @@
 # Mizan project state
 
+## Task 10 — customers and sales (November 22, 2026)
+
+- `apps/web/src/features/customers` and `apps/web/src/routes/customers.tsx` provide the searchable directory, contact management, AZN totals and purchase history with links to sales receipts. The sale form can select or create a contact and explicitly record an unpaid balance. Fully paid sales can stay anonymous.
+- `apps/api/src/modules/customers` enforces store scope and Owner-mode deletion. Migration `202611220001_customers` adds store-scoped contacts and a restrictive sale relation. Totals come from stored sales and tender. Linked non-AZN sales capture an AZN reporting rate at checkout. Purchase history shows checkout tender. The API has no later debt collections, voids or cancellations.
+- Type checks, changed-file lint and formatting, API and web builds, 23 contracts tests, 128 web tests and 34 API tests passed. Migrations and schema parity passed on disposable PostgreSQL. The live Storage test was skipped. Chromium fixtures covered the directory, purchase history and sale workflow at 390px and 1280px in light and dark.
+- Customer creation and editing accept optional multiline notes. Notes appear in customer details. The hosted development database now has migration `202611220001_customers` and two labeled sample contacts in LE GOLD. Customer integration tests verified note creation and editing, and the development API returned both sample contacts and the saved note.
+- Customer details use the same desktop side panel and mobile drawer as product details. Closing restores focus and preserves the directory search. Receipt links open the same panel. Chromium verified opening, editing notes, closing, and receipt links at 390px and 1280px in both themes.
+
 ## Development migration checks (November 22, 2026)
 
 - Migration 202611200003_sale_items was initially pending on the hosted development database used by the local API. At follow-up Prisma found all eight migrations applied. Product details, sales history, and sale details returned HTTP 200 in Fastify injection checks using existing hosted development records and a test verifier.

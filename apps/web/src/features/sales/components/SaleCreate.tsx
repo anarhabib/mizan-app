@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { RotateCw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,7 @@ export function SaleCreate({
                   className="min-h-11 justify-self-start lg:min-h-9"
                   onClick={() => void submission.checkAgain()}
                 >
+                  <RotateCw aria-hidden="true" />
                   {t("checkAgain")}
                 </Button>
               )}
