@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import type { CustomerSummary, MoneyInput } from "@mizan/contracts";
 import { Button } from "@/components/ui/button";
 import { ProductPanel } from "@/features/products";
+import { SaleRepayment } from "@/features/sales";
 import { useWorkspace } from "@/features/workspace";
 import { apiRequest, ApiError } from "@/shared/lib/api";
 import { formatDateTime } from "@/shared/lib/format";
@@ -383,18 +384,18 @@ function PurchaseHistory({ scope, id }: { scope: CustomerScope; id: string }) {
               </div>
               <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Amount label={t("purchaseTotal")} value={sale.total} />
+                <Amount label={t("tradeInCredit")} value={sale.tradeInCredit} />
+                <Amount label={t("paidAmount")} value={sale.paidAmount} />
                 <Amount label={t("debt")} value={sale.outstandingDebt} />
-                {sale.payment ? (
-                  <Amount label={t("tender")} value={sale.payment} />
-                ) : (
-                  <div>
-                    <dt className="text-xs text-muted-foreground">
-                      {t("tender")}
-                    </dt>
-                    <dd>{t("noTender")}</dd>
-                  </div>
-                )}
               </dl>
+              {!/^0(?:\.0+)?$/.test(sale.outstandingDebt.amount) && (
+                <SaleRepayment
+                  scope={scope}
+                  saleId={sale.id}
+                  customerId={id}
+                  outstanding={sale.outstandingDebt}
+                />
+              )}
             </li>
           ))}
         </ul>

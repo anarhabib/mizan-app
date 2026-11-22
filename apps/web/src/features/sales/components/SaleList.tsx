@@ -114,6 +114,11 @@ export function SaleList({
                           {t("extraProducts", { count: sale.itemCount - 1 })}
                         </span>
                       )}
+                      {sale.paymentStatus !== "PAID" && (
+                        <span className="block text-xs font-normal text-warning-foreground">
+                          {t(`paymentStatus.${sale.paymentStatus}`)}
+                        </span>
+                      )}
                     </span>
                   </span>
                   <span className="text-right wrap-anywhere lg:order-3">

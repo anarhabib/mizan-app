@@ -1,5 +1,9 @@
 import { currencyMinorUnits } from "@mizan/contracts";
-import type { SaleTradeInInput, SaleTradeInPreview } from "@mizan/contracts";
+import type {
+  SalePaymentStatus,
+  SaleTradeInInput,
+  SaleTradeInPreview,
+} from "@mizan/contracts";
 import { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
 
@@ -19,6 +23,39 @@ export interface CashTender {
   currency: string;
   amount: string;
   exchangeRate: string;
+}
+
+export function paymentStatus(
+  balance: Prisma.Decimal,
+  debt: Prisma.Decimal,
+): SalePaymentStatus {
+  if (debt.isZero()) return "PAID";
+  return debt.eq(balance) ? "UNPAID" : "PARTIALLY_PAID";
+}
+
+export function paidSaleAmount(balance: Prisma.Decimal, debt: Prisma.Decimal) {
+  return SaleDecimal.max(new SaleDecimal(balance).minus(debt), 0).toFixed();
+}
+
+export function convertPayment(
+  payment: ReturnType<typeof import("./sale-input.js").parsePayment>,
+  currency: string,
+  reportingRate: string,
+  field: string,
+) {
+  const exactAzn = new SaleDecimal(payment.amount).times(payment.exchangeRate);
+  const converted = (
+    payment.currency === currency
+      ? new SaleDecimal(payment.amount)
+      : exactAzn.div(reportingRate)
+  ).toDecimalPlaces(currencyMinorUnits(currency), SaleDecimal.ROUND_HALF_UP);
+  if (converted.isZero())
+    throw new AccessError("SALE_PAYMENT_TOO_SMALL", `${field}.amount`);
+  return {
+    ...payment,
+    amountAzn: exactAzn.toFixed(2, SaleDecimal.ROUND_HALF_UP),
+    convertedAmount: converted.toFixed(),
+  };
 }
 
 export function calculateTradeIns(
@@ -77,9 +114,6 @@ export function calculateSettlement(
       : due;
   if (tender && due.isZero()) {
     throw new AccessError("SALE_PAYMENT_NOT_DUE", "payment");
-  }
-  if (converted.lessThan(due) && !recordDebt) {
-    throw new AccessError("SALE_PAYMENT_TOO_LOW", "payment.amount");
   }
   return {
     tradeInTotal: tradeInTotal.toFixed(),

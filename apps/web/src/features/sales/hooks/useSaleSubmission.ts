@@ -35,10 +35,14 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   const [confirmation, setConfirmation] = useState<SaleConfirmation>();
 
   async function refreshInventory(
-    sold: { id: string; sale: NonNullable<ProductDetail["sale"]> }[],
+    sold: {
+      id: string;
+      sale: NonNullable<ProductDetail["sale"]>;
+      hasOutstandingDebt?: boolean;
+    }[],
   ) {
-    for (const { id, sale } of sold)
-      await cacheSoldProduct(client, scope, id, sale);
+    for (const { id, sale, hasOutstandingDebt } of sold)
+      await cacheSoldProduct(client, scope, id, sale, hasOutstandingDebt);
     const lists = client
       .getQueryCache()
       .findAll({ queryKey: saleKeys.lists(scope) });
@@ -57,11 +61,16 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   }
 
   function refreshReceiptInventory(result: SaleResult) {
+    void client.invalidateQueries({
+      queryKey: saleKeys.detail(scope, result.id),
+      exact: true,
+    });
     if (result.customerId)
       void invalidateCustomers(client, scope, result.customerId);
     return refreshInventory(
       result.items.map(({ product, saleAmount }) => ({
         id: product.id,
+        hasOutstandingDebt: result.paymentStatus !== "PAID",
         sale: {
           id: result.id,
           createdAt: result.createdAt,
@@ -130,7 +139,13 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
               // The product lookup still identifies the receipt.
             }
           }
-          await refreshInventory([{ id: productId, sale: product.sale }]);
+          await refreshInventory([
+            {
+              id: productId,
+              sale: product.sale,
+              hasOutstandingDebt: product.hasOutstandingDebt,
+            },
+          ]);
         }
         return;
       }

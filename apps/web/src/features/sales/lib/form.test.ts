@@ -15,20 +15,20 @@ const options = {
 const values: SaleFormValues = {
   saleAmount: " 210.00 ",
   tradeIns: [],
-  includePayment: false,
-  payment: { currency: "AZN", amount: "invalid", exchangeRate: "invalid" },
+  noPayment: false,
+  payments: [],
 };
 const build = (form: SaleFormValues) =>
   buildSalePayload(form, "product-1", options);
 
 describe("sale payload", () => {
-  it("requires a customer for debt and a reporting rate for linked non-AZN sales", () => {
-    expect(build({ ...values, recordDebt: true })).toEqual({
-      field: "customerId",
+  it("sends explicit zero payments and requires a reporting rate for linked non-AZN sales", () => {
+    expect(build({ ...values, noPayment: true })).toMatchObject({
+      input: { payments: [] },
     });
-    const linked = { ...values, recordDebt: true, customerId: "customer-1" };
+    const linked = { ...values, noPayment: true, customerId: "customer-1" };
     expect(build(linked)).toMatchObject({
-      input: { customerId: "customer-1", recordDebt: true },
+      input: { customerId: "customer-1", payments: [] },
     });
     const foreign = { currency: "USD", rates: [] };
     expect(buildSalePayload(linked, "product-1", foreign)).toEqual({
@@ -113,12 +113,14 @@ describe("sale payload", () => {
           { rateId: "rate-585", weight: "0.301", overrideAmount: "0.00" },
           { rateId: "rate-585", weight: "12.010", overrideAmount: "" },
         ],
-        includePayment: true,
-        payment: {
-          currency: " kwd ",
-          amount: "210.001",
-          exchangeRate: "5.53579301",
-        },
+        payments: [
+          {
+            method: "CARD",
+            currency: " kwd ",
+            amount: "210.001",
+            exchangeRate: "5.53579301",
+          },
+        ],
       }),
     ).toEqual({
       input: {
@@ -134,30 +136,53 @@ describe("sale payload", () => {
           },
           { rateId: "rate-585", purity: 585, weight: "12.010" },
         ],
-        payment: {
-          currency: "KWD",
-          amount: "210.001",
-          exchangeRate: "5.53579301",
-        },
+        payments: [
+          {
+            method: "CARD",
+            currency: "KWD",
+            amount: "210.001",
+            exchangeRate: "5.53579301",
+          },
+        ],
       },
     });
   });
 
-  it("omits the exchange rate for a same-currency payment", () => {
+  it("sends all payment methods and omits the exchange rate for AZN", () => {
     expect(
       build({
         ...values,
-        includePayment: true,
-        payment: { currency: "AZN", amount: "210", exchangeRate: "1.500" },
+        payments: [
+          {
+            method: "CASH",
+            currency: "AZN",
+            amount: "25",
+            exchangeRate: "1.500",
+          },
+          {
+            method: "TRANSFER",
+            currency: "USD",
+            amount: "10",
+            exchangeRate: "1.7",
+          },
+        ],
       }),
-    ).toMatchObject({ input: { payment: { currency: "AZN", amount: "210" } } });
-    expect(
-      build({
-        ...values,
-        includePayment: true,
-        payment: { currency: "AZN", amount: "210", exchangeRate: "1.500" },
-      }),
-    ).not.toHaveProperty("input.payment.exchangeRate");
+    ).toEqual({
+      input: {
+        productId: "product-1",
+        expectedCurrency: "AZN",
+        saleAmount: "210.00",
+        payments: [
+          { method: "CASH", currency: "AZN", amount: "25" },
+          {
+            method: "TRANSFER",
+            currency: "USD",
+            amount: "10",
+            exchangeRate: "1.7",
+          },
+        ],
+      },
+    });
   });
 
   it("sends each final negotiated amount, including zero, without product labels", () => {
@@ -208,25 +233,29 @@ describe("sale payload", () => {
   });
 
   it("validates payment fields and requires a positive foreign rate", () => {
-    const payment = { currency: "JPY", amount: "2000", exchangeRate: "" };
+    const payment = {
+      method: "CASH" as const,
+      currency: "JPY",
+      amount: "2000",
+      exchangeRate: "",
+    };
     const withPayment = (changes: Partial<typeof payment>) =>
       build({
         ...values,
-        includePayment: true,
-        payment: { ...payment, ...changes },
+        payments: [{ ...payment, ...changes }],
       });
     expect(withPayment({ currency: "XYZ" })).toEqual({
-      field: "payment.currency",
+      field: "payments.0.currency",
     });
     expect(withPayment({ amount: "200.1" })).toEqual({
-      field: "payment.amount",
+      field: "payments.0.amount",
     });
-    expect(withPayment({})).toEqual({ field: "payment.exchangeRate" });
+    expect(withPayment({})).toEqual({ field: "payments.0.exchangeRate" });
     expect(withPayment({ exchangeRate: "0.00000000" })).toEqual({
-      field: "payment.exchangeRate",
+      field: "payments.0.exchangeRate",
     });
     expect(withPayment({ exchangeRate: "0.001234567" })).toEqual({
-      field: "payment.exchangeRate",
+      field: "payments.0.exchangeRate",
     });
   });
 
@@ -245,15 +274,14 @@ describe("sale payload", () => {
 });
 
 describe("sale errors", () => {
-  it("guides the user when the tender is below the balance or no payment is due", () => {
+  it("guides the user when tender exceeds the balance or no payment is due", () => {
     expect(
       saleError(
-        new ApiError(400, "SALE_PAYMENT_TOO_LOW", "server", "payment.amount"),
+        new ApiError(409, "SALE_PAYMENT_EXCEEDS_BALANCE", "server", "payments"),
         1,
       ),
     ).toEqual({
-      message: "paymentTooLow",
-      field: "payment.amount",
+      message: "paymentExceedsBalance",
     });
     expect(
       saleError(
@@ -271,9 +299,9 @@ describe("sale errors", () => {
       message: "invalid",
       field: "saleAmount",
     });
-    expect(invalid("payment.exchangeRate")).toEqual({
+    expect(invalid("payments.1.exchangeRate")).toEqual({
       message: "invalid",
-      field: "payment.exchangeRate",
+      field: "payments.1.exchangeRate",
     });
     expect(invalid("tradeIns[1].purity", 2)).toEqual({
       message: "invalid",

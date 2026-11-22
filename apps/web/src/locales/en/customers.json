@@ -44,5 +44,7 @@
   "reportingRate": "AZN per 1 {{currency}}",
   "recordDebt": "Record unpaid balance as debt",
   "partialTender": "Any amount still due after this payment becomes customer debt.",
-  "unpaid": "The full amount due becomes customer debt."
+  "unpaid": "The full amount due becomes customer debt.",
+  "tradeInCredit": "Trade-in credit",
+  "paidAmount": "Paid amount"
 }

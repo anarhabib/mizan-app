@@ -44,5 +44,7 @@
   "reportingRate": "1 {{currency}} üçün AZN",
   "recordDebt": "Qalan məbləği borc kimi yaz",
   "partialTender": "Bu ödənişdən sonra qalan məbləğ müştəri borcu kimi yazılır.",
-  "unpaid": "Ödənilməli məbləğin hamısı müştəri borcu kimi yazılır."
+  "unpaid": "Ödənilməli məbləğin hamısı müştəri borcu kimi yazılır.",
+  "tradeInCredit": "Dəyişmə dəyəri",
+  "paidAmount": "Ödənilən məbləğ"
 }

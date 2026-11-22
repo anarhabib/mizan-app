@@ -1,5 +1,12 @@
 # Mizan project state
 
+## Task 11 — sale payments and customer debt (November 22, 2026)
+
+- `apps/api/src/modules/sales` records split checkout payments with original tender, payment method, exchange rate and AZN equivalent. The calculated balance after trade-ins and monetary payments drives the customer requirement and confirmation. Repayments use the same conversion policy and a scoped idempotency key. They reduce the originating sale balance without creating sales revenue.
+- `apps/web/src/features/sales` and `apps/web/src/features/customers` show settlement totals and offer repayment from sale and customer details. `apps/web/src/features/products` shows a localized sold-on-credit badge while the linked sale has debt. Products leave available inventory at checkout.
+- Migration `202611220002_sale_debt` preserves historical tender, backfills linked balances and adds the payment ledger. Prisma validation, schema parity, historical backfill, TypeScript, changed-file formatting and lint, API and web builds, and 190 tests passed. Chromium checked checkout, confirmation, repayment replay after a lost response, and inventory badges at 390px and 1280px in light and dark. Live Storage testing was skipped.
+- Applied the migration to the configured development database for manual testing. Prisma reports the schema is current. Read-only API checks returned HTTP 200 for an existing receipt, its product, sales history and the customer directory. The running local app is at `http://127.0.0.1:3000`.
+
 ## Task 10 — customers and sales (November 22, 2026)
 
 - `apps/web/src/features/customers` and `apps/web/src/routes/customers.tsx` provide the searchable directory, contact management, AZN totals and purchase history with links to sales receipts. The sale form can select or create a contact and explicitly record an unpaid balance. Fully paid sales can stay anonymous.

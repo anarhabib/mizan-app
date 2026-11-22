@@ -146,6 +146,7 @@ export async function cacheSoldProduct(
   scope: ProductScope,
   id: string,
   sale: NonNullable<ProductDetail["sale"]>,
+  hasOutstandingDebt?: boolean,
 ) {
   const lists = client
     .getQueryCache()
@@ -160,7 +161,8 @@ export async function cacheSoldProduct(
 
   client.setQueryData<ProductDetail>(
     detailKey,
-    (product) => product && { ...product, status: "SOLD", sale },
+    (product) =>
+      product && { ...product, status: "SOLD", sale, hasOutstandingDebt },
   );
   for (const { queryKey } of lists) {
     const filters = queryKey[4] as ProductFilters;
@@ -175,7 +177,9 @@ export async function cacheSoldProduct(
               filters.status === "IN_STOCK"
                 ? page.items.filter((item) => item.id !== id)
                 : page.items.map((item) =>
-                    item.id === id ? { ...item, status: "SOLD" } : item,
+                    item.id === id
+                      ? { ...item, status: "SOLD", hasOutstandingDebt }
+                      : item,
                   ),
           })),
         },

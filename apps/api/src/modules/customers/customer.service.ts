@@ -12,7 +12,7 @@ import { uuidPattern, type AccessContext } from "../access/access.service.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import { lockOrganization } from "../access/organization-owner.js";
 import type { SalesDatabase } from "../sales/sale.service.js";
-import { outstandingSaleDebt } from "../sales/settlement.js";
+import { paidSaleAmount } from "../sales/settlement.js";
 
 type CustomerDatabase = Pick<
   Prisma.TransactionClient,
@@ -58,8 +58,7 @@ async function summarize(
   >`
     SELECT "customerId",
       ROUND(SUM("defaultSaleAmount" * "customerReportingRate"), 2) AS purchases,
-      ROUND(SUM(GREATEST("defaultSettlement" - COALESCE("convertedPayment", 0), 0)
-        * "customerReportingRate"), 2) AS debt,
+      ROUND(SUM("outstandingDebt" * "customerReportingRate"), 2) AS debt,
       MAX("createdAt") AS "lastPurchaseAt"
     FROM "mizan"."Sale"
     WHERE "organizationId" = ${organizationId}::uuid AND "storeId" = ${storeId}::uuid
@@ -189,8 +188,9 @@ export async function listCustomerPurchases(
       productName: true,
       defaultCurrency: true,
       defaultSaleAmount: true,
+      acceptedTradeInTotal: true,
       defaultSettlement: true,
-      convertedPayment: true,
+      outstandingDebt: true,
       paymentCurrency: true,
       paymentAmount: true,
       _count: { select: { items: true } },
@@ -207,10 +207,15 @@ export async function listCustomerPurchases(
         currency: sale.defaultCurrency,
       },
       outstandingDebt: {
-        amount: outstandingSaleDebt(
-          sale.defaultSettlement,
-          sale.convertedPayment,
-        ).toFixed(),
+        amount: sale.outstandingDebt.toFixed(),
+        currency: sale.defaultCurrency,
+      },
+      tradeInCredit: {
+        amount: sale.acceptedTradeInTotal.toFixed(),
+        currency: sale.defaultCurrency,
+      },
+      paidAmount: {
+        amount: paidSaleAmount(sale.defaultSettlement, sale.outstandingDebt),
         currency: sale.defaultCurrency,
       },
       payment:

@@ -33,6 +33,8 @@ export interface CustomerPurchase {
   productName: string;
   itemCount: number;
   total: MoneyInput;
+  tradeInCredit: MoneyInput;
+  paidAmount: MoneyInput;
   outstandingDebt: MoneyInput;
   payment: MoneyInput | null;
 }
