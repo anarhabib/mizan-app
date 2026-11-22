@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, RotateCw } from "lucide-react";
 import { Switch } from "radix-ui";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +78,7 @@ function OwnerSettings({
           disabled={query.isFetching}
           className="min-h-10 lg:min-h-8"
         >
+          <RotateCw aria-hidden="true" />
           {t("retry")}
         </Button>
       </div>

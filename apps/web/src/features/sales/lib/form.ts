@@ -13,6 +13,9 @@ import type { SaleOptions } from "../api/queries";
 export const maxTradeIns = 100;
 
 export type SaleFormValues = {
+  customerId?: string;
+  customerReportingRate?: string;
+  recordDebt?: boolean;
   saleAmount: string;
   items?: { productId: string; label: string; saleAmount: string }[];
   tradeIns: { rateId: string; weight: string; overrideAmount: string }[];
@@ -94,6 +97,20 @@ export function buildSalePayload(
       ? { items, expectedCurrency: currency }
       : { productId, saleAmount, expectedCurrency: currency };
   if (tradeIns.length) input.tradeIns = tradeIns;
+  if (values.recordDebt && !values.customerId) return { field: "customerId" };
+  if (values.customerId) {
+    input.customerId = values.customerId;
+    if (values.recordDebt) input.recordDebt = true;
+    if (currency !== "AZN") {
+      const rate = validDecimal(
+        values.customerReportingRate ?? "",
+        12,
+        (value) => parseDecimal(value, 8),
+      );
+      if (rate === undefined) return { field: "customerReportingRate" };
+      input.customerReportingRate = rate;
+    }
+  }
   if (values.includePayment) {
     const paymentCurrency = values.payment.currency.trim().toUpperCase();
     try {
@@ -198,6 +215,12 @@ export function saleError(error: ApiError, tradeInCount: number) {
   if (error.code === "SALE_PAYMENT_TOO_LOW") {
     return { message: "paymentTooLow", field: "payment.amount" } as const;
   }
+  if (error.code === "SALE_CUSTOMER_REQUIRED") {
+    return { message: "customerRequired", field: "customerId" } as const;
+  }
+  if (error.code === "CUSTOMER_NOT_FOUND") {
+    return { message: "customerMissing", field: "customerId" } as const;
+  }
   if (error.code === "SALE_PAYMENT_NOT_DUE") {
     return { message: "paymentNotDue" } as const;
   }
@@ -205,6 +228,7 @@ export function saleError(error: ApiError, tradeInCount: number) {
     const field = error.field;
     if (
       field === "saleAmount" ||
+      field === "customerReportingRate" ||
       field === "tradeIns" ||
       /^payment\.(currency|amount|exchangeRate)$/.test(field ?? "")
     ) {

@@ -1,4 +1,8 @@
 {
+  "SALE_CUSTOMER_REQUIRED": "Borc yazmaq üçün müştəri seçin.",
+  "INVALID_CUSTOMER": "Müştərini yadda saxlamaq mümkün olmadı.",
+  "CUSTOMER_NOT_FOUND": "Müştəri tapılmadı. Başqa müştəri seçin.",
+  "CUSTOMER_DELETE_CONFLICT": "Alış tarixçəsi olan müştərini silmək mümkün deyil.",
   "generic": "Xəta baş verdi. Yenidən cəhd edin.",
   "NETWORK_ERROR": "Şəbəkəyə qoşulmaq mümkün olmadı.",
   "INVALID_ONBOARDING": "İş yeri məlumatlarını yoxlayın.",

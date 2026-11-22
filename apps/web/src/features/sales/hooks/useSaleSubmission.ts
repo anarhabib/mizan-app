@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateCustomers } from "@/features/customers";
 import type {
   ProductDetail,
   SaleConfirmation,
@@ -56,6 +57,8 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   }
 
   function refreshReceiptInventory(result: SaleResult) {
+    if (result.customerId)
+      void invalidateCustomers(client, scope, result.customerId);
     return refreshInventory(
       result.items.map(({ product, saleAmount }) => ({
         id: product.id,

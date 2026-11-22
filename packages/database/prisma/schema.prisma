@@ -70,6 +70,7 @@ model Store {
   assignments    StoreAssignment[]
   invitations    Invitation[]
   products       Product[]
+  customers      Customer[]
   ownerOnboardings OwnerOnboarding[]
 
   @@id([organizationId, id])
@@ -197,11 +198,30 @@ model Product {
   @@schema("mizan")
 }
 
+model Customer {
+  organizationId String   @db.Uuid
+  storeId        String   @db.Uuid
+  id             String   @default(uuid()) @db.Uuid
+  name           String
+  phone          String
+  phoneDigits    String
+  note           String?
+  createdAt      DateTime @default(now())
+  store          Store    @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
+  sales          Sale[]
+
+  @@id([organizationId, storeId, id])
+  @@index([organizationId, storeId, createdAt, id])
+  @@schema("mizan")
+}
+
 model Sale {
   organizationId              String              @db.Uuid
   storeId                     String              @db.Uuid
   id                          String              @default(uuid()) @db.Uuid
   productId                   String              @db.Uuid
+  customerId                  String?             @db.Uuid
+  customerReportingRate       Decimal?            @db.Decimal(20, 8)
   actorId                     String              @db.Uuid
   idempotencyKey              String
   requestDigest               String
@@ -226,6 +246,7 @@ model Sale {
   productWeight               Decimal             @db.Decimal(15, 3)
   createdAt                   DateTime            @default(now())
   product                     Product             @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+  customer                    Customer?           @relation(fields: [organizationId, storeId, customerId], references: [organizationId, storeId, id], onDelete: Restrict)
   actor                       StoreAssignment     @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
   tradeIns                    TradeIn[]
   items                       SaleItem[]
@@ -234,6 +255,7 @@ model Sale {
   @@id([organizationId, storeId, id])
   @@unique([organizationId, storeId, productId])
   @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@index([organizationId, storeId, customerId, createdAt, id], map: "Sale_customer_history_idx")
   @@schema("mizan")
 }
 

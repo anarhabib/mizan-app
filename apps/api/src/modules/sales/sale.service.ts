@@ -21,6 +21,7 @@ import { requireSaleConfirmation } from "./sale-confirmation.js";
 import {
   calculateSettlement,
   calculateTradeIns,
+  outstandingSaleDebt,
   SaleDecimal,
 } from "./settlement.js";
 
@@ -171,6 +172,13 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
       : null;
   return {
     id: sale.id,
+    ...(sale.customerId && {
+      customerId: sale.customerId,
+      outstandingDebt: outstandingSaleDebt(
+        sale.defaultSettlement,
+        sale.convertedPayment,
+      ).toFixed(),
+    }),
     actorId: sale.actorId,
     createdAt: sale.createdAt.toISOString(),
     currency,
@@ -423,6 +431,9 @@ export async function recordSale(
                   ...items[0],
                   tradeIns: requestedTradeIns,
                   tender: requestedTender,
+                  customerId: input.customerId,
+                  customerReportingRate: input.customerReportingRate,
+                  recordDebt: input.recordDebt,
                 }
               : input,
           ),
@@ -433,6 +444,17 @@ export async function recordSale(
           throw new AccessError("SALE_CONFLICT", "idempotencyKey");
         return presentSale(previous, access);
       }
+
+      if (
+        input.customerId &&
+        !(await tx.customer.findUnique({
+          where: {
+            organizationId_storeId_id: { ...scope, id: input.customerId },
+          },
+          select: { id: true },
+        }))
+      )
+        throw new AccessError("CUSTOMER_NOT_FOUND", "customerId");
 
       const productWhere = {
         ...scope,
@@ -482,6 +504,7 @@ export async function recordSale(
         saleAmount,
         tradeIns.map(({ acceptedValue }) => acceptedValue),
         input.tender,
+        input.recordDebt,
       );
       const losses = saleItems.flatMap((item): SaleLoss[] => {
         const cost = item.acquisitionCost;
@@ -518,7 +541,7 @@ export async function recordSale(
       const first = saleItems[0];
       const tender =
         input.tender ??
-        (new SaleDecimal(settlement.balance).gt(0)
+        (!input.recordDebt && new SaleDecimal(settlement.balance).gt(0)
           ? {
               amount: settlement.balance,
               currency,
@@ -530,6 +553,8 @@ export async function recordSale(
           ...key,
           requestDigest,
           productId: first.productId,
+          customerId: input.customerId,
+          customerReportingRate: input.customerReportingRate,
           currency,
           defaultCurrency: currency,
           exchangeRate: "1",

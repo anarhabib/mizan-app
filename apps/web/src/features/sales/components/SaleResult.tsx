@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { SaleProfit, SaleResult as Result } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +35,7 @@ export function SaleDetail({ scope, id }: { scope: SaleScope; id: string }) {
 
 function SaleRecord({ sale }: { sale: Result }) {
   const { t } = useTranslation("sales");
+  const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
   const money = (amount: string, currency = sale.currency) => (
     <MoneyText value={{ amount, currency }} />
@@ -43,6 +45,15 @@ function SaleRecord({ sale }: { sale: Result }) {
       <p className="text-xs text-muted-foreground">
         <SaleDate value={sale.createdAt} />
       </p>
+      {sale.customerId && (
+        <Link
+          to="/customers"
+          search={{ customer: sale.customerId }}
+          className="inline-flex min-h-11 items-center justify-self-start underline underline-offset-4 lg:min-h-9"
+        >
+          {customerText("detail")}
+        </Link>
+      )}
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>
@@ -124,6 +135,11 @@ function SaleRecord({ sale }: { sale: Result }) {
         <Fact label={t("fields.saleTotal")}>{money(sale.saleAmount)}</Fact>
         <Fact label={t("fields.tradeInTotal")}>{money(sale.tradeInTotal)}</Fact>
         <Fact label={t("fields.balance")}>{money(sale.balance)}</Fact>
+        {sale.outstandingDebt !== undefined && (
+          <Fact label={customerText("debt")}>
+            {money(sale.outstandingDebt)}
+          </Fact>
+        )}
         <Fact label={t("fields.payout")}>{money(sale.payout)}</Fact>
       </dl>
 

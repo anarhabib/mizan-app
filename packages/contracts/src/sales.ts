@@ -45,6 +45,9 @@ export const maxSaleItems = 100;
 
 interface SaleTerms {
   expectedCurrency?: string;
+  customerId?: string;
+  customerReportingRate?: string;
+  recordDebt?: boolean;
   tradeIns?: SaleTradeInInput[];
   payment?: {
     currency: string;
@@ -96,6 +99,8 @@ export interface SaleList {
 
 export interface SaleResult {
   id: string;
+  customerId?: string;
+  outstandingDebt?: string;
   actorId: string;
   createdAt: string;
   currency: string;

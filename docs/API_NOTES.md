@@ -20,10 +20,10 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 ## Errors and validation
 
 - Application errors contain `code` and `message`, with an optional `field`. `SALE_CONFIRMATION_REQUIRED` also includes `confirmation`. Messages are Azerbaijani.
-- 400: `INVALID_ONBOARDING`, `INVALID_MEMBERSHIP`, `INVALID_SETTINGS`, `INVALID_PRODUCT`, `INVALID_SALE`, `SALE_PAYMENT_TOO_LOW`, `SALE_PAYMENT_NOT_DUE`.
+- 400: `INVALID_ONBOARDING`, `INVALID_MEMBERSHIP`, `INVALID_SETTINGS`, `INVALID_PRODUCT`, `INVALID_CUSTOMER`, `INVALID_SALE`, `SALE_PAYMENT_TOO_LOW`, `SALE_PAYMENT_NOT_DUE`, `SALE_CUSTOMER_REQUIRED`.
 - 401: `UNAUTHENTICATED`; 403: `ACCESS_DENIED`.
-- 404: `PRODUCT_NOT_FOUND`, `SALE_NOT_FOUND`.
-- 409: `INVITATION_UNAVAILABLE`, `PURITY_CONFLICT`, `PRODUCT_CODE_CONFLICT`, `PRODUCT_EDIT_CONFLICT`, `PRODUCT_DELETE_CONFLICT`, `PHOTO_CONFLICT`, `SALE_CONFLICT`, `SALE_CONFIRMATION_REQUIRED`.
+- 404: `PRODUCT_NOT_FOUND`, `SALE_NOT_FOUND`, `CUSTOMER_NOT_FOUND`.
+- 409: `INVITATION_UNAVAILABLE`, `PURITY_CONFLICT`, `PRODUCT_CODE_CONFLICT`, `PRODUCT_EDIT_CONFLICT`, `PRODUCT_DELETE_CONFLICT`, `PHOTO_CONFLICT`, `SALE_CONFLICT`, `SALE_CONFIRMATION_REQUIRED`, `CUSTOMER_DELETE_CONFLICT`.
 - 503: `AUTH_UNAVAILABLE`, `PHOTO_UNAVAILABLE`; unexpected errors in protected group become 500 `INTERNAL_ERROR` with `{code,message}`.
 - No registered route supplies Fastify JSON Schema and no Zod schema is used. Validation is manual: shared `parseOnboarding`, `parseProductCreate`, `parsePurity`, `parseRate`, route checks, auth UUID checks, and backend `parseSaleInput`. TypeScript interfaces alone do not validate requests.
 - Invalid onboarding is a direct 400 `{code,message}` response; product/sale validation may include `field`, others usually do not. No validation issue array exists. Non-`AccessError` failures (including malformed JSON in the protected plugin) map to 500 instead of preserving their Fastify status. Unmatched routes/default Fastify errors outside this handler can use Fastify's `{statusCode,error,message}` shape.
@@ -78,12 +78,18 @@ All paths below are relative to `/api/v1`. `Auth` = authenticated identity; `Sto
 | Sales | GET `/sales` | Sale history | Store | — | `SaleList` |
 | Sales | GET `/sales/options` | Trading/payment options | Store | — | Service result; no exported options contract or route response schema |
 | Sales | GET `/sales/:id` | Persisted sale | Store | — | Service result; public `SaleResult` |
+| Customers | GET `O/stores/:storeId/customers` | Customer directory | Store | — | `CustomerList` |
+| Customers | POST `O/stores/:storeId/customers` | Create contact | Store | `name,phone,note?` | 201 `CustomerContact` |
+| Customers | GET `O/stores/:storeId/customers/:id` | Customer, notes and AZN totals | Store | — | `CustomerDetail` |
+| Customers | GET `O/stores/:storeId/customers/:id/purchases` | Purchase history and tender recorded at sale | Store | — | `CustomerHistory` |
+| Customers | PATCH `O/stores/:storeId/customers/:id` | Edit contact | Store | `name,phone,note?` | `CustomerContact` |
+| Customers | DELETE `O/stores/:storeId/customers/:id` | Delete a contact without linked sales | Owner in Owner mode | — | 204 |
 
 Product acquisition accepts a positive weight with up to 3 fractional digits and a positive rate with up to 16 fractional digits in a supported ISO currency. The API calculates weight × rate and rounds the total half up to 4 decimal places, independent of currency minor units. A total that rounds to zero or exceeds 16 whole digits is invalid. The product form uses the same shared parser for its preview. The migration derives rates from positive stored weight and cost while preserving original totals. A rate may be absent for legacy records with invalid values. Apply migration `202611200001_product_acquisition_per_gram` to the target database before starting this API version. Product details depend on the new column.
 
 Acquisition edits and deletions require an active owner with access to the store. Edits are limited to in-stock products with no sale or movement beyond initial intake. Deletion returns `PRODUCT_DELETE_CONFLICT` for sold products or any sale or inventory dependency, including `PRODUCT_ADDED`. Payments are stored on the sale and trade-ins reference the sale. Every API-created product has an intake movement. The schema has no product archive.
 
-No separate inventory-movement, return, old-gold exchange, stock-adjustment, customer, report, login/session, or general user CRUD endpoints are registered. Movements are nested in product detail; old-gold trade-ins are nested in sales.
+Movements are nested in product detail and old-gold trade-ins are nested in sales. The sales API has no cancellation, void, or post-sale debt collection workflow.
 
 ### Public response/request field reference
 
@@ -94,14 +100,24 @@ No separate inventory-movement, return, old-gold exchange, stock-adjustment, cus
 - `ProductListItem`: `id,code,name,category,purity,weight,status`; `ProductList`: `items:ProductListItem[],nextCursor?,filters?:{categories:string[],purities:number[]}`.
 - `ProductDetail`: ProductListItem + `acquisitionCost?:Money,acquisitionCostPerGram?:Money,canEditAcquisition?:boolean,canDelete?:boolean,note:string|null,createdAt,photo:{url,contentType,size}|null,movements:{id,kind,actorId,createdAt}[],sale:{id,total:Money,createdAt}|null`. The edit and delete capabilities are sent only to owners. Movement kinds: `PRODUCT_ADDED|PRODUCT_SOLD|OLD_GOLD_RECEIVED`.
 - `ProductPhotoUpload`: `uploadId,uploadUrl`; signed upload transport/content restrictions and confirmation response are service-defined, not established by route code alone.
-- `SaleCreateInput` accepts `items:{productId,saleAmount}[]` with 1–100 distinct products, or the original single-item `productId,saleAmount` fields. Each `saleAmount` is the final negotiated item price after discounts, may be zero, and uses the organization currency. There is no separate discount or debt field. Optional fields are `expectedCurrency`, up to 100 `tradeIns:{purity,weight,rateId,overrideAmount?}[]`, and `payment:{currency,amount,exchangeRate?}`. Same-currency exchangeRate equals 1 and defaults to `"1"`. Foreign payments require it. An `expectedCurrency` mismatch returns `SALE_CONFLICT` on `currency`.
+- `SaleCreateInput` accepts `items:{productId,saleAmount}[]` with 1–100 distinct products, or the original single-item `productId,saleAmount` fields. Each `saleAmount` is the final negotiated item price after discounts, may be zero, and uses the organization currency. Optional fields include `expectedCurrency`, up to 100 `tradeIns:{purity,weight,rateId,overrideAmount?}[]`, and `payment:{currency,amount,exchangeRate?}`. Same-currency exchangeRate equals 1 and defaults to `"1"`. Foreign payments require it. An `expectedCurrency` mismatch returns `SALE_CONFLICT` on `currency`.
 - `SalePreviewInput` accepts `tradeIns`, optional final `saleAmounts` for each sold item, and optional `expectedCurrency`. When sale amounts are provided, `SalePreview.amountDue` is the server-calculated positive balance after accepted trade-ins, rounded to the sale currency's minor units. `SalePreview` also returns the exact `tradeInTotal` and each line's applied rate, calculated value, accepted value, and override state. Preview uses current active rates and never writes sale or inventory records.
-- Explicit tender must cover the final balance after trade-ins (`SALE_PAYMENT_TOO_LOW`, field `payment.amount`) and is only accepted when a balance is due (`SALE_PAYMENT_NOT_DUE`, field `payment`). If tender is omitted, a positive balance is recorded as paid in the sale currency.
+- Supply `customerId` to link a receipt to a contact in the current store. A linked non-AZN sale requires `customerReportingRate` (AZN per one unit of sale currency, up to 8 fractional digits). AZN receipts use a rate of one. Sale attempts and confirmation challenges bind these terms.
+- Explicit tender must cover the final balance after trade-ins when `recordDebt` is omitted or false (`SALE_PAYMENT_TOO_LOW`, field `payment.amount`). Omitted tender then records a positive balance as paid in the sale currency. With `recordDebt:true`, `customerId` is required (`SALE_CUSTOMER_REQUIRED`, field `customerId`). Tender may be partial or omitted. Omitted tender in this mode leaves the full positive balance unpaid. In either mode explicit tender requires a positive balance (`SALE_PAYMENT_NOT_DUE`, field `payment`). Linked `SaleResult` responses include `customerId` and `outstandingDebt` in the receipt currency.
 - When any item is below its comparable acquisition cost, `POST /sales` returns 409 `SALE_CONFIRMATION_REQUIRED` with `confirmation:{token,financials?}` and leaves inventory and sales unchanged. Owners in Owner mode also receive `financials:{currency,losses:{productId,code,acquisitionCost,saleAmount,expectedLoss}[]}`. After explicit user confirmation, retry the same payload and idempotency key with `Sale-Confirmation: <token>`. The token binds the session, mode, sale terms and current losses. Submit any new challenge to the user again. API restarts invalidate pending tokens. Completed idempotent replays return the receipt with the caller's current permissions.
 - `SaleResult` adds ordered `items:{product,saleAmount,profit?}[]` and sale-level `profit?`. It retains the original `product` snapshot as the first item for existing callers. `saleAmount` is the full sale total. `tradeInTotal,balance,payout,payment,tradeIns` continue to describe settlement. Each sold product's detail links to the same receipt and reports its own final price.
 - Profit fields are returned only to an owner in Owner mode, regardless of the staff product-cost setting. `profit` includes `acquisitionCost:Money|null,grossProfit:string|null,marginPercent:string|null`. Item profit also includes `acquisitionCostPerGram:Money|null`. Gross profit uses the final sales value less the sale-time cost snapshot. Trade-ins, payouts, tender and change settle the sale value. Margin is gross profit divided by final sales value, expressed as a percentage rounded half up to two places. Zero-value sales have no margin.
 - Older receipts have no acquisition snapshots and display unavailable profit. When a cost is missing or is in a different currency from the sale, the API leaves gross profit and margin unavailable. A known cost retains its original currency. Aggregate cost requires known costs in a single currency across all items. Apply migration `202611200003_sale_items` before starting the updated API.
 - `SaleList` entries retain the first product snapshot and add `itemCount`. The search matches any sold item's name or code. List entries omit profit.
+
+### Customers
+
+- `CustomerContact` contains `id,name,phone`. Name is required and limited to 120 characters. Phone is required and accepts 3–15 digits with an optional leading plus and formatting spaces, parentheses, or dashes.
+- `CustomerDetail` adds `note:string|null` to the summary. Notes may be up to 1,000 characters and preserve line breaks. On edit, an omitted note preserves the saved value. A blank or null note clears it.
+- `CustomerSummary` adds `totalPurchases:Money,outstandingDebt:Money,lastPurchaseAt:string|null`. The API sums persisted sale totals and positive unpaid balances using each sale's reporting rate, then rounds each aggregate to two AZN decimal places. An unpaid balance is the positive part of the rounded sale balance after trade-ins minus recorded converted tender. Change and payouts cannot reduce debt on other sales.
+- `CustomerList` supports `q` (maximum 160 characters, case-insensitive name or normalized phone substring) and `after`. `CustomerHistory` supports `after`. Both return up to 50 rows ordered by creation time descending with an ID tie-breaker. Pass `nextCursor` unchanged as `after`.
+- Each purchase contains `id,createdAt,productName,itemCount,total:Money,outstandingDebt:Money,payment:Money|null`. Purchase amounts use the original sale and tender currencies. The payment field shows tender received at checkout. The linked sale detail includes change and trade-in settlement. Customer endpoints expose only contact and customer-facing receipt data. Existing receipt permissions continue to apply when opening a sale.
+- Both assigned roles can read, add and edit store contacts. Deletion requires Owner mode. Any linked receipt blocks deletion with `CUSTOMER_DELETE_CONFLICT`. Apply migration `202611220001_customers` before starting the updated API. Existing unlinked receipts remain anonymous.
 
 ## OpenAPI, Supabase, shared packages
 
@@ -118,6 +134,7 @@ No separate inventory-movement, return, old-gold exchange, stock-adjustment, cus
   - settings: `defaultPurities`, `OrganizationSettings`, `PurityGrade`, `OldGoldRate`, `TradingSettings`, `parsePurity`, `parseRate`.
   - products: `ProductStatus`, `ProductAcquisitionInput`, `ProductCreateInput`, `ProductListItem`, `ProductDetail`, `ProductList`, `ProductPhotoUpload`, `ProductPhotoConfirmInput`, `parseProductAcquisition`, `parseProductCreate`.
   - sales: `SaleCreateInput`, `SaleList`, `SalePreviewInput`, `SalePreview`, `SaleTradeInInput`, `SaleTradeInPreview`, `SaleResult`.
+  - customers: `CustomerInput`, `CustomerContact`, `CustomerSummary`, `CustomerDetail`, `CustomerList`, `CustomerHistory`, `CustomerPurchase`, `parseCustomerInput`.
 - `@mizan/database` exports `createDatabase`, `Prisma`; depends on Prisma/PostgreSQL libraries and is **backend-only**. Never import it or `packages/database` into `apps/web`.
 
 ## Findings / inspection limits

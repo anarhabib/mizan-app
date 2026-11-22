@@ -8,7 +8,11 @@ import { SaleCreate } from "./SaleCreate";
 import { SaleList } from "./SaleList";
 import { SaleDetail } from "./SaleResult";
 
-type CreateTarget = { productId?: string; closeCreate: () => void };
+type CreateTarget = {
+  productId?: string;
+  saleId?: string;
+  closeCreate: () => void;
+};
 
 export function SalesPage(props: CreateTarget) {
   const { organizationId, storeId } = useWorkspace();
@@ -24,11 +28,14 @@ export function SalesPage(props: CreateTarget) {
 function ScopedSales({
   scope,
   productId,
+  saleId,
   closeCreate,
 }: CreateTarget & { scope: SaleScope }) {
   const { t } = useTranslation("sales");
   const [focusTarget, setFocusTarget] = useState<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<{ id: string; opener: HTMLElement }>();
+  const receipt =
+    saleId && focusTarget ? { id: saleId, opener: focusTarget } : detail;
 
   return (
     <>
@@ -48,13 +55,13 @@ function ScopedSales({
           close={closeCreate}
         />
       )}
-      {!productId && detail && (
+      {!productId && receipt && (
         <ProductPanel
           title={t("detail")}
-          close={() => setDetail(undefined)}
-          opener={detail.opener}
+          close={saleId ? closeCreate : () => setDetail(undefined)}
+          opener={receipt.opener}
         >
-          <SaleDetail scope={scope} id={detail.id} />
+          <SaleDetail scope={scope} id={receipt.id} />
         </ProductPanel>
       )}
     </>

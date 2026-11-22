@@ -8,8 +8,12 @@ import {
   type UseFormRegisterReturn,
 } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
-import { maxSaleItems, type SaleCreateInput } from "@mizan/contracts";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  maxSaleItems,
+  type CustomerContact,
+  type SaleCreateInput,
+} from "@mizan/contracts";
+import { Minus, Plus, RotateCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +35,7 @@ import {
   type SaleFormValues,
 } from "../lib/form";
 import { SaleProductPicker } from "./SaleProductPicker";
+import { SaleCustomerPicker } from "./SaleCustomerPicker";
 
 const currencies = Intl.supportedValuesOf("currency").map((value) => ({
   value,
@@ -52,8 +57,19 @@ export function SaleForm({
   submission: Submission;
 }) {
   const { t, i18n } = useTranslation("sales");
+  const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
   const [picking, setPicking] = useState(false);
+  const [pickingCustomer, setPickingCustomer] = useState(false);
+  const [customer, setCustomer] = useState<CustomerContact>();
+  const customerButton = useRef<HTMLButtonElement>(null);
+  const pickerHeading = useRef<HTMLDivElement>(null);
+  const wasPickingCustomer = useRef(false);
+  useEffect(() => {
+    if (pickingCustomer) pickerHeading.current?.focus();
+    else if (wasPickingCustomer.current) customerButton.current?.focus();
+    wasPickingCustomer.current = pickingCustomer;
+  }, [pickingCustomer]);
   const cancelButton = useRef<HTMLButtonElement>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
   const confirmationToken = submission.confirmation?.token;
@@ -71,6 +87,9 @@ export function SaleForm({
   const { currency, rates } = options;
   const form = useForm<SaleFormValues, unknown, SaleCreateInput>({
     defaultValues: {
+      customerId: "",
+      customerReportingRate: "",
+      recordDebt: false,
       saleAmount: "",
       items: [],
       tradeIns: [],
@@ -100,6 +119,7 @@ export function SaleForm({
     control: form.control,
     name: "includePayment",
   });
+  const recordDebt = useWatch({ control: form.control, name: "recordDebt" });
   const paymentCurrency = useWatch({
     control: form.control,
     name: "payment.currency",
@@ -119,10 +139,7 @@ export function SaleForm({
     input: NonNullable<typeof previewInput>;
   }>();
   useEffect(() => {
-    if (!previewKey) {
-      setDebouncedPreview(undefined);
-      return;
-    }
+    if (!previewKey) return;
     const timeout = setTimeout(() => {
       setDebouncedPreview({
         key: previewKey,
@@ -155,7 +172,7 @@ export function SaleForm({
     const error = await action();
     if (error) {
       if (error.field) form.setError(error.field, { type: error.message });
-      if (!error.field) setMessage(error.message);
+      else setMessage(error.message);
     }
   }
   const submit = form.handleSubmit((payload) =>
@@ -227,7 +244,7 @@ export function SaleForm({
     </div>
   );
   const formContent = (
-    <form noValidate onSubmit={submit} hidden={confirmOpen}>
+    <form noValidate onSubmit={submit} hidden={confirmOpen || pickingCustomer}>
       <fieldset disabled={disabled} className="grid min-w-0 gap-6">
         <DecimalInput
           name={form.register("saleAmount")}
@@ -414,6 +431,7 @@ export function SaleForm({
                 className="min-h-11 lg:min-h-9"
                 onClick={() => void previewQuery.refetch()}
               >
+                <RotateCw aria-hidden="true" />
                 {t("retryPreview")}
               </Button>
             </div>
@@ -445,11 +463,87 @@ export function SaleForm({
           )}
         </section>
         <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
+          <h3 className="font-medium">{customerText("optionalCustomer")}</h3>
+          {customer && (
+            <p className="wrap-anywhere">
+              {customer.name} · {customer.phone}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              ref={customerButton}
+              type="button"
+              variant="outline"
+              className="min-h-11 lg:min-h-9"
+              aria-describedby={
+                errors.customerId ? "sale-customer-error" : undefined
+              }
+              onClick={() => setPickingCustomer(true)}
+            >
+              {customerText(customer ? "change" : "select")}
+            </Button>
+            {customer && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 lg:min-h-9"
+                onClick={() => {
+                  setCustomer(undefined);
+                  form.setValue("customerId", "");
+                  form.setValue("customerReportingRate", "");
+                  form.setValue("recordDebt", false);
+                  form.clearErrors(["customerId", "customerReportingRate"]);
+                  customerButton.current?.focus();
+                }}
+              >
+                {customerText("remove")}
+              </Button>
+            )}
+          </div>
+          {errors.customerId && (
+            <p
+              id="sale-customer-error"
+              role="alert"
+              className="text-destructive"
+            >
+              {customerText(
+                errors.customerId.type === "customerMissing"
+                  ? "missing"
+                  : "requiredForDebt",
+              )}
+            </p>
+          )}
+          {customer && currency !== "AZN" && (
+            <DecimalInput
+              name={form.register("customerReportingRate")}
+              id="sale-customer-reporting-rate"
+              label={customerText("reportingRate", { currency })}
+              error={errors.customerReportingRate}
+            />
+          )}
+        </section>
+        <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("payment")}</h3>
+          <Label
+            htmlFor="sale-record-debt"
+            className="min-h-11 gap-3 lg:min-h-9"
+          >
+            <input
+              id="sale-record-debt"
+              type="checkbox"
+              className="size-4 accent-primary"
+              {...form.register("recordDebt", {
+                onChange: () => form.clearErrors("customerId"),
+              })}
+            />
+            {customerText("recordDebt")}
+          </Label>
           <p className="text-muted-foreground">
-            {paymentEnabled
-              ? t("paymentCoverage")
-              : t("defaultPayment", { currency })}
+            {recordDebt
+              ? customerText(paymentEnabled ? "partialTender" : "unpaid")
+              : paymentEnabled
+                ? t("paymentCoverage")
+                : t("defaultPayment", { currency })}
           </p>
           {activePreview && previewQuery.data?.amountDue !== undefined && (
             <div className="flex justify-between gap-3 border-t pt-3 font-medium">
@@ -474,6 +568,11 @@ export function SaleForm({
               setMessage(undefined);
             }}
           >
+            {paymentEnabled ? (
+              <Minus aria-hidden="true" />
+            ) : (
+              <Plus aria-hidden="true" />
+            )}
             {t(paymentEnabled ? "removePayment" : "addPayment")}
           </Button>
           {paymentEnabled && (
@@ -539,11 +638,14 @@ export function SaleForm({
             </>
           )}
         </section>
-        {message && message !== "unknownOutcome" && (
-          <p role="alert" className="text-destructive">
-            {t(`errors.${message}`)}
-          </p>
-        )}
+        {message &&
+          message !== "unknownOutcome" &&
+          message !== "customerRequired" &&
+          message !== "customerMissing" && (
+            <p role="alert" className="text-destructive">
+              {t(`errors.${message}`)}
+            </p>
+          )}
         {submission.checkedInStock && !submission.busy && (
           <p role="status">{t("checkedInStock")}</p>
         )}
@@ -561,6 +663,20 @@ export function SaleForm({
   return (
     <>
       {formContent}
+      {pickingCustomer && (
+        <div ref={pickerHeading} tabIndex={-1}>
+          <SaleCustomerPicker
+            scope={scope}
+            close={() => setPickingCustomer(false)}
+            select={(selected) => {
+              setCustomer(selected);
+              form.setValue("customerId", selected.id);
+              form.clearErrors("customerId");
+              setPickingCustomer(false);
+            }}
+          />
+        </div>
+      )}
       {confirmation}
     </>
   );

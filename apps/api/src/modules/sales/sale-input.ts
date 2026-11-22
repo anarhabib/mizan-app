@@ -124,6 +124,25 @@ export function parseSaleInput(body: unknown, currency: string) {
       throw new AccessError("INVALID_SALE", "items");
   }
   const tradeIns = parseTradeIns(input.tradeIns, currency);
+  const customerId =
+    input.customerId === undefined
+      ? undefined
+      : id(input.customerId, "customerId");
+  if (input.recordDebt !== undefined && typeof input.recordDebt !== "boolean")
+    throw new AccessError("INVALID_SALE", "recordDebt");
+  const recordDebt = input.recordDebt === true ? true : undefined;
+  if (recordDebt && !customerId)
+    throw new AccessError("SALE_CUSTOMER_REQUIRED", "customerId");
+  if (
+    (!customerId || currency === "AZN") &&
+    input.customerReportingRate !== undefined
+  )
+    throw new AccessError("INVALID_SALE", "customerReportingRate");
+  const customerReportingRate = customerId
+    ? currency === "AZN"
+      ? "1"
+      : decimal(input.customerReportingRate, 8, 12, "customerReportingRate")
+    : undefined;
   let tender;
   if (input.payment !== undefined) {
     const payment = object(input.payment, "payment");
@@ -152,5 +171,8 @@ export function parseSaleInput(body: unknown, currency: string) {
     items,
     tradeIns,
     tender,
+    customerId,
+    customerReportingRate,
+    recordDebt,
   };
 }

@@ -24,12 +24,16 @@ import ruteam from "@/locales/ru/team.json";
 import ruerrors from "@/locales/ru/errors.json";
 import ruauth from "@/locales/ru/auth.json";
 import rworkspace from "@/locales/ru/workspace.json";
+import azcustomers from "@/locales/az/customers.json";
+import encustomers from "@/locales/en/customers.json";
+import rucustomers from "@/locales/ru/customers.json";
 
 export const resources = {
   az: {
     shell: azshell,
     products: azproducts,
     sales: azsales,
+    customers: azcustomers,
     settings: azsettings,
     team: azteam,
     errors: azerrors,
@@ -40,6 +44,7 @@ export const resources = {
     shell: enshell,
     products: enproducts,
     sales: ensales,
+    customers: encustomers,
     settings: ensettings,
     team: enteam,
     errors: enerrors,
@@ -50,6 +55,7 @@ export const resources = {
     shell: rushell,
     products: ruproducts,
     sales: rusales,
+    customers: rucustomers,
     settings: rusettings,
     team: ruteam,
     errors: ruerrors,

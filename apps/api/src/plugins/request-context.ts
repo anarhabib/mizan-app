@@ -12,6 +12,7 @@ import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
 import { registerProductRoutes } from "../modules/products/product.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
 import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
+import { registerCustomerRoutes } from "../modules/customers/customer.routes.js";
 import type { SalesDatabase } from "../modules/sales/sale.service.js";
 import {
   registerMembershipRoutes,
@@ -77,6 +78,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerSettingsRoutes(app, access, settingsDb);
   registerProductRoutes(app, access, products);
   registerSaleRoutes(app, access, salesDb);
+  registerCustomerRoutes(app, access, salesDb);
 
   const preHandler = access
     ? [

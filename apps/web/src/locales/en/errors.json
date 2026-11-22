@@ -1,4 +1,8 @@
 {
+  "SALE_CUSTOMER_REQUIRED": "Select a customer to record debt.",
+  "INVALID_CUSTOMER": "Could not save the customer.",
+  "CUSTOMER_NOT_FOUND": "Customer unavailable. Choose another customer.",
+  "CUSTOMER_DELETE_CONFLICT": "Customers with purchase history cannot be deleted.",
   "generic": "Something went wrong. Try again.",
   "NETWORK_ERROR": "Unable to connect. Check your connection.",
   "INVALID_ONBOARDING": "Check workspace details.",
