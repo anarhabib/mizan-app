@@ -1,6 +1,6 @@
-# Mizan — Tasks
+# Misqal — Tasks
 
-Status as of the frontend rebuild. Update a checkbox only when its status changes.
+Status synchronized against the current implementation. Change a checkbox only when implementation and required verification are complete.
 Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
 
 ## Done
@@ -11,14 +11,14 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
 - [x] Apply shadcn preset
 - [x] Backend contract notes (`docs/API_NOTES.md`)
 
-## In progress
+## Foundation implementation
 
-- [ ] Prompt 1: frontend foundation (Codex running)
-  - [ ] Review PR: only `apps/web`, docs and `.env.example` changed; nothing in `apps/api` or `packages`
-  - [ ] Shell looks right at 390px and 1280px, light and dark
-  - [ ] Accent color comes from the preset, no extra colors
-  - [ ] `DESIGN.md` starts with `Status: current`
-  - [ ] Read Codex's open questions, then merge
+- [x] Prompt 1: frontend foundation (Codex running)
+  - [x] Review PR: only `apps/web`, docs and `.env.example` changed; nothing in `apps/api` or `packages`
+  - [x] Shell looks right at 390px and 1280px, light and dark
+  - [x] Accent color comes from the preset, no extra colors
+  - [x] `DESIGN.md` starts with `Status: current`
+  - [x] Read Codex's open questions, then merge
 
 ## Frontend sequence
 
@@ -32,8 +32,8 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
   - [ ] Fix anything wrong now, every later feature copies this one
 - [x] Prompt 4: sales (needs the backend audit below first)
   - [ ] Test double tap, slow network and retry: only one sale must exist
-- [ ] Prompt 5: settings (owner)
-- [ ] Prompt 6: team (owner)
+- [x] Prompt 5: settings (owner)
+- [x] Prompt 6: team (owner)
 
 ## Backend (parallel, does not block Prompts 1 to 3)
 
@@ -55,10 +55,10 @@ Prompts referenced below are in `docs/CODEX_PROMPTS.md`.
 
 ## Product decisions to make
 
-- [ ] Do you need a live trade-in value preview before submitting a sale? (needs a backend `POST /sales/preview`)
+- [x] Do you need a live trade-in value preview before submitting a sale? (needs a backend `POST /sales/preview`)
 - [ ] Which are needed: returns, refunds, stock adjustments, customers, reports? (none exist in the API yet; each is a backend task, then a frontend prompt)
 - [ ] Add typed responses for `/sales/options`, settings and membership actions to `@mizan/contracts`
-- [ ] Final brand: logo SVG and accent color (one file and one token)
+- [x] Final brand: logo SVG and accent color (one file and one token)
 - [ ] Installable PWA for the shop phones?
 
 ## Later

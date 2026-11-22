@@ -1,4 +1,4 @@
-# Mizan — Frontend conventions
+# Misqal — Frontend conventions
 
 Read this before any UI task. Keep it short; update only when a convention changes.
 
@@ -87,7 +87,7 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 - Base text 14px. Controls `h-9` (`h-8` dense on desktop). Spacing scale: 2, 3, 4, 6 only.
 - Desktop content `max-w-5xl`. Bottom navigation on mobile, sidebar on `lg`.
 - Lists are rows on mobile; use tables only on `lg` and only when columns help. Dialogs become drawers on mobile.
-- The shadcn preset in `components.json` is the visual base (colors, radius, font, icon library). One accent color, defined only by the `--primary` token (set by the preset). Never hardcode colors in components; use semantic tokens (`bg-primary`, `text-muted-foreground`, etc.) so a rebrand is one change. The logo is rendered only by `shared/ui/BrandMark`. Borders over shadows. No gradients, glass blur, emoji icons or cards nested in cards.
+- The shadcn preset in `components.json` and theme tokens in `src/index.css` are the visual base. Preserve all colors, radius, fonts and icon library. Render the official 03 — Flat Ends wordmark only through `shared/ui/BrandMark`, using the supplied light/dark SVGs from `src/assets/branding`; do not redraw or recolor them. Their lime is brand-only, not an application accent. Keep `src/index.css` unchanged for branding work.
 - Tabular numbers for amounts and weights. Real labels and real data, never lorem ipsum.
 - Touch targets at least 40px on mobile. Visible focus ring. Respect `prefers-reduced-motion`, safe-area insets and OS text scale.
 - Use shadcn primitives for overlays, menus, forms and toasts. Do not hand-build them.

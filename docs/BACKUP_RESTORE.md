@@ -2,6 +2,8 @@
 
 The milestone recovery objective permits at most 24 hours of data loss. Before pilot use, take a backup at least daily and after consequential changes, retain a copy away from the development machine, and repeat an isolated restore drill. Record the backup time, source commit, database version, archive hash, restored record checks, and recovery duration. Current execution evidence belongs in `PROJECT_STATE.md`.
 
+The customer-facing brand is Misqal. Existing `mizan` schema names, local backup paths, and container identifiers below are legacy operational identifiers and remain unchanged.
+
 ## What to preserve
 
 A complete recovery set contains the PostgreSQL archive, product photo object files, and separately protected configuration needed to recreate the matching Supabase services. The database holds the `mizan` business schema, Supabase Auth identities in `auth`, and Storage metadata in `storage`. Photo bytes live in Storage's object backend. Store secrets separately from source control and from acceptance reports.
@@ -128,7 +130,7 @@ JOIN mizan."Product" p ON (p."organizationId", p."storeId", p."id") =
 WHERE p."status" <> 'SOLD';
 ```
 
-Also verify Auth linkage on the source and again after a full Supabase recovery. Every Mizan user should resolve to its original Auth identity.
+Also verify Auth linkage on the source and again after a full Supabase recovery. Every application user should resolve to its original Auth identity.
 
 ```sql
 SELECT count(*) AS missing_auth_identities

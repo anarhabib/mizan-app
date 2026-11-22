@@ -1,4 +1,6 @@
-# Mizan — Codex prompts
+# Historical implementation prompts
+
+These prompts describe work from before the current Vite rebuild and Misqal rebrand. They are retained as implementation history, not current instructions; follow `AGENTS.md`, `docs/FRONTEND.md`, and `docs/API_NOTES.md` for current conventions.
 
 Prompt 0 (API notes) is done: `docs/API_NOTES.md` exists.
 Use a new Codex session from the repo root for each prompt. Paste only the block inside the fence.

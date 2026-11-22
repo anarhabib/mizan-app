@@ -1,63 +1,45 @@
-# Mizan
+# Misqal
 
-Mizan is an inventory and sales app for jewelry stores, available in Azerbaijani, English, and Russian. The workspace has a Next.js web app, a Fastify API, and separate packages for API contracts and the database.
+![misqal](apps/web/src/assets/branding/misqal-03-flat-ends-wordmark-mono-black.svg)
 
-Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuration, migrations, service addresses, and verification commands. Use [the backup and restore procedure](docs/BACKUP_RESTORE.md) to preserve local data and exercise isolated recovery. See the [roadmap](docs/ROADMAP.md) for upcoming milestones. Current milestone acceptance evidence is in [PROJECT_STATE.md](PROJECT_STATE.md).
+Misqal is a mobile-first business management platform for jewelry retailers, not a jewelry retailer. It helps store teams track individual pieces, gold weight and purity, acquisition costs, sales, old-gold trade-ins, and financial history. The interface is available in Azerbaijani, English, and Russian. `misqal.az` is the intended domain; registration, DNS, and deployment have not been verified.
+
+## Current implementation
+
+- Supabase Auth sign-in, registration, password recovery, workspace onboarding, store selection, and owner-managed staff invitations.
+- Store-scoped jewelry inventory with search, filters, product details and history, optional private photos, and owner-controlled acquisition-cost visibility.
+- Owner settings for purity grades and append-only old-gold purchase rates.
+- Multi-item sales, old-gold trade-ins, payment settlement, server-calculated previews, receipts, and sales history.
+- Localized owner and salesperson experiences with responsive mobile navigation and light/dark themes.
+
+Returns, refunds, stock adjustments, customer records, barcode scanning, reports, and a public catalog are not implemented. See the [roadmap](docs/ROADMAP.md).
+
+## Technology and workspace
+
+| Area     | Current implementation                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------- |
+| Web      | Vite, React 19, TypeScript, TanStack Router and Query, Tailwind CSS v4, shadcn/Radix Nova/Mist, react-i18next |
+| API      | Fastify REST API at `/api/v1`                                                                                 |
+| Data     | Prisma and PostgreSQL; Supabase provides local PostgreSQL, Auth, private Storage, and development email       |
+| Monorepo | pnpm workspaces: `apps/web`, `apps/api`, `packages/contracts`, `packages/database`                            |
+
+The official 03 — Flat Ends brand assets are in [`apps/web/src/assets/branding`](apps/web/src/assets/branding). The implemented design and exact theme tokens are documented in [DESIGN.md](DESIGN.md). Start with [AGENTS.md](AGENTS.md) for development rules, [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) for business rules, and [docs/FRONTEND.md](docs/FRONTEND.md) and [docs/API_NOTES.md](docs/API_NOTES.md) for implementation conventions and the API contract.
 
 ## Local development
 
-1. Use Node.js 22.13 or later in the 22 line, or Node.js 24, with pnpm 12.6.0. Start Docker Desktop for database, authentication, storage, and local email.
-2. Run `pnpm install --frozen-lockfile` in this directory.
-3. Run `pnpm supabase:start` to start local Supabase. The first startup downloads Docker images. Supabase Studio is at http://127.0.0.1:54323 and its captured development emails are at http://127.0.0.1:54324. [Supabase local development guide](https://supabase.com/docs/guides/local-development/cli/getting-started)
-4. Run `pnpm dev` to start the web app at http://127.0.0.1:3000 and the API at http://127.0.0.1:3001. Open http://127.0.0.1:3001/api/v1/health to check that the API process responds.
-5. Stop the app processes with Ctrl+C and run `pnpm supabase:stop` to stop Supabase while retaining development data.
+1. Use Node.js 22.13 or later in the 22 release line, or Node.js 24, with pnpm 12.6.0 and Docker Desktop using Linux containers.
+2. From the repository root, run `pnpm install --frozen-lockfile`.
+3. Start local services with `pnpm supabase:start`. Supabase Studio is at http://127.0.0.1:54323; captured development email is at http://127.0.0.1:54324.
+4. Configure API variables from `apps/api/.env.example` in `apps/api/.env`, and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `apps/web/.env.local`. See [`.env.example`](.env.example) and [local setup](docs/LOCAL_SETUP.md).
+5. Run `pnpm dev` to start the Vite app at http://127.0.0.1:3000 and Fastify at http://127.0.0.1:3001. Check http://127.0.0.1:3001/api/v1/health.
+6. Stop app processes with Ctrl+C, then run `pnpm supabase:stop` to retain local data while stopping Supabase.
 
-Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and `pnpm build` from the workspace root to verify changes.
+Build `@mizan/contracts` before web tests or type checks: `pnpm --filter @mizan/contracts build`. Workspace checks are `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and `pnpm build`. The root format check excludes `apps/web` and Markdown files; check formatting for changed files in those locations separately. See [local setup](docs/LOCAL_SETUP.md) for integration tests, migrations, and service configuration.
 
-The previous frontend has been removed. Tailwind CSS remains the frontend styling choice; icons, colors, and header styling will follow the next approved design.
+## Data and compatibility
 
-## Database changes
+Keep `DATABASE_URL`, the Supabase service-role key, and other server-only credentials out of the browser. The browser uses Supabase Auth only; application data flows through the Fastify API. Product images use API-signed upload URLs.
 
-With local Supabase running, set `DATABASE_URL` in your shell to the local PostgreSQL connection string reported by the Supabase CLI. Keep this value server-side. Mizan tables use the private `mizan` PostgreSQL schema.
+The Prisma business tables use the private PostgreSQL schema `mizan`. The schema name, workspace packages (`@mizan/contracts`, `@mizan/database`), and `MIZAN_*` environment names are legacy internal identifiers intentionally retained for compatibility; they are not the customer-facing brand. Do not rename them as part of the rebrand.
 
-Check the published port bindings with `docker ps` before leaving Supabase running. On this Windows Docker Desktop setup, the local CLI published ports on all interfaces even with a loopback-configured bridge. Stop Supabase after testing until the bindings are restricted to this PC.
-
-```powershell
-pnpm --filter @mizan/database run generate
-pnpm --filter @mizan/database run migrate
-pnpm --filter @mizan/database run test:integration
-```
-
-Generate Prisma Client after a fresh install or a schema edit, before running workspace type checks. The database integration tests require a local connection and roll back their fixtures.
-
-## API access checks
-
-Set `DATABASE_URL` and `SUPABASE_URL` in the API process environment to enable access checks. Use the Supabase origin that matches the access token's issuer. For a project using legacy HS256 signing, also set `SUPABASE_PUBLISHABLE_KEY` to the project's publishable or local anon key. Never use a service-role key for verification.
-
-`GET /api/v1/organizations/:organizationId/stores/:storeId/access` accepts a Supabase user token using `Authorization: Bearer <token>`. An allowed request returns the user's ID, scoped role, and organization settings. Missing or invalid credentials return 401. An unavailable or unassigned store returns the same 403 response, including when an existing assignment or membership has been deactivated. The route returns 503 when the API is started without authentication configuration.
-
-To include API access, onboarding, invitation, settings, and product integration tests, apply the migrations to a disposable local test database, run `pnpm build`, and set `MIZAN_TEST_DATABASE_URL` in the shell before running `pnpm test`. These tests can leave fixtures in that disposable database.
-
-## Owner signup and language
-
-1. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `apps/web/.env.local`. Point the API to the same Supabase project and apply the Prisma migrations before starting the apps. See `.env.example` for the expected variables.
-2. Open http://127.0.0.1:3000/login. Create an account or sign in. If you have no store assignments, enter an organization name, a store name, and a default currency.
-3. A single assignment opens automatically. For multiple assignments, the header store picker saves your selection in the browser. Use the language menu to choose Azerbaijani, English, or Russian.
-4. Password reset uses `/auth/callback`. Allow the full callback URL in Supabase and open the reset email in Mailpit when testing locally.
-
-## Local salesperson invitations
-
-1. Apply the Prisma migrations and start local Supabase with Mailpit SMTP enabled. For the API process set `MIZAN_SMTP_URL=smtp://127.0.0.1:54325` and `MIZAN_INVITATION_FROM=mizan@example.test`. When using a different loopback SMTP port, set the URL to match. Keep the full stack on loopback and use test addresses during development.
-2. Create an invitation through the API with an owner session. Open Mailpit at http://127.0.0.1:54324 and follow the captured link in a separate browser profile or private window.
-3. Sign in or register using the invited address. If Supabase requires confirmation, confirm the email before accepting the invitation. Creating an Auth account alone does not grant store access. Use confirmed email settings for hosted environments.
-4. A link expires after 48 hours and can be accepted once. Resending creates a new link and invalidates the old one. If SMTP fails, the owner can resend the stored invitation. Deactivation and store removal preserve the membership and assignment records while blocking access on the next API request.
-
-## Organization settings
-
-Open **Organization settings** from an owner workspace. The default currency is set during onboarding. Owners can change salesperson cost visibility, manage purity grades, and enter exact purchase rates per gram for each currency and purity. Changing a rate creates a history entry. Deactivating a grade removes it from new rate entry while keeping its history.
-
-## Local product photos
-
-Run `pnpm exec supabase seed buckets` to provision the private `product-photos` bucket from `supabase/config.toml` in an existing local stack. Set `SUPABASE_SERVICE_ROLE_KEY` only in the API process to enable signed photo operations. Product creation and lookup work without Storage credentials.
-
-To run the live photo test, set `MIZAN_TEST_STORAGE_ORIGIN` and `MIZAN_TEST_STORAGE_SERVICE_ROLE_KEY` for the local stack, then run `pnpm --filter @mizan/api test products.integration.test.ts`.
+Use the [backup and restore procedure](docs/BACKUP_RESTORE.md) before deliberate data recovery work. [PROJECT_STATE.md](PROJECT_STATE.md) records implementation and verification evidence. The [roadmap](docs/ROADMAP.md) distinguishes completed work from proposed milestones.

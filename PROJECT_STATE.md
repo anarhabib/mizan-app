@@ -1,4 +1,22 @@
-# Mizan project state
+# Misqal project state
+
+## Current snapshot (November 22, 2026)
+
+- Reviewed current `main` at `0985689` (merged PR #39) and recent PR #38. The latest UI work updated component surfaces and theme tokens; the rebrand preserves those exact values.
+- The current Vite/React application supports Supabase authentication and password recovery, workspace onboarding and store selection, owner-managed team invitations, scoped jewelry inventory and private photos, acquisition and purity settings, multi-item sales, old-gold trade-ins, settlement previews, receipts, and sales history. The interface supports Azerbaijani, English, and Russian.
+- Returns, refunds, stock adjustments, customer records, barcode scanning, reports, and the customer-facing catalog are not implemented. Full Auth/Storage recovery, a real-phone workflow, and production hosting/domain configuration remain unverified.
+- `misqal.az` is the target domain only; registration, DNS, and deployment are not verified. The private `mizan` schema, `@mizan/*` workspace packages, `MIZAN_*` environment variables, and existing records remain unchanged compatibility identifiers.
+- Rebranding verification and remaining manual checks are recorded in the task entry below. Dated implementation entries that follow preserve historical evidence; use this snapshot for current status.
+
+## Task — Misqal rebranding and documentation (November 22, 2026)
+
+- Integrated the nine supplied 03 — Flat Ends SVGs from `apps/web/src/assets/branding/` without editing their source files. `BrandMark` selects the official light/dark wordmarks and exposes one accessible name. The browser favicon uses the supplied icon SVGs; no PWA manifest or installable icon configuration exists.
+- Updated the document title, localized auth copy, and invitation email subject. Internal database, workspace, environment, and browser-storage identifiers retain their `mizan` names.
+- Synchronized the active product, architecture, design-token, setup, roadmap, and task documentation. Historical implementation entries and archived specifications remain historical.
+- The `apps/web/src/index.css` Git object hash matched the base commit before and after the task. No theme token, component palette, database schema, migration, business logic, or production configuration was changed.
+- Contracts build, workspace type checks, production build, and the workspace tests passed: 23 contracts tests, 127 web tests, and 24 API tests. Nine API integration tests were skipped because no disposable test database was configured. The production build reports an auth chunk over 500 kB.
+- Targeted ESLint and Prettier checks passed for changed application source. Workspace lint remains blocked by the unrelated existing `SaleForm.tsx:123` set-state-in-effect error. The root format check reports existing formatting issues in 40 files; those files were not changed.
+- Browser screenshots of the login screen at 390px and 1280px in light and dark themes showed the correct wordmark variants and a legible layout. An authenticated desktop/mobile shell session was not available for a separate visual capture. Real-phone, full Auth/Storage recovery, and production-domain checks remain outstanding.
 
 ## Task 9 — sale confirmation and profit (November 20, 2026)
 

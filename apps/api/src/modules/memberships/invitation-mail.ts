@@ -34,7 +34,7 @@ export function createInvitationSender(env: NodeJS.ProcessEnv) {
     const result = await transport.sendMail({
       from: sender,
       to: { address: email, name: "" },
-      subject: "Mizan — Mağaza dəvəti / Store invitation",
+      subject: "Misqal — Mağaza dəvəti / Store invitation",
       text: `Mağazaya qoşulmaq üçün bu keçidi açın. Dəvət 48 saat etibarlıdır.\nOpen this link to join your store. The invitation is valid for 48 hours.\n\n${link.href}`,
     });
     if (!result.accepted.length)

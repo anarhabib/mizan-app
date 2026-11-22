@@ -1,15 +1,15 @@
-# Mizan — Codex Agent Instructions
+# Misqal — Copilot Agent Instructions
 
 ## Role and priorities
 
-You assist the sole developer of Mizan, a jewelry-store inventory and sales management application. Favor reliable, maintainable, straightforward implementations over abstraction. Work incrementally and preserve existing functionality and data. Keep tool and model usage lean without reducing correctness, security, or usability.
+You assist the sole developer of Misqal, a mobile-first business management platform for jewelry retailers, not a jewelry retailer. Favor reliable, maintainable, straightforward implementations over abstraction. Work incrementally and preserve existing functionality and data. Keep tool and model usage lean without reducing correctness, security, or usability.
 
 ## Sources of truth
 
 - `PROJECT_CONTEXT.md`: confirmed product scope, business rules, architecture, feature requirements. Read only the sections relevant to the task.
 - `docs/API_NOTES.md`: backend contract (endpoints, auth, errors, number formats, pagination, idempotency). Frontend work reads this instead of backend code. If it looks stale or lacks detail, read only the one relevant backend file and update the note.
 - `docs/FRONTEND.md`: frontend structure, API/auth, data, rendering and UI conventions. **Read before any UI task.**
-- `DESIGN.md`: follow it only if its first line is `Status: current`. Otherwise it is outdated (pre-rebuild): ignore it.
+- `DESIGN.md`: follow it only if its first line is `Status: current`. It records the implemented visual foundation and official brand asset usage; do not treat it as permission to change source tokens.
 - Existing code, tests, Prisma schema and migrations: authoritative for the current implementation and database structure. Report consequential conflicts with approved requirements before changing behavior.
 - `docs/ROADMAP.md`: milestone scope and sequencing. `PROJECT_STATE.md`: implementation and verification status.
 - This file governs agent workflow. Do not invent requirements absent from approved sources.
@@ -57,13 +57,13 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 
 ## Frontend (summary; details in `docs/FRONTEND.md`)
 
-- The UI was rebuilt from scratch. Do not recreate old components, palettes, glass headers or the previous icon library.
-- Feature-based structure. Server state only in TanStack Query. shadcn/ui for primitives. Tailwind for styling. The applied shadcn preset (`components.json`, theme variables in `src/index.css`, font, radius, icon library) is the visual base: do not replace or restyle it, and use the icon library named in `components.json`. Branding is provisional: the logo lives only in `shared/ui/BrandMark` and the accent color only in the `--primary` token, so a rebrand is a one-file change. Never hardcode brand colors in components; use semantic tokens.
+- Preserve the current feature-based UI, shadcn primitives and Radix Nova/Mist foundation. Server state only in TanStack Query; Tailwind for styling. The preset (`components.json`), exact theme tokens (`src/index.css`), fonts, radius, and icon library are authoritative: do not replace or restyle them. The official 03 — Flat Ends SVGs live in `apps/web/src/assets/branding`; render the light/dark wordmark only through `shared/ui/BrandMark` and use the supplied application icon for favicon configuration. Do not redraw, recolor, or distort the assets. Their lime is brand-only, not an application accent. Keep `src/index.css` unchanged for branding work.
 - Mobile-first, compact on desktop. No unnecessary re-renders.
 - Every store-scoped API call carries `organizationId` and `storeId`; both belong in every query key.
 - Money and weights stay as decimal strings in the UI; never use `parseFloat` or Number for them. Display server-calculated values; do not compute money in the UI.
 - Sales and any stock- or money-changing action are never optimistic. Disable submit while pending and invalidate exact query keys on success. `POST /sales` always sends an `Idempotency-Key`.
 - Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
+- User-facing identity is Misqal; preserve legacy internal identifiers such as `mizan`, `@mizan/*`, and `MIZAN_*` for compatibility unless a separate migration is approved.
 - Visual check only when the task asks for it, or once before a UI PR: one pass at 390px and 1280px. Report deliberate deviations and unverified states.
 
 ## Execution efficiency

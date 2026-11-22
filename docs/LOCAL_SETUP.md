@@ -1,6 +1,6 @@
 # Local setup
 
-Run these commands in PowerShell from the repository root. Use Node.js 22.13 or newer within the 22 release line, or Node.js 24, pnpm 12.6.0, and Docker Desktop with Linux containers. `pnpm.cmd` avoids PowerShell's restriction on unsigned `pnpm.ps1` scripts. Put the supported Node executable first on `PATH` so child processes use it too.
+Misqal is the user-facing brand. Existing `mizan` schema, workspace package, and `MIZAN_*` environment names below are legacy identifiers retained for compatibility. Run these commands in PowerShell from the repository root. Use Node.js 22.13 or newer within the 22 release line, or Node.js 24, pnpm 12.6.0, and Docker Desktop with Linux containers. `pnpm.cmd` avoids PowerShell's restriction on unsigned `pnpm.ps1` scripts. Put the supported Node executable first on `PATH` so child processes use it too.
 
 ## Install and start services
 
@@ -41,7 +41,7 @@ if (!$env:DATABASE_URL -or !$env:SUPABASE_PUBLISHABLE_KEY) {
 
 ## Cloud dev project
 
-Create a Supabase project for development. Use its **Session pooler** connection string for `DATABASE_URL`. Disable email confirmation in the project's Auth settings, then set the Site URL and allowed redirect URLs to `http://localhost:5173`. Create a **private** Storage bucket named `product-photos`, with a 5 MiB file size limit and JPEG, PNG, and WebP as the allowed MIME types.
+Create a Supabase project for development. Use its **Session pooler** connection string for `DATABASE_URL`. Disable email confirmation in the project's Auth settings, then set the Site URL and allowed redirect URLs to `http://127.0.0.1:3000`. Create a **private** Storage bucket named `product-photos`, with a 5 MiB file size limit and JPEG, PNG, and WebP as the allowed MIME types.
 
 Against this project's database, run `pnpm.cmd --filter @mizan/database exec prisma migrate deploy` (Prisma `migrate deploy`; never run `migrate dev` or reset). Copy `apps/api/.env.example` to `apps/api/.env` and fill in the project values. Create `apps/web/.env.local` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the same project. Keep server-only keys and the database URL in `apps/api/.env` only.
 
@@ -57,7 +57,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Storage bucket provisioning failed' }
 pnpm.cmd dev
 ```
 
-Each independently opened terminal needs its own environment configuration. `pnpm dev` builds the shared packages, then starts Fastify and Next.js. For a production build locally, run `pnpm.cmd build`, then run `pnpm.cmd --filter @mizan/api start` and `pnpm.cmd --filter @mizan/web start` in separate configured terminals.
+Each independently opened terminal needs its own environment configuration. `pnpm dev` builds the shared packages, then starts Fastify and the Vite web app. `pnpm.cmd build` creates the production bundles; use the web package's Vite `preview` command to serve the built frontend locally.
 
 ## Local addresses and workflows
 
@@ -145,7 +145,7 @@ pnpm.cmd exec playwright install chromium
 if ($LASTEXITCODE -ne 0) { throw 'Chromium installation failed' }
 ```
 
-Start the API with `pnpm.cmd --filter @mizan/api start` and the web server with `pnpm.cmd --filter @mizan/web exec next start --hostname 127.0.0.1 --port 3100` in separate terminals with that same environment. In another configured terminal run `pnpm.cmd exec playwright test`. Stop both application processes afterward and run `pnpm.cmd exec supabase stop --workdir .local/acceptance` to retain test data. Acceptance evidence and unverified states are recorded in `PROJECT_STATE.md`.
+Start the API with `pnpm.cmd --filter @mizan/api start` and the built web app with `pnpm.cmd --filter web exec vite preview --host 127.0.0.1 --port 3100 --strictPort` in separate terminals with that same environment. In another configured terminal run `pnpm.cmd exec playwright test`. Stop both application processes afterward and run `pnpm.cmd exec supabase stop --workdir .local/acceptance` to retain test data. Acceptance evidence and unverified states are recorded in `PROJECT_STATE.md`.
 
 ## Troubleshooting and shutdown
 
