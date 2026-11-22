@@ -10,11 +10,19 @@ import {
   getSaleOptions,
   listSales,
   previewSale,
+  recordRepayment,
   recordSale,
   type SalesDatabase,
 } from "./sale.service.js";
 
 type Scope = { Querystring: { organizationId?: string; storeId?: string } };
+
+function idempotencyKey(request: FastifyRequest) {
+  const key = request.headers["idempotency-key"];
+  if (typeof key !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(key))
+    throw new AccessError("INVALID_SALE", "idempotencyKey");
+  return key;
+}
 
 export function registerSaleRoutes(
   app: FastifyInstance,
@@ -46,9 +54,7 @@ export function registerSaleRoutes(
         };
 
   app.post<Scope>("/sales", { preHandler }, async (request, reply) => {
-    const key = request.headers["idempotency-key"];
-    if (typeof key !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(key))
-      throw new AccessError("INVALID_SALE", "idempotencyKey");
+    const key = idempotencyKey(request);
     const token = request.headers["sale-confirmation"];
     try {
       const sale = await recordSale(
@@ -94,5 +100,21 @@ export function registerSaleRoutes(
     "/sales/:id",
     { preHandler },
     (request) => getSale(db!, request.access!, request.params.id),
+  );
+
+  app.post<Scope & { Params: { id: string } }>(
+    "/sales/:id/payments",
+    { preHandler },
+    async (request, reply) => {
+      const sale = await recordRepayment(
+        db!,
+        request.access!,
+        request.params.id,
+        idempotencyKey(request),
+        request.body,
+        request.identity?.sessionId,
+      );
+      return reply.code(201).send(sale);
+    },
   );
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   calculateSettlement,
   calculateTradeIns,
+  convertPayment,
+  paymentStatus,
   SaleDecimal,
 } from "../src/modules/sales/settlement.js";
 
@@ -94,7 +96,7 @@ describe("sale settlement", () => {
     });
   });
 
-  it("accepts an exact converted payment and rejects underpayment", () => {
+  it("preserves exact and partial converted tender", () => {
     expect(
       calculateSettlement("AZN", "170", [], {
         currency: "USD",
@@ -102,25 +104,22 @@ describe("sale settlement", () => {
         exchangeRate: "1.70000000",
       }).change,
     ).toBe("0.00");
-    expect(() =>
+    expect(
       calculateSettlement("AZN", "170", [], {
         currency: "USD",
         amount: "99",
         exchangeRate: "1.70",
       }),
-    ).toThrow(
-      expect.objectContaining({
-        code: "SALE_PAYMENT_TOO_LOW",
-        field: "payment.amount",
-      }),
-    );
+    ).toMatchObject({ convertedPayment: "168.30", change: "0.00" });
   });
 
-  it("requires the converted tender to cover the post-trade-in balance", () => {
+  it("allows partial tender against the post-trade-in balance", () => {
     const tender = { currency: "USD", amount: "100", exchangeRate: "1.70" };
-    expect(() => calculateSettlement("AZN", "750", ["150"], tender)).toThrow(
-      expect.objectContaining({ code: "SALE_PAYMENT_TOO_LOW" }),
-    );
+    expect(calculateSettlement("AZN", "750", ["150"], tender)).toMatchObject({
+      balance: "600.00",
+      convertedPayment: "170.00",
+      change: "0.00",
+    });
     expect(
       calculateSettlement("AZN", "750", ["150"], { ...tender, amount: "353" }),
     ).toMatchObject({
@@ -134,5 +133,33 @@ describe("sale settlement", () => {
         field: "payment",
       }),
     );
+  });
+  it("rounds each AZN conversion half up and preserves a non-AZN settlement unit", () => {
+    const tender = {
+      method: "CARD" as const,
+      currency: "USD",
+      amount: "0.01",
+      exchangeRate: "1.5",
+    };
+    expect(convertPayment(tender, "AZN", "1", "payment")).toMatchObject({
+      amount: "0.01",
+      exchangeRate: "1.5",
+      convertedAmount: "0.02",
+      amountAzn: "0.02",
+    });
+    expect(convertPayment(tender, "USD", "1.7", "payment")).toMatchObject({
+      convertedAmount: "0.01",
+      amountAzn: "0.02",
+    });
+    expect(() => convertPayment(tender, "JPY", "1.7", "payment")).toThrow(
+      expect.objectContaining({ code: "SALE_PAYMENT_TOO_SMALL" }),
+    );
+  });
+
+  it("derives payment status from the balance after trade-ins", () => {
+    const balance = new SaleDecimal(10);
+    expect(paymentStatus(balance, new SaleDecimal(10))).toBe("UNPAID");
+    expect(paymentStatus(balance, new SaleDecimal(5))).toBe("PARTIALLY_PAID");
+    expect(paymentStatus(balance, new SaleDecimal(0))).toBe("PAID");
   });
 });

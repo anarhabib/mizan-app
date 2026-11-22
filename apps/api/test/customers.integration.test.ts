@@ -29,6 +29,7 @@ test.skipIf(!db)(
                 : null,
       },
       onboardingDb: db,
+      products: { db },
       salesDb: db,
     });
     const headers = (role: string) => ({ authorization: `Bearer ${role}` });
@@ -148,45 +149,145 @@ test.skipIf(!db)(
       });
       const query = new URLSearchParams(scope);
       const salePath = `/api/v1/sales?${query}`;
-      const sell = (key: string, payload: object) =>
+      const sell = (key: string, payload: object, token?: string) =>
         app.inject({
           method: "POST",
           url: salePath,
-          headers: { ...headers("staff"), "idempotency-key": key },
+          headers: {
+            ...headers("staff"),
+            "idempotency-key": key,
+            ...(token && { "sale-confirmation": token }),
+          },
           payload,
         });
       const terms = {
         productId: partial.id,
         saleAmount: "200.05",
         tradeIns: [{ purity: 585, weight: "2", rateId: rate.id }],
-        payment: { currency: "USD", amount: "50", exchangeRate: "1.7" },
+        payments: [
+          {
+            method: "CARD",
+            currency: "USD",
+            amount: "50",
+            exchangeRate: "1.7",
+          },
+          { method: "TRANSFER", currency: "AZN", amount: "25" },
+          {
+            method: "CASH",
+            currency: "EUR",
+            amount: "0.01",
+            exchangeRate: "1.5",
+          },
+        ],
       };
       expect((await sell("short", terms)).json().code).toBe(
-        "SALE_PAYMENT_TOO_LOW",
+        "SALE_CUSTOMER_REQUIRED",
       );
+      for (const [field, value] of [
+        ["amount", "-1"],
+        ["amount", "0"],
+        ["currency", "XYZ"],
+      ]) {
+        const invalid = await sell("invalid", {
+          ...terms,
+          payments: [{ ...terms.payments[0], [field]: value }],
+        });
+        expect(invalid.json()).toMatchObject({
+          code: "INVALID_SALE",
+          field: `payments.0.${field}`,
+        });
+      }
       expect(
-        (await sell("missing", { ...terms, recordDebt: true })).json().code,
-      ).toBe("SALE_CUSTOMER_REQUIRED");
+        (
+          await sell("overpaid", {
+            ...terms,
+            payments: [{ method: "CASH", currency: "AZN", amount: "180.06" }],
+          })
+        ).json().code,
+      ).toBe("SALE_PAYMENT_EXCEEDS_BALANCE");
       expect(
         (
           await sell("other-store", {
             ...terms,
-            recordDebt: true,
             customerId: branchCustomer.id,
           })
         ).json().code,
       ).toBe("CUSTOMER_NOT_FOUND");
       expect(await db.sale.count({ where: scope })).toBe(0);
-      const payload = { ...terms, recordDebt: true, customerId: customer.id };
-      const recorded = await sell("partial", payload);
+      const previewResponse = await app.inject({
+        method: "POST",
+        url: `/api/v1/sales/preview?${query}`,
+        headers: headers("staff"),
+        payload: {
+          saleAmounts: [terms.saleAmount],
+          tradeIns: terms.tradeIns,
+          payments: terms.payments,
+        },
+      });
+      expect(previewResponse.json()).toMatchObject({
+        saleAmount: "200.05",
+        tradeInTotal: "20",
+        amountDue: "180.05",
+        paidAmount: "110.02",
+        outstandingDebt: "70.03",
+        overpayment: "0",
+      });
+      const payload = { ...terms, customerId: customer.id };
+      const challenge = await sell("partial", payload);
+      expect(challenge.statusCode).toBe(409);
+      expect(challenge.json()).toMatchObject({
+        code: "SALE_CONFIRMATION_REQUIRED",
+        confirmation: {
+          debt: {
+            total: { amount: "200.05", currency: "AZN" },
+            tradeIn: { amount: "20", currency: "AZN" },
+            paid: { amount: "110.02", currency: "AZN" },
+            outstanding: { amount: "70.03", currency: "AZN" },
+          },
+        },
+      });
+      expect(await db.sale.count({ where: scope })).toBe(0);
+      const token = challenge.json().confirmation.token;
+      expect(
+        (await sell("partial", { ...payload, saleAmount: "201" }, token))
+          .statusCode,
+      ).toBe(409);
+      const [recorded, retry] = await Promise.all([
+        sell("partial", payload, token),
+        sell("partial", payload, token),
+      ]);
       expect(recorded.statusCode).toBe(201);
       const receipt = recorded.json();
       expect(receipt).toMatchObject({
         customerId: customer.id,
-        outstandingDebt: "95.05",
+        outstandingDebt: "70.03",
         balance: "180.05",
-        payment: { amount: "50", convertedAmount: "85", change: "0" },
+        paymentStatus: "PARTIALLY_PAID",
+        payments: [
+          {
+            currency: "USD",
+            amount: "50",
+            convertedAmount: "85",
+            amountAzn: "85.00",
+            method: "CARD",
+          },
+          {
+            currency: "AZN",
+            amount: "25",
+            convertedAmount: "25",
+            amountAzn: "25.00",
+            method: "TRANSFER",
+          },
+          {
+            currency: "EUR",
+            amount: "0.01",
+            convertedAmount: "0.02",
+            amountAzn: "0.02",
+            method: "CASH",
+          },
+        ],
       });
+      expect(retry.json()).toEqual(receipt);
       expect((await sell("partial", payload)).json()).toEqual(receipt);
       expect(
         (
@@ -195,20 +296,39 @@ test.skipIf(!db)(
       ).toBe("SALE_CONFLICT");
       const noCustomer = await sell("anonymous", {
         productId: anonymous.id,
-        saleAmount: "42",
+        saleAmount: "42.01",
+        payments: [
+          {
+            method: "CASH",
+            currency: "USD",
+            amount: "24.71",
+            exchangeRate: "1.7",
+          },
+        ],
       });
       expect(noCustomer.statusCode).toBe(201);
-      expect(noCustomer.json().payment.amount).toBe("42");
+      expect(noCustomer.json()).toMatchObject({
+        paymentStatus: "PAID",
+        outstandingDebt: "0",
+        payments: [{ amount: "24.71", amountAzn: "42.01" }],
+      });
       expect(noCustomer.json()).not.toHaveProperty("customerId");
-      const noTender = await sell("unpaid", {
+      const confirm = async (key: string, input: object) => {
+        const first = await sell(key, input);
+        expect(first.statusCode).toBe(409);
+        return sell(key, input, first.json().confirmation.token);
+      };
+      const noTender = await confirm("unpaid", {
         productId: unpaid.id,
         saleAmount: "35.10",
         customerId: customer.id,
-        recordDebt: true,
+        payments: [],
       });
       expect(noTender.statusCode).toBe(201);
       expect(noTender.json()).toMatchObject({
         outstandingDebt: "35.1",
+        paymentStatus: "UNPAID",
+        payments: [],
         payment: null,
       });
       await db.organization.update({
@@ -219,24 +339,21 @@ test.skipIf(!db)(
         productId: foreign.id,
         saleAmount: "20.25",
         customerId: customer.id,
-        recordDebt: true,
+        payments: [],
       };
       expect((await sell("foreign", foreignTerms)).json()).toMatchObject({
         code: "INVALID_SALE",
         field: "customerReportingRate",
       });
-      expect(
-        (
-          await sell("foreign", {
-            ...foreignTerms,
-            customerReportingRate: "1.713",
-          })
-        ).statusCode,
-      ).toBe(201);
+      const foreignSale = await confirm("foreign", {
+        ...foreignTerms,
+        customerReportingRate: "1.713",
+      });
+      expect(foreignSale.statusCode).toBe(201);
       const summary = (await get(detailPath)).json();
       expect(summary).toMatchObject({
         totalPurchases: { amount: "269.84", currency: "AZN" },
-        outstandingDebt: { amount: "164.84", currency: "AZN" },
+        outstandingDebt: { amount: "139.82", currency: "AZN" },
         lastPurchaseAt: expect.any(String),
       });
       const history = (await get(`${detailPath}/purchases`)).json();
@@ -250,12 +367,145 @@ test.skipIf(!db)(
         itemCount: 1,
         productName: "Partial",
         total: { amount: "200.05", currency: "AZN" },
-        outstandingDebt: { amount: "95.05", currency: "AZN" },
-        payment: { amount: "50", currency: "USD" },
+        tradeInCredit: { amount: "20", currency: "AZN" },
+        paidAmount: { amount: "110.02", currency: "AZN" },
+        outstandingDebt: { amount: "70.03", currency: "AZN" },
+        payment: null,
       });
       expect(
         (await get(`/api/v1/sales/${receipt.id}?${query}`)).json(),
       ).not.toHaveProperty("profit");
+      const productPath = `/api/v1/products/${partial.id}?${query}`;
+      expect((await get(productPath)).json()).toMatchObject({
+        status: "SOLD",
+        hasOutstandingDebt: true,
+      });
+      const products = (
+        await get(`/api/v1/products?${query}&status=SOLD`)
+      ).json();
+      expect(products.items).toContainEqual(
+        expect.objectContaining({
+          id: partial.id,
+          status: "SOLD",
+          hasOutstandingDebt: true,
+        }),
+      );
+      const repay = (key: string, payment: object, saleId = receipt.id) =>
+        app.inject({
+          method: "POST",
+          url: `/api/v1/sales/${saleId}/payments?${query}`,
+          headers: { ...headers("staff"), "idempotency-key": key },
+          payload: payment,
+        });
+      const firstRepayment = {
+        method: "CARD",
+        currency: "USD",
+        amount: "10",
+        exchangeRate: "1.7",
+      };
+      const repayments = await Promise.all([
+        repay("repay", firstRepayment),
+        repay("repay", firstRepayment),
+      ]);
+      for (const repayment of repayments) {
+        expect(repayment.statusCode).toBe(201);
+        expect(repayment.json()).toMatchObject({
+          outstandingDebt: "53.03",
+          paidAmount: "127.02",
+          paymentStatus: "PARTIALLY_PAID",
+        });
+        expect(repayment.json().payments).toHaveLength(4);
+        expect(repayment.json().payments[3]).toMatchObject({
+          kind: "REPAYMENT",
+          amount: "10",
+          amountAzn: "17.00",
+        });
+      }
+      expect(
+        (await repay("repay", { ...firstRepayment, amount: "11" })).json(),
+      ).toMatchObject({
+        code: "SALE_CONFLICT",
+        field: "idempotencyKey",
+      });
+      const competing = { method: "TRANSFER", currency: "AZN", amount: "40" };
+      const race = await Promise.all([
+        repay("race-a", competing),
+        repay("race-b", competing),
+      ]);
+      expect(race.map(({ statusCode }) => statusCode).sort()).toEqual([
+        201, 409,
+      ]);
+      expect(
+        race.find(({ statusCode }) => statusCode === 409)?.json(),
+      ).toMatchObject({ code: "SALE_PAYMENT_EXCEEDS_BALANCE" });
+      const final = { method: "CASH", currency: "AZN", amount: "13.03" };
+      await db.$executeRaw`CREATE FUNCTION "mizan".test_task11_repayment_rollback() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."idempotencyKey" = 'fail-repayment' THEN RAISE EXCEPTION 'Test repayment rollback'; END IF;
+          RETURN NEW;
+        END;
+      $$`;
+      try {
+        await db.$executeRaw`CREATE TRIGGER test_task11_repayment_rollback BEFORE INSERT ON "mizan"."SalePayment"
+          FOR EACH ROW EXECUTE FUNCTION "mizan".test_task11_repayment_rollback()`;
+        expect((await repay("fail-repayment", final)).statusCode).toBe(500);
+        expect(
+          (await get(`/api/v1/sales/${receipt.id}?${query}`)).json(),
+        ).toMatchObject({ outstandingDebt: "13.03" });
+      } finally {
+        await db.$executeRaw`DROP TRIGGER IF EXISTS test_task11_repayment_rollback ON "mizan"."SalePayment"`;
+        await db.$executeRaw`DROP FUNCTION "mizan".test_task11_repayment_rollback()`;
+      }
+      const settled = await repay("final", final);
+      expect(settled.statusCode).toBe(201);
+      expect(settled.json()).toMatchObject({
+        paymentStatus: "PAID",
+        outstandingDebt: "0",
+        saleAmount: "200.05",
+        paidAmount: "180.05",
+      });
+      expect(settled.json().payments).toHaveLength(6);
+      expect((await repay("final", final)).json()).toEqual(settled.json());
+      expect((await repay("already-paid", final)).json()).toMatchObject({
+        code: "SALE_PAYMENT_NOT_DUE",
+      });
+      expect((await get(productPath)).json()).toMatchObject({ status: "SOLD" });
+      expect((await get(productPath)).json()).not.toHaveProperty(
+        "hasOutstandingDebt",
+      );
+      expect((await get(detailPath)).json()).toMatchObject({
+        totalPurchases: { amount: "269.84", currency: "AZN" },
+        outstandingDebt: { amount: "69.79", currency: "AZN" },
+      });
+      expect(await db.sale.count({ where: scope })).toBe(4);
+      await db.organization.update({
+        where: { id: organizationId },
+        data: { defaultCurrency: "EUR" },
+      });
+      const foreignRepayment = await repay(
+        "foreign-repayment",
+        { method: "TRANSFER", currency: "AZN", amount: "17.13" },
+        foreignSale.json().id,
+      );
+      expect(foreignRepayment.statusCode).toBe(201);
+      expect(foreignRepayment.json()).toMatchObject({
+        currency: "USD",
+        saleAmount: "20.25",
+        paidAmount: "10",
+        outstandingDebt: "10.25",
+        payments: [
+          {
+            currency: "AZN",
+            amount: "17.13",
+            amountAzn: "17.13",
+            convertedAmount: "10",
+          },
+        ],
+      });
+      expect((await get(detailPath)).json()).toMatchObject({
+        totalPurchases: { amount: "269.84", currency: "AZN" },
+        outstandingDebt: { amount: "52.66", currency: "AZN" },
+      });
       for (const role of ["staff", "restricted", "owner"]) {
         const response = await app.inject({
           method: "DELETE",

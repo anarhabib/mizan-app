@@ -211,7 +211,10 @@ function ProductRecord({
       <dl className="grid grid-cols-2 gap-4">
         <Fact label={t("fields.code")}>{product.code}</Fact>
         <Fact label={t("fields.status")}>
-          <ProductStatusBadge status={product.status} />
+          <ProductStatusBadge
+            status={product.status}
+            hasOutstandingDebt={product.hasOutstandingDebt}
+          />
         </Fact>
         <Fact label={t("fields.category")}>{product.category}</Fact>
         <Fact label={t("fields.purity")}>

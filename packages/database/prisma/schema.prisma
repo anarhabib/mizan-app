@@ -112,6 +112,7 @@ model StoreAssignment {
   store          Store                  @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
   membership     OrganizationMembership @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Restrict)
   sales          Sale[]
+  salePayments   SalePayment[]
   movements      InventoryMovement[]
 
   @@id([organizationId, storeId, userId])
@@ -239,6 +240,7 @@ model Sale {
   paymentExchangeRate         Decimal?            @db.Decimal(24, 8)
   convertedPayment            Decimal?            @db.Decimal(32, 4)
   changeAmount                Decimal?            @db.Decimal(32, 4)
+  outstandingDebt             Decimal             @db.Decimal(32, 4)
   productCode                 String
   productName                 String
   productCategory             String
@@ -250,12 +252,38 @@ model Sale {
   actor                       StoreAssignment     @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
   tradeIns                    TradeIn[]
   items                       SaleItem[]
+  payments                    SalePayment[]
   movements                   InventoryMovement[]
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, storeId, productId])
   @@unique([organizationId, storeId, actorId, idempotencyKey])
   @@index([organizationId, storeId, customerId, createdAt, id], map: "Sale_customer_history_idx")
+  @@schema("mizan")
+}
+
+model SalePayment {
+  organizationId  String          @db.Uuid
+  storeId         String          @db.Uuid
+  saleId          String          @db.Uuid
+  id              String          @default(uuid()) @db.Uuid
+  actorId         String          @db.Uuid
+  position        Int?
+  idempotencyKey  String?
+  requestDigest   String?
+  method          String
+  currency        String          @db.Char(3)
+  amount          Decimal         @db.Decimal(28, 4)
+  exchangeRate    Decimal         @db.Decimal(24, 8)
+  amountAzn       Decimal         @db.Decimal(32, 2)
+  convertedAmount Decimal         @db.Decimal(32, 4)
+  createdAt       DateTime        @default(now())
+  sale            Sale            @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
+  actor           StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+
+  @@id([organizationId, storeId, id])
+  @@unique([organizationId, storeId, saleId, position])
+  @@unique([organizationId, storeId, saleId, actorId, idempotencyKey])
   @@schema("mizan")
 }
 

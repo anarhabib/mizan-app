@@ -152,7 +152,7 @@ test.skipIf(!db)(
             payment: { currency: "AZN", amount: "155" },
           })
         ).json().code,
-      ).toBe("SALE_PAYMENT_TOO_LOW");
+      ).toBe("SALE_CUSTOMER_REQUIRED");
       const ownerChallenge = await challenge(await send("multi", payload));
       expect(ownerChallenge.financials).toEqual({
         currency: "AZN",
@@ -352,6 +352,7 @@ test.skipIf(!db)(
           defaultAcceptedTradeInTotal: "0",
           settlement: "400",
           defaultSettlement: "400",
+          outstandingDebt: "0",
           productCode: legacy.code,
           productName: legacy.name,
           productCategory: legacy.category,

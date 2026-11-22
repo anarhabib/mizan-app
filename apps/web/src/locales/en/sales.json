@@ -43,8 +43,7 @@
   "removeTradeIn": "Remove trade-in",
   "addPayment": "Add payment",
   "removePayment": "Remove payment",
-  "paymentCoverage": "The payment must cover the full balance after trade-ins.",
-  "defaultPayment": "Leave payment details blank to record any remaining balance as paid in {{currency}}.",
+  "defaultPayment": "The balance after trade-ins will be recorded as cash in {{currency}}.",
   "exchangeRateHint": "Enter the amount in {{currency}} equal to 1 {{paymentCurrency}}.",
   "invalidField": "Check this value. Use a decimal point for fractional amounts.",
   "invalidTradeIns": "Check the trade-in entries and selected rates.",
@@ -82,7 +81,11 @@
     "rate": "Rate per gram",
     "calculatedValue": "Calculated value",
     "acceptedValue": "Accepted value",
-    "overrideAmount": "Override amount"
+    "overrideAmount": "Override amount",
+    "paymentMethod": "Payment method",
+    "amountAzn": "AZN equivalent",
+    "paidAmount": "Paid amount",
+    "outstandingDebt": "Outstanding debt"
   },
   "errors": {
     "currencyChanged": "The sale currency changed. Review the updated currency, amounts, and rates before submitting again.",
@@ -90,10 +93,32 @@
     "productMissing": "The product could not be found.",
     "saleMissing": "The sale could not be found.",
     "invalid": "Check the sale details and try again.",
-    "invalidPayment": "Enter a payment that covers the full balance after trade-ins, or remove it if no payment is due.",
-    "paymentTooLow": "The payment is below the balance after trade-ins. Enter an amount that covers the full balance at the selected exchange rate.",
-    "paymentNotDue": "There is no remaining balance to collect. Remove the payment to finish this sale.",
+    "invalidPayment": "Check the payment details.",
+    "paymentNotDue": "There is no remaining balance to collect.",
     "generic": "The sale could not be recorded. Try again.",
-    "unknownOutcome": "The sale status could not be confirmed."
+    "unknownOutcome": "The sale status could not be confirmed.",
+    "paymentTooSmall": "This payment rounds to zero at the entered exchange rate.",
+    "paymentExceedsBalance": "Payment exceeds the outstanding balance."
+  },
+  "noPaymentAtCheckout": "No payment at checkout",
+  "confirmDebt": "Confirm that the outstanding balance will be recorded as customer debt.",
+  "paymentHistory": "Payment history",
+  "repay": "Record repayment",
+  "saveRepayment": "Save repayment",
+  "retryRepayment": "Retry same repayment",
+  "repaymentUnknown": "The repayment could not be confirmed. Retry this same payment to check its result.",
+  "methods": {
+    "CASH": "Cash",
+    "CARD": "Card",
+    "TRANSFER": "Bank transfer"
+  },
+  "paymentStatus": {
+    "PAID": "Paid",
+    "PARTIALLY_PAID": "Partially paid",
+    "UNPAID": "Unpaid"
+  },
+  "paymentKind": {
+    "CHECKOUT": "Checkout payment",
+    "REPAYMENT": "Debt repayment"
   }
 }

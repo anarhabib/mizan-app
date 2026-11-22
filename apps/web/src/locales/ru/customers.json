@@ -46,5 +46,7 @@
   "partialTender": "Остаток после этой оплаты будет записан в долг клиента.",
   "unpaid": "Вся сумма к оплате будет записана в долг клиента.",
   "purchaseLabel_few": "{{product}} · {{count}} товара",
-  "purchaseLabel_many": "{{product}} · {{count}} товаров"
+  "purchaseLabel_many": "{{product}} · {{count}} товаров",
+  "tradeInCredit": "Стоимость обмена",
+  "paidAmount": "Оплачено"
 }

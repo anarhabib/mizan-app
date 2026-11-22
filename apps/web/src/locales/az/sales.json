@@ -43,8 +43,7 @@
   "removeTradeIn": "Qəbul sətrini sil",
   "addPayment": "Ödəniş əlavə et",
   "removePayment": "Ödənişi sil",
-  "paymentCoverage": "Ödəniş köhnə qızıl qəbulundan sonra qalan məbləği tam qarşılamalıdır.",
-  "defaultPayment": "Ödəniş məlumatlarını boş saxlasanız, qalan məbləğ {{currency}} ilə ödənilmiş kimi qeydə alınacaq.",
+  "defaultPayment": "Dəyişmədən sonra qalan məbləğ {{currency}} ilə nağd ödəniş kimi qeydə alınacaq.",
   "exchangeRateHint": "1 {{paymentCurrency}} üçün {{currency}} ilə qarşılığı daxil edin.",
   "invalidField": "Bu dəyəri yoxlayın. Kəsr hissəsini nöqtə ilə ayırın.",
   "invalidTradeIns": "Köhnə qızıl məlumatlarını və seçilmiş tarifləri yoxlayın.",
@@ -82,7 +81,11 @@
     "rate": "Bir qramın tarifi",
     "calculatedValue": "Hesablanmış dəyər",
     "acceptedValue": "Qəbul edilən dəyər",
-    "overrideAmount": "Əl ilə təyin edilən məbləğ"
+    "overrideAmount": "Əl ilə təyin edilən məbləğ",
+    "paymentMethod": "Ödəniş üsulu",
+    "amountAzn": "AZN ekvivalenti",
+    "paidAmount": "Ödənilən məbləğ",
+    "outstandingDebt": "Qalıq borc"
   },
   "errors": {
     "currencyChanged": "Satış valyutası dəyişib. Yenidən göndərməzdən əvvəl yeni valyutanı, məbləğləri və tarifləri yoxlayın.",
@@ -90,10 +93,32 @@
     "productMissing": "Məhsul tapılmadı.",
     "saleMissing": "Satış tapılmadı.",
     "invalid": "Satış məlumatlarını yoxlayıb yenidən cəhd edin.",
-    "invalidPayment": "Köhnə qızıl qəbulundan sonra qalan məbləği tam ödəyin. Ödəniş tələb olunmursa, onu silin.",
-    "paymentTooLow": "Ödəniş köhnə qızıl qəbulundan sonra qalan məbləğdən azdır. Seçilmiş məzənnə ilə qalığı tam qarşılayan məbləği daxil edin.",
-    "paymentNotDue": "Alınacaq ödəniş qalmayıb. Satışı tamamlamaq üçün ödənişi silin.",
+    "invalidPayment": "Ödəniş məlumatlarını yoxlayın.",
+    "paymentNotDue": "Ödəniləcək məbləğ qalmayıb.",
     "generic": "Satış qeydə alınmadı. Yenidən cəhd edin.",
-    "unknownOutcome": "Satışın vəziyyəti təsdiqlənmədi."
+    "unknownOutcome": "Satışın vəziyyəti təsdiqlənmədi.",
+    "paymentTooSmall": "Bu məbləğ daxil edilən məzənnə ilə sıfıra yuvarlaqlaşır.",
+    "paymentExceedsBalance": "Ödəniş qalıq borcdan çoxdur."
+  },
+  "noPaymentAtCheckout": "Satış zamanı ödəniş yoxdur",
+  "confirmDebt": "Qalan məbləğin müştəri borcu kimi qeydə alınacağını təsdiqləyin.",
+  "paymentHistory": "Ödəniş tarixçəsi",
+  "repay": "Borc ödənişi et",
+  "saveRepayment": "Borc ödənişini yadda saxla",
+  "retryRepayment": "Eyni ödənişi yenidən yoxla",
+  "repaymentUnknown": "Ödənişi təsdiqləmək mümkün olmadı. Nəticəni yoxlamaq üçün eyni ödənişi təkrarlayın.",
+  "methods": {
+    "CASH": "Nağd",
+    "CARD": "Kart",
+    "TRANSFER": "Bank köçürməsi"
+  },
+  "paymentStatus": {
+    "PAID": "Ödənilib",
+    "PARTIALLY_PAID": "Qismən ödənilib",
+    "UNPAID": "Ödənilməyib"
+  },
+  "paymentKind": {
+    "CHECKOUT": "Satış ödənişi",
+    "REPAYMENT": "Borc ödənişi"
   }
 }
