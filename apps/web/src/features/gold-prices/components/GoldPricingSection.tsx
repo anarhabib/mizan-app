@@ -1,27 +1,59 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
+  goldPriceKinds,
   goldPriceModes,
+  type GoldEffectiveRate,
   type GoldPriceKind,
   type GoldPriceMode,
   type GoldPricingChange,
-  type StoreGoldPrice,
+  type GoldPricingDraft,
+  type GoldPricingSettings,
+  type GoldRuleConfiguration,
+  type StoreGoldPriceRule,
 } from "@mizan/contracts";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm, useWatch } from "react-hook-form";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
+import { AlertDialog, Tabs } from "radix-ui";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { ApiError } from "@/shared/lib/api";
+import { formatDateTime } from "@/shared/lib/format";
+import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
+import { ProductSelect } from "@/features/products/components/ProductSelect";
 import {
   goldPricingPreviewQuery,
   goldPricingQuery,
+  goldRuleHistoryQuery,
   useChangeGoldPrice,
 } from "../api/queries";
 
 type Scope = Parameters<typeof goldPricingQuery>[0];
-const selectStyle =
-  "h-11 w-full rounded-md border border-control-border bg-control px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-9";
+type Selection = { kind: GoldPriceKind; purity: number | null };
+type RuleFormValues = { mode: GoldPriceMode | "FOLLOW"; value: string };
+
+function pricingError(
+  error: ApiError,
+  fallback: "settingsUnavailable" | "previewFailed" | "saveFailed",
+) {
+  switch (error.code) {
+    case "GOLD_PRICE_CONFLICT":
+      return "conflict";
+    case "GOLD_PRICE_UNAVAILABLE":
+      return "marketRequired";
+    case "PURITY_CONFLICT":
+      return "purityConflict";
+    case "INVALID_SETTINGS":
+      return "invalidValue";
+    case "ACCESS_DENIED":
+      return "accessDenied";
+    default:
+      return fallback;
+  }
+}
 
 export function GoldPricingSection({
   scope,
@@ -32,273 +64,688 @@ export function GoldPricingSection({
 }) {
   const { t } = useTranslation("gold-prices");
   const heading = useId();
-  const purityId = useId();
+  const rulesTab = useRef<HTMLButtonElement>(null);
   const query = useQuery(goldPricingQuery(scope));
-  const client = useQueryClient();
-  const mutation = useChangeGoldPrice(scope);
-  const [selected, setSelected] = useState<number>();
-  const kind = "SELL";
+  const mutation = useChangeGoldPrice(scope, affectedKeys);
+  const [view, setView] = useState("current");
+  const [selection, select] = useState<Selection>({
+    kind: "RETAIL_SELL",
+    purity: null,
+  });
   const data = query.data;
-  const reference =
-    data?.references.find(({ purity }) => purity === selected) ??
-    data?.references[0];
+  const purities = data?.references.map(({ purity }) => purity) ?? [];
+  const activeSelection =
+    selection.purity !== null && !purities.includes(selection.purity)
+      ? { ...selection, purity: null }
+      : selection;
   const current = data?.rules.find(
-    (rule) => rule.kind === kind && rule.purity === reference?.purity,
+    (rule) =>
+      rule.kind === activeSelection.kind &&
+      rule.purity === activeSelection.purity,
   );
-  const activePrice = current
-    ? current.pricePerGram
-    : data?.stale
-      ? null
-      : reference?.pricePerGram;
+  function edit(next: Selection) {
+    select(next);
+    mutation.reset();
+  }
   async function save(body: GoldPricingChange) {
     try {
       await mutation.mutateAsync(body);
-      await Promise.all(
-        affectedKeys(body.kind).map((queryKey) =>
-          client.invalidateQueries({ queryKey, exact: true }),
-        ),
-      );
+      return true;
     } catch {
-      // The mutation state renders the error beside the form.
+      return false;
     }
   }
   return (
     <section
       aria-labelledby={heading}
-      className="grid gap-4 rounded-lg border bg-card p-4"
+      className="grid min-w-0 gap-4 rounded-lg border bg-card p-4"
     >
       <h2 id={heading} className="font-heading text-base font-semibold">
-        {t("sellingRulesTitle")}
+        {t("title")}
       </h2>
-      {query.isPending && <p role="status">{t("loading")}</p>}
-      {query.isError && (
-        <div className="grid justify-items-start gap-2">
-          <p role="alert" className="text-destructive">
-            {t("settingsUnavailable")}
-          </p>
-          <Button
-            variant="outline"
-            className="min-h-11 lg:min-h-9"
-            disabled={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            {t("retry")}
-          </Button>
-        </div>
-      )}
-      {data && !reference && (
-        <p className="text-muted-foreground">{t("noPurities")}</p>
-      )}
-      {data && reference && (
-        <>
-          <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-            <div className="grid gap-2">
-              <Label htmlFor={purityId}>{t("purity")}</Label>
-              <select
-                id={purityId}
-                className={selectStyle}
-                value={reference.purity}
-                disabled={mutation.isPending}
-                onChange={(event) => {
-                  setSelected(Number(event.target.value));
-                  mutation.reset();
+      <Tabs.Root
+        value={view}
+        onValueChange={setView}
+        className="grid min-w-0 gap-4"
+      >
+        <Tabs.List
+          aria-label={t("title")}
+          className="grid grid-cols-3 border-b"
+        >
+          {(["current", "rules", "history"] as const).map((tab) => (
+            <Tabs.Trigger
+              key={tab}
+              value={tab}
+              ref={tab === "rules" ? rulesTab : undefined}
+              className="min-h-11 min-w-0 border-b-2 border-transparent px-1 py-2 text-sm wrap-anywhere text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:font-medium data-[state=active]:text-foreground"
+            >
+              {t(tab)}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+        {(["current", "rules"] as const).map((tab) => (
+          <Tabs.Content key={tab} value={tab} className="grid min-w-0 gap-4">
+            {query.isPending && <ListSkeleton rows={3} />}
+            {query.isError && (
+              <PricingError
+                error={query.error}
+                fallback="settingsUnavailable"
+                busy={query.isFetching}
+                retry={() => void query.refetch()}
+              />
+            )}
+            {data && tab === "current" && (
+              <CurrentRates
+                data={data}
+                busy={mutation.isPending}
+                edit={(next) => {
+                  edit(next);
+                  setView("rules");
+                  rulesTab.current?.focus();
                 }}
-              >
-                {data.references.map(({ purity }) => (
-                  <option value={purity} key={purity}>
-                    {purity}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <dl className="grid grid-cols-2 gap-3 border-y py-3">
-            <div className="min-w-0">
-              <dt className="text-sm text-muted-foreground">
-                {t("currentPrice")}
-              </dt>
-              <dd className="font-medium break-words">
-                {activePrice ? (
-                  <>
-                    <MoneyText value={activePrice} /> {t("perGram")}
-                  </>
-                ) : (
-                  t("unavailable")
-                )}
-              </dd>
-              {!current && (
-                <dd className="text-xs text-muted-foreground">
-                  {t("marketDefault")}
-                </dd>
-              )}
-            </div>
-            <div className="min-w-0">
-              <dt className="text-sm text-muted-foreground">
-                {t("reference")}
-              </dt>
-              <dd className="font-medium break-words">
-                {reference.pricePerGram ? (
-                  <>
-                    <MoneyText value={reference.pricePerGram} /> {t("perGram")}
-                  </>
-                ) : (
-                  t("unavailable")
-                )}
-              </dd>
-              {reference.pricePerGram && data.stale && (
-                <dd className="text-xs text-muted-foreground">{t("stale")}</dd>
-              )}
-            </div>
-          </dl>
-          <PriceRuleForm
-            key={`${kind}/${reference.purity}/${current?.id ?? ""}`}
-            scope={scope}
-            kind={kind}
-            purity={reference.purity}
-            current={current}
-            quoteId={data.stale ? undefined : data.quote?.id}
-            busy={mutation.isPending || query.isError}
-            save={save}
-          />
-        </>
-      )}
-      {mutation.isError && (
-        <p role="alert" className="text-destructive">
-          {t(
-            mutation.error.status === 409
-              ? "conflict"
-              : mutation.error.status === 403
-                ? "accessDenied"
-                : "saveFailed",
-          )}
-        </p>
-      )}
-      {mutation.isSuccess && <p role="status">{t("saved")}</p>}
+              />
+            )}
+            {data && tab === "rules" && (
+              <>
+                <RuleScope
+                  selection={activeSelection}
+                  purities={purities}
+                  busy={mutation.isPending}
+                  select={edit}
+                />
+                <RuleEditor
+                  key={JSON.stringify(activeSelection)}
+                  scope={scope}
+                  selection={activeSelection}
+                  current={current}
+                  settingsRevision={JSON.stringify([
+                    purities,
+                    data.quote?.id,
+                    data.stale,
+                    data.rules.map(({ id }) => id),
+                  ])}
+                  busy={mutation.isPending || query.isError}
+                  error={mutation.error}
+                  save={save}
+                />
+                {mutation.isSuccess && <p role="status">{t("saved")}</p>}
+              </>
+            )}
+          </Tabs.Content>
+        ))}
+        <Tabs.Content value="history">
+          <PricingHistory scope={scope} />
+        </Tabs.Content>
+      </Tabs.Root>
     </section>
   );
 }
 
-function PriceRuleForm({
-  scope,
-  kind,
-  purity,
-  current,
-  quoteId,
+function PricingError({
+  error,
+  fallback,
   busy,
+  retry,
+}: {
+  error: ApiError;
+  fallback: "settingsUnavailable" | "previewFailed";
+  busy: boolean;
+  retry: () => void;
+}) {
+  const { t } = useTranslation("gold-prices");
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <p role="alert" className="text-destructive">
+        {t(pricingError(error, fallback))}
+      </p>
+      <Button variant="outline" type="button" disabled={busy} onClick={retry}>
+        {t("retry")}
+      </Button>
+    </div>
+  );
+}
+
+function CurrentRates({
+  data,
+  busy,
+  edit,
+}: {
+  data: GoldPricingSettings;
+  busy: boolean;
+  edit: (selection: Selection) => void;
+}) {
+  const { t, i18n } = useTranslation("gold-prices");
+  const columns = ["purity", "reference", ...goldPriceKinds] as const;
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        {data.quote
+          ? t("lastUpdate", {
+              date: formatDateTime(
+                data.quote.retrievedAt,
+                i18n.resolvedLanguage,
+              ),
+            })
+          : t("unavailable")}
+        {data.quote && data.stale && <> · {t("stale")}</>}
+      </p>
+      {!data.rates.length ? (
+        <p className="text-muted-foreground">{t("noPurities")}</p>
+      ) : (
+        <table role="table" className="w-full table-fixed text-sm">
+          <thead role="rowgroup" className="sr-only md:not-sr-only">
+            <tr role="row" className="border-b text-left">
+              {columns.map((column) => (
+                <th
+                  key={column}
+                  scope="col"
+                  role="columnheader"
+                  className="px-2 pb-2 font-medium wrap-anywhere first:w-16"
+                >
+                  {t(column)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody role="rowgroup" className="divide-y">
+            {data.rates.map(({ purity, prices }, index) => {
+              const reference = data.references[index];
+              return (
+                <tr
+                  key={purity}
+                  role="row"
+                  className="grid grid-cols-2 gap-2 py-3 md:table-row"
+                >
+                  <th
+                    scope="row"
+                    role="rowheader"
+                    className="col-span-2 text-left font-semibold tabular-nums md:px-2 md:py-3 md:align-top"
+                  >
+                    {purity}
+                  </th>
+                  <td
+                    role="cell"
+                    className="min-w-0 wrap-anywhere md:px-2 md:py-3 md:align-top"
+                  >
+                    <span className="block text-xs text-muted-foreground md:hidden">
+                      {t("reference")}
+                    </span>
+                    {reference?.pricePerGram ? (
+                      <MoneyText value={reference.pricePerGram} />
+                    ) : (
+                      t("notSet")
+                    )}
+                  </td>
+                  {prices.map((price) => (
+                    <td
+                      key={price.kind}
+                      role="cell"
+                      className="min-w-0 md:px-2 md:py-1 md:align-top"
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={busy}
+                        aria-label={t("editRate", {
+                          kind: t(price.kind),
+                          purity,
+                        })}
+                        onClick={() => edit({ kind: price.kind, purity })}
+                        className="h-auto min-h-11 w-full justify-between gap-1 px-1 text-left whitespace-normal md:min-h-9"
+                      >
+                        <span className="min-w-0 wrap-anywhere">
+                          <span className="block text-xs text-muted-foreground md:hidden">
+                            {t(price.kind)}
+                          </span>
+                          <RateValue price={price} />
+                        </span>
+                        <Pencil
+                          aria-hidden="true"
+                          className="size-3 shrink-0 text-muted-foreground"
+                        />
+                      </Button>
+                      <Warnings warnings={price.warnings} />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
+
+function RateValue({ price }: { price: GoldEffectiveRate }) {
+  const { t } = useTranslation("gold-prices");
+  return (
+    <>
+      {price.pricePerGram ? (
+        <MoneyText value={price.pricePerGram} />
+      ) : (
+        t(price.status === "STALE" ? "staleRate" : "notSet")
+      )}
+      {price.source && (
+        <span className="block text-xs font-normal text-muted-foreground">
+          {price.source === "MARKET" ? t("automatic") : t(price.source)}
+          {price.source !== "MARKET" && (
+            <> · {t(price.mode === "FIXED" ? "manual" : "automatic")}</>
+          )}
+        </span>
+      )}
+    </>
+  );
+}
+
+function Warnings({ warnings }: { warnings: GoldEffectiveRate["warnings"] }) {
+  const { t } = useTranslation("gold-prices");
+  return warnings.length ? (
+    <ul className="text-xs wrap-anywhere text-warning-foreground">
+      {warnings.map((warning) => (
+        <li key={warning}>{t(warning)}</li>
+      ))}
+    </ul>
+  ) : null;
+}
+
+function RuleScope({
+  selection,
+  purities,
+  busy,
+  select,
+}: {
+  selection: Selection;
+  purities: number[];
+  busy: boolean;
+  select: (selection: Selection) => void;
+}) {
+  const { t } = useTranslation("gold-prices");
+  const id = useId();
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid min-w-0 gap-2">
+        <Label htmlFor={id + "-kind"}>{t("priceType")}</Label>
+        <ProductSelect
+          id={id + "-kind"}
+          value={selection.kind}
+          disabled={busy}
+          options={goldPriceKinds.map((kind) => ({
+            value: kind,
+            label: t(kind),
+          }))}
+          onChange={(kind) =>
+            select({ ...selection, kind: kind as GoldPriceKind })
+          }
+        />
+      </div>
+      <div className="grid min-w-0 gap-2">
+        <Label htmlFor={id + "-scope"}>{t("scope")}</Label>
+        <ProductSelect
+          id={id + "-scope"}
+          value={selection.purity === null ? "default" : "individual"}
+          disabled={busy}
+          options={[
+            { value: "default", label: t("allPurities") },
+            ...(purities.length
+              ? [{ value: "individual", label: t("specificPurity") }]
+              : []),
+          ]}
+          onChange={(value) =>
+            select({
+              ...selection,
+              purity:
+                value === "individual"
+                  ? (selection.purity ?? purities[0])
+                  : null,
+            })
+          }
+        />
+      </div>
+      {selection.purity !== null && (
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor={id + "-purity"}>{t("purity")}</Label>
+          <ProductSelect
+            id={id + "-purity"}
+            value={String(selection.purity)}
+            disabled={busy}
+            options={purities.map((purity) => ({
+              value: String(purity),
+              label: String(purity),
+            }))}
+            onChange={(purity) =>
+              select({ ...selection, purity: Number(purity) })
+            }
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RuleEditor({
+  scope,
+  selection,
+  current,
+  settingsRevision,
+  busy,
+  error,
   save,
 }: {
   scope: Scope;
-  kind: GoldPriceKind;
-  purity: number;
-  current: StoreGoldPrice | undefined;
-  quoteId: string | undefined;
+  selection: Selection;
+  current?: StoreGoldPriceRule;
+  settingsRevision: string;
   busy: boolean;
-  save: (body: GoldPricingChange) => Promise<void>;
+  error: ApiError | null;
+  save: (body: GoldPricingChange) => Promise<boolean>;
 }) {
   const { t } = useTranslation("gold-prices");
-  const modeId = useId();
-  const valueId = useId();
-  const form = useForm<{ mode: GoldPriceMode; value: string }>({
+  const id = useId();
+  const saved = current?.configuration;
+  const form = useForm<RuleFormValues>({
     defaultValues: {
-      mode: current?.mode ?? "FIXED",
-      value: current?.value ?? "",
+      mode:
+        !saved || (saved.mode !== "FIXED" && saved.value === "0")
+          ? "FOLLOW"
+          : saved.mode,
+      value: saved?.value ?? "",
     },
   });
   const mode = useWatch({ control: form.control, name: "mode" });
-  const value = useWatch({ control: form.control, name: "value" })
-    .trim()
-    .replace(",", ".");
+  const raw = useWatch({ control: form.control, name: "value" });
+  const value = mode === "FOLLOW" ? "0" : raw.trim().replace(",", ".");
   const [debounced, setDebounced] = useState(value);
+  const [dialog, setDialog] = useState<"fixed" | "reset" | null>(null);
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), 250);
+    const timer = setTimeout(() => setDebounced(value), 300);
     return () => clearTimeout(timer);
   }, [value]);
-  const canPreview = Boolean(
-    value && value === debounced && (mode === "FIXED" || quoteId),
-  );
+  const draft: GoldPricingDraft | undefined =
+    dialog === "reset"
+      ? { ...selection, reset: true }
+      : value && value === debounced
+        ? { ...selection, mode: mode === "FOLLOW" ? "PERCENTAGE" : mode, value }
+        : undefined;
   const preview = useQuery(
-    goldPricingPreviewQuery(
-      scope,
-      canPreview ? { kind, purity, mode, value } : undefined,
-      mode === "FIXED" ? undefined : quoteId,
-    ),
+    goldPricingPreviewQuery(scope, draft, settingsRevision),
   );
-  const result = preview.isError ? undefined : preview.data;
-  const invalid = preview.isError && preview.error.status === 400;
+  const result =
+    preview.isError || preview.isFetching ? undefined : preview.data;
+  const errors = error && (
+    <p role="alert" className="text-destructive">
+      {t(pricingError(error, "saveFailed"))}
+    </p>
+  );
+  async function submit(confirmed?: true) {
+    if (!draft || !result || busy) return;
+    const { expectedPriceId, revision, quoteId } = result;
+    if (
+      await save({
+        ...draft,
+        expectedPriceId,
+        revision,
+        quoteId,
+        confirmFixedDefault: confirmed,
+      })
+    ) {
+      if ("reset" in draft) form.reset({ mode: "FOLLOW", value: "" });
+      setDialog(null);
+    }
+  }
+  const previewContent = (
+    <>
+      {draft && preview.isFetching && (
+        <p role="status" className="text-muted-foreground">
+          {t("loadingPreview")}
+        </p>
+      )}
+      {preview.isError && (
+        <PricingError
+          error={preview.error}
+          fallback="previewFailed"
+          busy={preview.isFetching}
+          retry={() => void preview.refetch()}
+        />
+      )}
+      {result && (
+        <div className="grid gap-2">
+          <p className="font-medium">
+            {t(selection.purity === null ? "affected" : "preview")}
+          </p>
+          {!result.rates.length && (
+            <p className="text-muted-foreground">{t("noAffected")}</p>
+          )}
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {result.rates.map((price) => (
+              <li
+                key={price.purity}
+                className="min-w-0 rounded-md border px-3 py-2 wrap-anywhere"
+              >
+                {selection.purity === null && (
+                  <span className="mr-2 tabular-nums">{price.purity}</span>
+                )}
+                <RateValue price={price} />
+                <Warnings warnings={price.warnings} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
   return (
-    <form
-      onSubmit={form.handleSubmit(async () => {
-        if (result && !busy)
-          await save({
-            kind,
-            purity,
-            mode,
-            value,
-            expectedPriceId: current?.id ?? null,
-            ...(result.quoteId && { quoteId: result.quoteId }),
-          });
-      })}
-    >
-      <fieldset
+    <>
+      <form
         className="grid gap-3"
-        disabled={busy || form.formState.isSubmitting}
+        onSubmit={form.handleSubmit(() => {
+          if (selection.purity === null && mode === "FIXED") setDialog("fixed");
+          else return submit();
+        })}
       >
-        <div className="grid gap-3 sm:grid-cols-2 sm:max-w-md">
-          <div className="grid gap-2">
-            <Label htmlFor={modeId}>{t("mode")}</Label>
-            <select
-              id={modeId}
-              className={selectStyle}
-              {...form.register("mode")}
-            >
-              {goldPriceModes.map((option) => (
-                <option value={option} key={option}>
-                  {t(option)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={valueId}>
-              {t(mode === "PERCENTAGE" ? "percentValue" : "aznValue")}
-            </Label>
-            <Input
-              id={valueId}
-              inputMode={mode === "FIXED" ? "decimal" : "text"}
-              autoComplete="off"
-              className="min-h-11 tabular-nums lg:min-h-9"
-              aria-invalid={invalid}
-              aria-describedby={invalid ? `${valueId}-error` : undefined}
-              {...form.register("value")}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 gap-2">
+            <Label htmlFor={id + "-method"}>{t("mode")}</Label>
+            <Controller
+              control={form.control}
+              name="mode"
+              render={({ field }) => (
+                <ProductSelect
+                  id={id + "-method"}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  disabled={busy}
+                  options={(["FOLLOW", ...goldPriceModes] as const).map(
+                    (method) => ({ value: method, label: t(method) }),
+                  )}
+                />
+              )}
             />
           </div>
+          {mode !== "FOLLOW" && (
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor={id + "-value"}>
+                {t(mode === "PERCENTAGE" ? "percentValue" : "aznValue")}
+              </Label>
+              <Input
+                id={id + "-value"}
+                inputMode="decimal"
+                autoComplete="off"
+                disabled={busy}
+                className="min-h-11 tabular-nums lg:min-h-9"
+                aria-invalid={preview.error?.code === "INVALID_SETTINGS"}
+                {...form.register("value")}
+              />
+            </div>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        {dialog !== "reset" && previewContent}
+        {!dialog && errors}
+        <div className="flex flex-wrap gap-2">
           <Button
             type="submit"
             className="min-h-11 lg:min-h-9"
-            disabled={!result}
+            disabled={busy || !result || form.formState.isSubmitting}
           >
             {t("savePrice")}
           </Button>
-          {result && (
-            <p role="status">
-              {t("preview")} <MoneyText value={result.pricePerGram} />{" "}
-              {t("perGram")}
-            </p>
+          {current && selection.purity !== null && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 lg:min-h-9"
+              disabled={busy}
+              onClick={() => setDialog("reset")}
+            >
+              {t("resetOverride")}
+            </Button>
           )}
         </div>
-        {mode !== "FIXED" && !quoteId && (
-          <p role="status" className="text-muted-foreground">
-            {t("marketRequired")}
-          </p>
+      </form>
+      <AlertDialog.Root
+        open={dialog !== null}
+        onOpenChange={(open) => {
+          if (!open && !busy) setDialog(null);
+        }}
+      >
+        {dialog && (
+          <AlertDialog.Portal>
+            <AlertDialog.Overlay className="fixed inset-0 z-50 bg-overlay/50" />
+            <AlertDialog.Content
+              className="fixed inset-x-0 bottom-0 z-50 grid max-h-dvh gap-3 overflow-auto rounded-t-xl border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-104 sm:-translate-1/2 sm:rounded-xl"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                document.getElementById(id + "-method")?.focus();
+              }}
+              onEscapeKeyDown={(event) => {
+                if (busy) event.preventDefault();
+              }}
+            >
+              <AlertDialog.Title className="font-heading text-base font-semibold">
+                {t(dialog === "reset" ? "resetOverride" : "confirmFixedTitle")}
+              </AlertDialog.Title>
+              <AlertDialog.Description className="text-muted-foreground">
+                {t(dialog === "reset" ? "confirmReset" : "confirmFixed")}
+              </AlertDialog.Description>
+              {dialog === "reset" && previewContent}
+              {errors}
+              <div className="flex flex-wrap justify-end gap-2">
+                <AlertDialog.Cancel asChild>
+                  <Button variant="outline" disabled={busy}>
+                    {t("cancel")}
+                  </Button>
+                </AlertDialog.Cancel>
+                <Button
+                  disabled={busy || !result}
+                  onClick={() =>
+                    void submit(dialog === "fixed" ? true : undefined)
+                  }
+                >
+                  {t("confirm")}
+                </Button>
+              </div>
+            </AlertDialog.Content>
+          </AlertDialog.Portal>
         )}
-        {preview.isError && (
-          <p id={`${valueId}-error`} role="alert" className="text-destructive">
-            {t(invalid ? "invalidValue" : "previewFailed")}
-          </p>
-        )}
-      </fieldset>
-    </form>
+      </AlertDialog.Root>
+    </>
+  );
+}
+
+function PricingHistory({ scope }: { scope: Scope }) {
+  const { t, i18n } = useTranslation("gold-prices");
+  const query = useInfiniteQuery(goldRuleHistoryQuery(scope));
+  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  return (
+    <div className="grid gap-3">
+      {query.isPending && <ListSkeleton rows={3} />}
+      {query.isError && (
+        <PricingError
+          error={query.error}
+          fallback="settingsUnavailable"
+          busy={query.isFetching}
+          retry={() => void query.refetch()}
+        />
+      )}
+      {query.isSuccess && !items.length && (
+        <p className="text-muted-foreground">{t("noHistory")}</p>
+      )}
+      <ul className="divide-y">
+        {items.map((item) => (
+          <li key={item.id} className="grid gap-2 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <p className="font-medium">
+                {t(item.kind)} ·{" "}
+                {item.purity === null
+                  ? t("DEFAULT")
+                  : t("purityScope", { purity: item.purity })}
+              </p>
+              <time
+                className="text-muted-foreground"
+                dateTime={item.effectiveAt}
+              >
+                {formatDateTime(item.effectiveAt, i18n.resolvedLanguage)}
+              </time>
+            </div>
+            <dl className="grid gap-2 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground">{t("previous")}</dt>
+                <dd>
+                  <Configuration value={item.previous} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">
+                  {t("newConfiguration")}
+                </dt>
+                <dd>
+                  <Configuration value={item.configuration} reset />
+                </dd>
+              </div>
+            </dl>
+            <p className="text-xs wrap-anywhere text-muted-foreground">
+              {t("actor", { actor: item.actorId })}
+            </p>
+          </li>
+        ))}
+      </ul>
+      {query.hasNextPage && (
+        <Button
+          variant="outline"
+          className="min-h-11 justify-self-start lg:min-h-9"
+          disabled={query.isFetchingNextPage}
+          onClick={() => void query.fetchNextPage()}
+        >
+          {t("more")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function Configuration({
+  value,
+  reset = false,
+}: {
+  value: GoldRuleConfiguration | null;
+  reset?: boolean;
+}) {
+  const { t } = useTranslation("gold-prices");
+  if (!value) return t(reset ? "overrideReset" : "notSet");
+  if (value.mode !== "FIXED" && value.value === "0") return t("FOLLOW");
+  return (
+    <span className="wrap-anywhere">
+      {t(value.mode)} ·{" "}
+      {value.mode === "PERCENTAGE" ? (
+        t("percent", { value: value.value })
+      ) : (
+        <>
+          <MoneyText value={{ amount: value.value, currency: "AZN" }} />{" "}
+          {t("perGram")}
+        </>
+      )}
+    </span>
   );
 }

@@ -1,5 +1,13 @@
 # Mizan project state
 
+## Unified gold pricing (November 23, 2026)
+
+- `apps/api/src/modules/gold-prices/store-pricing.service.ts` resolves independent store defaults and purity overrides for retail selling, scrap buying, and scrap selling. Resets append a history version. Relative rule saves check the preview revision and market quote. Product estimates and checkout use the same resolver.
+- `apps/web/src/features/gold-prices` provides current rates, a previewed rule editor, and pricing history in Settings. Checkout suggestions use the selected purity and applicable CBAR conversion. Explicit agreed amounts remain editable when automatic rates change or become unavailable.
+- Applied migration `202611230002_unified_gold_pricing` on disposable PostgreSQL and the confirmed hosted development database. It removed six obsolete rate records and preserved all 21 trade-in snapshots, related inventory and sale records, and compatible store rules. Prisma reports the development schema is current. Scoped pricing, history, Sales options, and trading Settings requests returned HTTP 200 against that database.
+- Verified the API, web, database, and contracts suites. Chromium covered the Russian pricing views and checkout at 390px and 1280px in both themes. The live Storage integration test was skipped.
+- The shared web formatter displays monetary amounts to two decimal places, including sale totals and trade-in prices. Calculations and stored values retain full precision. Web type checking, changed-file lint, and 131 web tests passed.
+
 ## Task 13 — market and store gold prices (November 23, 2026)
 
 - Follow-up on `task/13-gold-prices`: active purities use the market selling rate unless an owner saved an override. Settings exposes selling rules and lets owners pick the default sale currency and accepted payment currencies. Checkout and the inventory exchange-rate widget use the selection. New buying rules await the lom qızıl workflow. Existing trade-in rates remain available.

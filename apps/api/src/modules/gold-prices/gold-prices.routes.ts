@@ -18,6 +18,7 @@ import {
   readGoldMarket,
 } from "./gold-market.service.js";
 import {
+  activeGoldPurities,
   changeStoreGoldPrice,
   getStoreGoldRuleHistory,
   getStoreGoldRules,
@@ -64,18 +65,11 @@ export function registerGoldPriceRoutes(
     sync === "interval" ? () => readGoldMarket(db!, enabled) : refresh!;
   const path = "/organizations/:organizationId/stores/:storeId/gold-prices";
   async function references(organizationId: string) {
-    const [state, grades] = await Promise.all([
+    const [state, purities] = await Promise.all([
       market(),
-      db!.purityGrade.findMany({
-        where: { organizationId, active: true },
-        select: { value: true },
-        orderBy: { value: "asc" },
-      }),
+      activeGoldPurities(db!, organizationId),
     ]);
-    return goldReferences(
-      state,
-      grades.map(({ value }) => value),
-    );
+    return goldReferences(state, purities);
   }
   app.get<Scope>(path, { preHandler }, ({ params }) =>
     references(params.organizationId),
@@ -92,7 +86,12 @@ export function registerGoldPriceRoutes(
       const state = await references(request.params.organizationId);
       return {
         ...state,
-        rules: await getStoreGoldRules(db!, request.access!, state),
+        ...(await getStoreGoldRules(
+          db!,
+          request.access!,
+          state,
+          state.references.map(({ purity }) => purity),
+        )),
       };
     },
   );
@@ -107,12 +106,7 @@ export function registerGoldPriceRoutes(
     async (request) => {
       if (!canManageAsOwner(request.access!))
         throw new AccessError("ACCESS_DENIED");
-      return previewStoreGoldPrice(
-        db!,
-        request.params.organizationId,
-        enabled,
-        request.body,
-      );
+      return previewStoreGoldPrice(db!, request.access!, enabled, request.body);
     },
   );
   app.get<History>(

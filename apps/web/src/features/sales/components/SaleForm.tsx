@@ -7,13 +7,14 @@ import {
   type FieldError,
   type UseFormReturn,
 } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   maxSaleItems,
   maxSalePayments,
   salePaymentMethods,
   type CustomerContact,
   type SaleCreateInput,
+  type SaleOptions,
 } from "@mizan/contracts";
 import { Plus, RotateCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -27,11 +28,7 @@ import { ProductSelect, productDetailQuery } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { formatMoney } from "@/shared/lib/format";
 import { MoneyText } from "@/shared/ui/MoneyText";
-import {
-  salePreviewQuery,
-  type SaleOptions,
-  type SaleScope,
-} from "../api/queries";
+import { saleKeys, salePreviewQuery, type SaleScope } from "../api/queries";
 import type { useSaleSubmission } from "../hooks/useSaleSubmission";
 import {
   buildSalePreviewInput,
@@ -109,6 +106,7 @@ export function SaleForm({
   submission: Submission;
 }) {
   const { t, i18n } = useTranslation("sales");
+  const client = useQueryClient();
   const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
   const [picking, setPicking] = useState(false);
@@ -238,18 +236,29 @@ export function SaleForm({
       ? debouncedPreview.input
       : undefined;
   const previewQuery = useQuery(salePreviewQuery(scope, activePreview));
+  const pricingPreviewError =
+    previewQuery.error?.code === "GOLD_PRICE_UNAVAILABLE"
+      ? "errors.rateUnavailable"
+      : previewQuery.error?.code === "PURITY_CONFLICT"
+        ? "errors.purityUnavailable"
+        : previewQuery.error?.field === "rateId"
+          ? "errors.conflict"
+          : null;
   const preview = activePreview ? previewQuery.data : undefined;
   const previewHasPayments =
     !payments.fields.length || !!activePreview?.payments;
   const rateOptions = rates.map((rate) => ({
-    value: rate.id,
-    label: t("rateOption", {
-      purity: rate.purity,
-      rate: formatMoney(
-        { amount: rate.amountPerGram, currency },
-        i18n.resolvedLanguage,
-      ),
-    }),
+    value: String(rate.purity),
+    label:
+      rate.amountPerGram !== null
+        ? t("rateOption", {
+            purity: rate.purity,
+            rate: formatMoney(
+              { amount: rate.amountPerGram, currency },
+              i18n.resolvedLanguage,
+            ),
+          })
+        : t("unavailableRateOption", { purity: rate.purity }),
   }));
   const tradeInError = errors.tradeIns?.root ?? errors.tradeIns;
 
@@ -434,6 +443,10 @@ export function SaleForm({
           {tradeIns.fields.map((row, index) => {
             const error = errors.tradeIns?.[index];
             const rateId = `sale-rate-${row.id}`;
+            const selectedPurity = tradeInValues?.[index]?.purity;
+            const requiresAgreedAmount =
+              rates.find(({ purity }) => String(purity) === selectedPurity)
+                ?.id === null;
             return (
               <div
                 className="grid gap-3 rounded-lg border border-border bg-card p-3"
@@ -441,12 +454,12 @@ export function SaleForm({
               >
                 <Controller
                   control={form.control}
-                  name={`tradeIns.${index}.rateId`}
+                  name={`tradeIns.${index}.purity`}
                   render={({ field }) => (
                     <FormField
                       id={rateId}
-                      label={t("fields.purityRate")}
-                      error={error?.rateId}
+                      label={t("fields.purity")}
+                      error={error?.purity}
                     >
                       <ProductSelect
                         id={rateId}
@@ -456,9 +469,9 @@ export function SaleForm({
                         ref={field.ref}
                         options={rateOptions}
                         placeholder={t("chooseRate")}
-                        invalid={Boolean(error?.rateId)}
+                        invalid={Boolean(error?.purity)}
                         describedBy={
-                          error?.rateId ? `${rateId}-error` : undefined
+                          error?.purity ? `${rateId}-error` : undefined
                         }
                         disabled={disabled}
                       />
@@ -474,11 +487,21 @@ export function SaleForm({
                 <DecimalInput
                   name={form.register(`tradeIns.${index}.overrideAmount`)}
                   label={t("amountCurrency", {
-                    label: t("overrideOptional"),
+                    label: t(
+                      requiresAgreedAmount
+                        ? "agreedAmount"
+                        : "overrideOptional",
+                    ),
                     currency,
                   })}
                   id={`sale-override-${row.id}`}
                   error={error?.overrideAmount}
+                  required={requiresAgreedAmount}
+                  hint={
+                    requiresAgreedAmount
+                      ? t("errors.rateUnavailable")
+                      : undefined
+                  }
                 />
                 {activePreview && previewQuery.data?.tradeIns[index] && (
                   <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -493,6 +516,7 @@ export function SaleForm({
                           : field === "calculatedValue"
                             ? line.calculatedValue
                             : line.acceptedValue;
+                      if (amount === null) return null;
                       return (
                         <div key={field} className="min-w-0">
                           <dt className="text-xs text-muted-foreground">
@@ -500,7 +524,7 @@ export function SaleForm({
                           </dt>
                           <dd className="wrap-anywhere tabular-nums">
                             <MoneyText value={{ amount, currency }} />
-                            {field === "rate" && " /g"}
+                            {field === "rate" && t("perGram")}
                           </dd>
                         </div>
                       );
@@ -530,13 +554,20 @@ export function SaleForm({
           {activePreview && previewQuery.isError && (
             <div className="flex flex-wrap items-center gap-3">
               <p role="alert" className="text-destructive">
-                {t("previewFailed")}
+                {t(pricingPreviewError ?? "previewFailed")}
               </p>
               <Button
                 type="button"
                 variant="outline"
                 className="min-h-11 lg:min-h-9"
-                onClick={() => void previewQuery.refetch()}
+                onClick={() => {
+                  if (pricingPreviewError)
+                    void client.invalidateQueries({
+                      queryKey: saleKeys.options(scope),
+                      exact: true,
+                    });
+                  else void previewQuery.refetch();
+                }}
               >
                 <RotateCw aria-hidden="true" />
                 {t("retryPreview")}
@@ -550,7 +581,7 @@ export function SaleForm({
               className="min-h-11 justify-self-start lg:min-h-9"
               onClick={() =>
                 tradeIns.append({
-                  rateId: "",
+                  purity: "",
                   weight: "",
                   overrideAmount: "",
                 })

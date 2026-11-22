@@ -22,6 +22,43 @@ const build = (form: SaleFormValues) =>
   buildSalePayload(form, "product-1", options);
 
 describe("sale payload", () => {
+  it("keeps the agreed amount when the buying rule changes or becomes unavailable", () => {
+    const form = {
+      ...values,
+      tradeIns: [{ purity: "585", weight: "1.025", overrideAmount: "30" }],
+    };
+    const refreshed = {
+      currency: "AZN",
+      rates: [
+        {
+          id: "new-rule",
+          purity: 585,
+          amountPerGram: "94",
+          marketQuoteId: "new-quote",
+        },
+      ],
+    };
+    expect(buildSalePreviewInput(form, refreshed)?.tradeIns).toMatchObject([
+      { rateId: "new-rule", marketQuoteId: "new-quote", overrideAmount: "30" },
+    ]);
+    const unavailable = {
+      currency: "AZN",
+      rates: [{ id: null, purity: 585, amountPerGram: null }],
+    };
+    expect(buildSalePreviewInput(form, unavailable)?.tradeIns).toMatchObject([
+      { rateId: null, overrideAmount: "30" },
+    ]);
+    expect(
+      buildSalePreviewInput(
+        {
+          ...form,
+          tradeIns: [{ ...form.tradeIns[0], overrideAmount: "" }],
+        },
+        unavailable,
+      ),
+    ).toBeUndefined();
+  });
+
   it("sends explicit zero payments and requires a reporting rate for linked non-AZN sales", () => {
     expect(build({ ...values, noPayment: true })).toMatchObject({
       input: { payments: [] },
@@ -49,8 +86,8 @@ describe("sale payload", () => {
           saleAmount: "100.00",
           items: [{ productId: "product-2", label: "Ring", saleAmount: "50" }],
           tradeIns: [
-            { rateId: "rate-585", weight: "1.005", overrideAmount: "12.50" },
-            { rateId: "rate-585", weight: "2", overrideAmount: "" },
+            { purity: "585", weight: "1.005", overrideAmount: "12.50" },
+            { purity: "585", weight: "2", overrideAmount: "" },
           ],
         },
         options,
@@ -77,7 +114,7 @@ describe("sale payload", () => {
       buildSalePreviewInput(
         {
           saleAmount: "100",
-          tradeIns: [{ rateId: "rate-585", weight: "", overrideAmount: "" }],
+          tradeIns: [{ purity: "585", weight: "", overrideAmount: "" }],
         },
         options,
       ),
@@ -110,8 +147,8 @@ describe("sale payload", () => {
         ...values,
         saleAmount: "9007199254740993.01",
         tradeIns: [
-          { rateId: "rate-585", weight: "0.301", overrideAmount: "0.00" },
-          { rateId: "rate-585", weight: "12.010", overrideAmount: "" },
+          { purity: "585", weight: "0.301", overrideAmount: "0.00" },
+          { purity: "585", weight: "12.010", overrideAmount: "" },
         ],
         payments: [
           {
@@ -216,11 +253,11 @@ describe("sale payload", () => {
     },
   );
 
-  it("requires a current rate, supported weight precision and a valid override", () => {
-    const row = { rateId: "rate-585", weight: "1.005", overrideAmount: "" };
-    expect(
-      build({ ...values, tradeIns: [{ ...row, rateId: "old-rate" }] }),
-    ).toEqual({ field: "tradeIns.0.rateId" });
+  it("requires an active purity, supported weight precision and a valid override", () => {
+    const row = { purity: "585", weight: "1.005", overrideAmount: "" };
+    expect(build({ ...values, tradeIns: [{ ...row, purity: "333" }] })).toEqual(
+      { field: "tradeIns.0.purity" },
+    );
     expect(
       build({ ...values, tradeIns: [{ ...row, weight: "1.0001" }] }),
     ).toEqual({ field: "tradeIns.0.weight" });
@@ -264,7 +301,7 @@ describe("sale payload", () => {
     const metadata = { fields: {}, shouldUseNativeValidation: false };
     const invalid = {
       ...values,
-      tradeIns: [{ rateId: "rate-585", weight: "0", overrideAmount: "" }],
+      tradeIns: [{ purity: "585", weight: "0", overrideAmount: "" }],
     };
     expect(await resolver(invalid, undefined, metadata)).toEqual({
       values: {},
@@ -305,7 +342,7 @@ describe("sale errors", () => {
     });
     expect(invalid("tradeIns[1].purity", 2)).toEqual({
       message: "invalid",
-      field: "tradeIns.1.rateId",
+      field: "tradeIns.1.purity",
       refresh: true,
     });
     expect(invalid("tradeIns.weight")).toMatchObject({

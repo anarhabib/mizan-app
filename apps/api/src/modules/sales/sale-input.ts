@@ -113,9 +113,12 @@ function parseTradeIns(value: unknown, currency: string) {
     return {
       purity: line.purity,
       weight: decimal(line.weight, 3, 12, "weight"),
-      rateId: id(line.rateId, "rateId"),
+      rateId: line.rateId === null ? null : id(line.rateId, "rateId"),
       ...(line.marketQuoteId !== undefined && {
         marketQuoteId: id(line.marketQuoteId, "rateId"),
+      }),
+      ...(line.rateExchangeRate !== undefined && {
+        rateExchangeRate: decimal(line.rateExchangeRate, 8, 12, "rateId"),
       }),
       overrideAmount:
         line.overrideAmount === undefined

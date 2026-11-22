@@ -60,13 +60,15 @@ test.skipIf(!db)(
           acquisitionCurrency: "AZN",
         },
       });
-      const rate = await db.oldGoldRate.create({
+      const rate = await db.storeGoldPriceRule.create({
         data: {
           organizationId,
+          storeId,
           actorId: userId,
           purity: 585,
-          currency: "AZN",
-          amountPerGram: "15",
+          kind: "SCRAP_BUY",
+          mode: "FIXED",
+          value: "15",
         },
       });
       const payload = {
@@ -240,7 +242,13 @@ test.skipIf(!db)(
       });
       expect(options.json()).toEqual({
         currency: "AZN",
-        rates: [{ id: rate.id, purity: 585, amountPerGram: "15" }],
+        rates: [
+          { id: null, purity: 375, amountPerGram: null },
+          { id: rate.id, purity: 585, amountPerGram: "15" },
+          { id: null, purity: 750, amountPerGram: null },
+          { id: null, purity: 916, amountPerGram: null },
+          { id: null, purity: 999, amountPerGram: null },
+        ],
       });
 
       const makeProduct = (code: string) =>

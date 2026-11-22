@@ -94,13 +94,15 @@ test.skipIf(!db)(
           product("LEGACY", "300", "150"),
         ],
       );
-      const rate = await db.oldGoldRate.create({
+      const rate = await db.storeGoldPriceRule.create({
         data: {
           organizationId,
+          storeId,
           actorId: owner.userId,
           purity: 585,
-          currency: "AZN",
-          amountPerGram: "30",
+          kind: "SCRAP_BUY",
+          mode: "FIXED",
+          value: "30",
         },
       });
       const items = [

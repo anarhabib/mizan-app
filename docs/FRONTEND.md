@@ -32,7 +32,7 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 
 - All calls go to `VITE_API_BASE_URL` (`/api/v1`). In development Vite proxies `/api` to the API. No cookies: the API client attaches `Authorization: Bearer <access token>` from the Supabase session.
 - `supabase-js` is for Auth only (sign-in, sign-up, session, refresh, password reset). Never use the Supabase Data API, Prisma or the Storage SDK. Photo bytes go only to the signed `uploadUrl` returned by the API.
-- No OpenAPI and no generated client: write small typed functions per feature using `@mizan/contracts` types. Where the contract is missing (for example `GET /sales/options`), define a local type with a comment pointing at `API_NOTES.md`.
+- No OpenAPI and no generated client: write small typed functions per feature using `@mizan/contracts` types. Where a shared contract is missing, define a local type with a comment pointing at `API_NOTES.md`.
 - The API client normalizes every failure into one `ApiError` (status, code, message, optional field, isNetwork). It must handle `{code,message,field?}`, Fastify's default `{statusCode,error,message}`, and network failures.
 - Server messages are Azerbaijani. Map known `code`s to i18n strings. Show a server `message` only for 4xx codes listed in `API_NOTES.md`; 5xx and unknown errors show a generic localized message.
 - On 401: try one session refresh, then sign out and redirect to `/login`. 503 `AUTH_UNAVAILABLE` is a retryable "try again" state, not a logout.
@@ -62,12 +62,12 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 - `Money` is `{amount: string, currency: string}`. Never assume AZN; always show the currency code.
 - Weights are grams as strings (up to 3 decimals). Purity is an integer fineness 1–999 shown as "585", not a percentage.
 - Validate, parse and round only through `@mizan/contracts` helpers (`parseDecimal`, `parseMoney`, `currencyMinorUnits`, `roundMoneyHalfUp`). No `parseFloat`, `Number()` or float arithmetic on money or weight. Do not compute money in the UI: show server-calculated values.
-- Formatters preserve exact digits: group thousands, add trailing zeros up to the currency's minor units, never truncate or round.
+- Displayed money rounds half up to two decimal places, with localized separators and the currency code. Forms, requests and stored amounts retain their original precision. Weight formatting preserves the exact digits.
 - All user-facing text goes through i18n (Azerbaijani default; English and Russian supported), one namespace per feature. No hard-coded strings in components.
 
 ## Forms
 
-- react-hook-form. Validation comes from the `@mizan/contracts` parsers (`parseProductCreate`, `parsePurity`, `parseRate`, `parseMoney`) wrapped by one small resolver helper in `shared/lib`; map server `field` errors to form fields.
+- react-hook-form. Validation comes from the `@mizan/contracts` parsers (`parseProductCreate`, `parsePurity`, `parseMoney`) wrapped by one small resolver helper in `shared/lib`; map server `field` errors to form fields.
 - Numeric fields are text inputs with `inputMode="decimal"` and string values.
 - Show errors after the user has interacted (blur or submit), not on load or while typing.
 - Labels always visible (no placeholder-only labels). Set `autocomplete` and `enterkeyhint` where relevant.

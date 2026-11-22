@@ -104,6 +104,10 @@ export async function readGoldMarket(
   };
 }
 
+export async function lockGoldMarket(db: Prisma.TransactionClient) {
+  await db.$queryRaw`SELECT "source" FROM "mizan"."GoldMarketCache" WHERE "source" = ${source} FOR SHARE`;
+}
+
 export function createGoldMarketService(
   db: OrganizationDatabase,
   getExchangeRates: () => Promise<ExchangeRatesResponse>,

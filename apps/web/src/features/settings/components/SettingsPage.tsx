@@ -8,7 +8,6 @@ import { GoldPricingSection } from "@/features/gold-prices";
 import { productKeys } from "@/features/products";
 import { saleKeys } from "@/features/sales";
 import { useWorkspace } from "@/features/workspace";
-import { MoneyText } from "@/shared/ui/MoneyText";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import {
@@ -19,7 +18,7 @@ import {
 import { settingsErrorKey } from "../lib/form";
 import { DeactivatePurity } from "./DeactivatePurity";
 import { CurrencySettingsForm } from "./CurrencySettingsForm";
-import { PurityForm, RateForm } from "./SettingsForms";
+import { PurityForm } from "./SettingsForms";
 
 export function SettingsPage() {
   const workspace = useWorkspace();
@@ -89,10 +88,7 @@ function OwnerSettings({
       </div>
     );
   }
-  const { settings, purities, rates } = query.data;
-  const activePurities = purities
-    .filter((purity) => purity.active)
-    .map(({ value }) => value);
+  const { settings, purities } = query.data;
   const busy = mutation.isPending;
   const error = mutation.error
     ? t(settingsErrorKey(mutation.error))
@@ -220,73 +216,16 @@ function OwnerSettings({
 
       <GoldPricingSection
         scope={scope}
-        affectedKeys={(kind) =>
-          kind === "BUY"
-            ? [saleKeys.options(scope)]
-            : client
-                .getQueriesData({ queryKey: productKeys.details(scope) })
-                .map(([key]) => key)
-        }
+        affectedKeys={(kind) => {
+          if (kind === "SCRAP_BUY") return [saleKeys.options(scope)];
+          if (kind === "RETAIL_SELL")
+            return client
+              .getQueriesData({ queryKey: productKeys.details(scope) })
+              .map(([key]) => key);
+          return [];
+        }}
       />
 
-      <section
-        aria-labelledby="settings-rates-title"
-        className="grid gap-4 rounded-lg border border-border bg-card p-4"
-      >
-        <h2
-          id="settings-rates-title"
-          className="font-heading text-base font-semibold"
-        >
-          {t("rates")}
-        </h2>
-        {activePurities.length === 0 ? (
-          <p className="text-muted-foreground">{t("noActivePurities")}</p>
-        ) : (
-          <RateForm
-            key={settings.defaultCurrency}
-            currency={settings.defaultCurrency}
-            purities={activePurities}
-            busy={busy}
-            save={(body) => save({ action: "addRate", body })}
-          />
-        )}
-        {change?.action === "addRate" && error && (
-          <p role="alert" className="text-destructive">
-            {error}
-          </p>
-        )}
-        {rates.length === 0 ? (
-          <p className="text-muted-foreground">{t("noRates")}</p>
-        ) : (
-          <ul className="divide-y border-t">
-            {rates.map((rate) => (
-              <li
-                key={rate.id}
-                className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[5rem_1fr_auto]"
-              >
-                <span className="tabular-nums">
-                  {t("ratePurity", { value: rate.purity })}
-                </span>
-                <span className="col-start-1 row-start-2 min-w-0 break-all font-medium sm:col-start-2 sm:row-start-1">
-                  <MoneyText
-                    value={{
-                      amount: rate.amountPerGram,
-                      currency: rate.currency,
-                    }}
-                  />{" "}
-                  {t("perGram")}
-                </span>
-                <Badge
-                  className="col-start-2 row-start-1 justify-self-end sm:col-start-3"
-                  variant={rate.current ? "success" : "outline"}
-                >
-                  {t(rate.current ? "current" : "historical")}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
       {busy && (
         <span role="status" className="sr-only">
           {t("saving")}

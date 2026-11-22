@@ -20,17 +20,21 @@ describe("date and time", () => {
     expect(formatDateTime(midnight, locale)).toContain("00:05");
   });
 });
-describe("exact money formatting", () => {
+describe("two-decimal money formatting", () => {
   it.each([
     ["0", "AZN", "0,00 AZN"],
     ["-1234.50", "USD", "-1.234,50 USD"],
-    ["12345678901234567890.1234", "AZN", "12.345.678.901.234.567.890,1234 AZN"],
+    ["12345678901234567890.995", "AZN", "12.345.678.901.234.567.891,00 AZN"],
     ["1.23", "AZN", "1,23 AZN"],
-    ["1.234", "AZN", "1,234 AZN"],
-    ["1.2300", "AZN", "1,2300 AZN"],
-    ["1", "JPY", "1 JPY"],
-    ["1.2", "KWD", "1,200 KWD"],
-  ])("%s %s preserves precision", (amount, currency, expected) =>
+    ["1.234", "AZN", "1,23 AZN"],
+    ["1.235", "AZN", "1,24 AZN"],
+    ["1.2300", "AZN", "1,23 AZN"],
+    ["-1.235", "AZN", "-1,24 AZN"],
+    ["-0.004", "AZN", "0,00 AZN"],
+    ["114.629094", "USD", "114,63 USD"],
+    ["1", "JPY", "1,00 JPY"],
+    ["1.234", "KWD", "1,23 KWD"],
+  ])("%s %s displays as %s", (amount, currency, expected) =>
     expect(formatMoney({ amount, currency })).toBe(expected),
   );
   it("uses English separators", () =>

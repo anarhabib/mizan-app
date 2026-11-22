@@ -11,7 +11,6 @@ import type {
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
 import { invalidateGoldPrices } from "@/features/gold-prices";
-import type { RateInput } from "../lib/form";
 
 type SettingsScope = Pick<StoreContext, "organizationId" | "storeId">;
 
@@ -41,8 +40,7 @@ export type SettingsChange =
   | { action: "visibility"; body: CostVisibility }
   | { action: "currencies"; body: CurrencySettings }
   | { action: "addPurity"; body: { value: number } }
-  | { action: "deactivate" | "reactivate"; value: number }
-  | { action: "addRate"; body: RateInput };
+  | { action: "deactivate" | "reactivate"; value: number };
 
 function saveSettings(scope: SettingsScope, change: SettingsChange) {
   const base = organizationPath(scope);
@@ -68,11 +66,6 @@ function saveSettings(scope: SettingsScope, change: SettingsChange) {
         `${base}/purities/${change.value}/${change.action}`,
         { method: "POST" },
       );
-    case "addRate":
-      return apiRequest<unknown>(`${base}/rates`, {
-        method: "POST",
-        body: change.body,
-      });
   }
 }
 
@@ -113,6 +106,19 @@ export function useSaveSettings(scope: SettingsScope) {
       return Promise.all([
         settings,
         invalidateGoldPrices(client, scope.organizationId),
+        ...client
+          .getQueryCache()
+          .findAll()
+          .filter(
+            ({ queryKey: key }) =>
+              key[1] === scope.organizationId &&
+              ((key[0] === "sales" && key[3] === "options") ||
+                (key[0] === "products" &&
+                  (key[3] === "detail" || key[3] === "options"))),
+          )
+          .map(({ queryKey }) =>
+            client.invalidateQueries({ queryKey, exact: true }),
+          ),
       ]);
     return settings;
   };

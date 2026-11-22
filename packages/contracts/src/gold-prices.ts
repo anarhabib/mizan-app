@@ -23,36 +23,61 @@ export interface GoldMarketPrices {
   references: GoldReference[];
 }
 
-export const goldPriceKinds = ["BUY", "SELL"] as const;
+export const goldPriceKinds = [
+  "RETAIL_SELL",
+  "SCRAP_BUY",
+  "SCRAP_SELL",
+] as const;
 export const goldPriceModes = ["FIXED", "PERCENTAGE", "OFFSET"] as const;
 export type GoldPriceKind = (typeof goldPriceKinds)[number];
 export type GoldPriceMode = (typeof goldPriceModes)[number];
 
-export interface StoreGoldPrice {
-  id: string;
-  purity: number;
-  kind: GoldPriceKind;
+export interface GoldRuleConfiguration {
   mode: GoldPriceMode;
   value: string;
-  pricePerGram: MoneyInput | null;
+}
+
+export interface StoreGoldPriceRule {
+  id: string;
+  purity: number | null;
+  kind: GoldPriceKind;
+  configuration: GoldRuleConfiguration | null;
   effectiveAt: string;
+  actorId: string;
+}
+
+export type GoldRateWarning = "SCRAP_SPREAD" | "MARKET_DEVIATION";
+
+export interface GoldEffectiveRate {
+  kind: GoldPriceKind;
+  pricePerGram: MoneyInput | null;
+  mode?: GoldPriceMode;
+  source: "INDIVIDUAL" | "DEFAULT" | "MARKET" | null;
+  status: "CURRENT" | "STALE" | "UNAVAILABLE";
+  warnings: GoldRateWarning[];
 }
 
 export interface GoldPricingSettings extends GoldMarketPrices {
-  rules: StoreGoldPrice[];
+  rules: StoreGoldPriceRule[];
+  rates: { purity: number; prices: GoldEffectiveRate[] }[];
 }
 
-export type GoldPricingChange = {
-  purity: number;
+export type GoldPricingDraft = {
+  purity: number | null;
   kind: GoldPriceKind;
-  mode: GoldPriceMode;
-  value: string;
+} & (GoldRuleConfiguration | { reset: true });
+
+export type GoldPricingChange = GoldPricingDraft & {
   expectedPriceId: string | null;
+  revision: string;
   quoteId?: string;
+  confirmFixedDefault?: true;
 };
 
 export interface GoldPricingPreview {
-  pricePerGram: MoneyInput;
+  rates: (GoldEffectiveRate & { purity: number })[];
+  expectedPriceId: string | null;
+  revision: string;
   quoteId?: string;
 }
 
@@ -64,6 +89,6 @@ export interface GoldPriceHistory {
 }
 
 export interface GoldPriceRuleHistory {
-  items: Omit<StoreGoldPrice, "pricePerGram">[];
+  items: (StoreGoldPriceRule & { previous: GoldRuleConfiguration | null })[];
   nextCursor?: string;
 }
