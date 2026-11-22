@@ -9,6 +9,7 @@ import { registerOnboardingRoutes } from "../modules/onboarding/onboarding.route
 import type { OnboardingDatabase } from "../modules/onboarding/onboarding.service.js";
 import type { OrganizationDatabase } from "../modules/access/organization-owner.js";
 import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
+import { registerGoldPriceRoutes } from "../modules/gold-prices/gold-prices.routes.js";
 import { registerProductRoutes } from "../modules/products/product.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
 import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
@@ -16,6 +17,7 @@ import { registerCustomerRoutes } from "../modules/customers/customer.routes.js"
 import type { SalesDatabase } from "../modules/sales/sale.service.js";
 import {
   createExchangeRateService,
+  presentExchangeRates,
   type ExchangeRateCache,
 } from "../modules/exchange-rates/exchange-rates.service.js";
 import {
@@ -50,6 +52,8 @@ export const requestContextRoutes: FastifyPluginAsync<{
   products?: ProductOptions;
   salesDb?: SalesDatabase;
   exchangeRatesDb?: ExchangeRateCache;
+  goldMarketEnabled?: boolean;
+  goldPriceSync?: "interval" | "on-demand";
 }> = async (
   app,
   {
@@ -60,6 +64,8 @@ export const requestContextRoutes: FastifyPluginAsync<{
     products,
     salesDb,
     exchangeRatesDb,
+    goldMarketEnabled = true,
+    goldPriceSync = "on-demand",
   },
 ) => {
   app.decorateRequest("identity", null);
@@ -107,12 +113,50 @@ export const requestContextRoutes: FastifyPluginAsync<{
     createExchangeRateService(exchangeRatesDb, (error) =>
       app.log.warn({ err: error }, "CBAR exchange rate refresh failed"),
     );
+  const refreshGold = registerGoldPriceRoutes(
+    app,
+    access,
+    settingsDb,
+    getExchangeRates,
+    goldMarketEnabled,
+    goldPriceSync,
+  );
+  if (goldPriceSync === "interval" && (refreshGold || getExchangeRates)) {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let sync: Promise<unknown> | undefined;
+    const tick = () => {
+      sync ??= Promise.allSettled([refreshGold?.(), getExchangeRates?.()])
+        .then((results) => {
+          for (const result of results) {
+            if (result.status === "rejected")
+              app.log.warn("A scheduled market data refresh failed");
+          }
+        })
+        .finally(() => {
+          sync = undefined;
+        });
+    };
+    app.addHook("onReady", async () => {
+      tick();
+      timer = setInterval(tick, 60_000);
+      timer.unref();
+    });
+    app.addHook("preClose", async () => {
+      clearInterval(timer);
+      await sync;
+    });
+  }
   app.get<{ Params: ScopeParams }>(
     `${store}/exchange-rates`,
     { preHandler },
     async () => {
-      if (!getExchangeRates) throw new AccessError("AUTH_UNAVAILABLE");
-      return getExchangeRates();
+      if (!getExchangeRates || !exchangeRatesDb)
+        throw new AccessError("AUTH_UNAVAILABLE");
+      if (goldPriceSync === "on-demand") return getExchangeRates();
+      return presentExchangeRates(
+        await exchangeRatesDb.findUnique({ where: { source: "CBAR" } }),
+        new Date(),
+      );
     },
   );
   app.get<{ Params: ScopeParams }>(

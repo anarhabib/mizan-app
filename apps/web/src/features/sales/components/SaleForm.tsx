@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  useWatch,
+  type FieldError,
+  type UseFormReturn,
+} from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import {
   maxSaleItems,
@@ -16,7 +23,7 @@ import {
   exchangeRatesQuery,
   suggestedExchangeRate,
 } from "@/features/exchange-rates";
-import { ProductSelect } from "@/features/products";
+import { ProductSelect, productDetailQuery } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { formatMoney } from "@/shared/lib/format";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -38,6 +45,55 @@ import { PaymentFields } from "./PaymentFields";
 import { DecimalInput, FormField } from "./SaleFields";
 import { SaleTotals } from "./SaleTotals";
 type Submission = ReturnType<typeof useSaleSubmission>;
+
+function SalePriceField({
+  form,
+  name,
+  scope,
+  productId,
+  currency,
+  id,
+  error,
+  disabled,
+}: {
+  form: UseFormReturn<SaleFormValues, unknown, SaleCreateInput>;
+  name: "saleAmount" | `items.${number}.saleAmount`;
+  scope: SaleScope;
+  productId: string;
+  currency: string;
+  id: string;
+  error?: FieldError;
+  disabled: boolean;
+}) {
+  const { t } = useTranslation("sales");
+  const [edited, setEdited] = useState(false);
+  const query = useQuery({
+    ...productDetailQuery(scope, productId),
+    select: (product) => product.estimatedSellingValue,
+    retry: false,
+  });
+  const suggested =
+    !query.isFetching && !query.isError && query.data?.currency === currency
+      ? query.data.amount
+      : undefined;
+  const { getValues, setValue } = form;
+  useEffect(() => {
+    if (!disabled && !edited && suggested !== undefined && !getValues(name))
+      setValue(name, suggested);
+  }, [disabled, edited, getValues, name, setValue, suggested]);
+  return (
+    <DecimalInput
+      id={id}
+      name={form.register(name, {
+        onChange: () => {
+          setEdited(true);
+        },
+      })}
+      label={t("amountCurrency", { label: t("fields.saleAmount"), currency })}
+      error={error}
+    />
+  );
+}
 
 export function SaleForm({
   productId,
@@ -295,12 +351,13 @@ export function SaleForm({
   const formContent = (
     <form noValidate onSubmit={submit} hidden={confirmOpen || pickingCustomer}>
       <fieldset disabled={disabled} className="grid min-w-0 gap-6">
-        <DecimalInput
-          name={form.register("saleAmount")}
-          label={t("amountCurrency", {
-            label: t("fields.saleAmount"),
-            currency,
-          })}
+        <SalePriceField
+          form={form}
+          name="saleAmount"
+          scope={scope}
+          productId={productId}
+          currency={currency}
+          disabled={disabled}
           id="sale-amount"
           error={errors.saleAmount}
         />
@@ -310,12 +367,13 @@ export function SaleForm({
             key={item.id}
           >
             <p className="font-medium wrap-anywhere">{item.label}</p>
-            <DecimalInput
-              name={form.register(`items.${index}.saleAmount`)}
-              label={t("amountCurrency", {
-                label: t("fields.saleAmount"),
-                currency,
-              })}
+            <SalePriceField
+              form={form}
+              name={`items.${index}.saleAmount`}
+              scope={scope}
+              productId={item.productId}
+              currency={currency}
+              disabled={disabled}
               id={`sale-item-amount-${item.id}`}
               error={errors.items?.[index]?.saleAmount}
             />

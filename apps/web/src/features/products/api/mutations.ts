@@ -45,12 +45,16 @@ export function useEditProductAcquisition(scope: ProductScope, id: string) {
   return useMutation({
     mutationKey: productKeys.edit(scope, id),
     retry: false,
-    mutationFn: ({ weight, acquisitionCostPerGram }: ProductAcquisitionInput) =>
+    mutationFn: ({
+      weight,
+      netGoldWeight,
+      acquisitionCostPerGram,
+    }: ProductAcquisitionInput) =>
       apiRequest<void>(
         productPath(scope, `/${encodeURIComponent(id)}/acquisition`),
         {
           method: "PATCH",
-          body: { weight, acquisitionCostPerGram },
+          body: { weight, netGoldWeight, acquisitionCostPerGram },
         },
       ),
     onSuccess: refresh,

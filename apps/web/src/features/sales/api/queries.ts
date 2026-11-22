@@ -21,7 +21,12 @@ export type SaleFilters = { q?: string; date?: string };
 // GET /sales/options in docs/API_NOTES.md has no shared response contract.
 export type SaleOptions = {
   currency: string;
-  rates: { id: string; purity: number; amountPerGram: string }[];
+  rates: {
+    id: string;
+    purity: number;
+    amountPerGram: string;
+    marketQuoteId?: string;
+  }[];
 };
 
 const scopeKey = ({ organizationId, storeId }: SaleScope) =>
@@ -106,6 +111,8 @@ export function saleOptionsQuery(scope: SaleScope) {
     queryFn: ({ signal }) =>
       apiRequest<SaleOptions>(salePath(scope, "/options"), { signal }),
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

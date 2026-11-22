@@ -26,6 +26,8 @@ export function detailFields(access: AccessContext) {
   const showCost = canViewAcquisition(access);
   return {
     ...listFields,
+    netGoldWeight: true,
+    grade: { select: { active: true } },
     acquisitionCost: showCost,
     acquisitionCostPerGram: showCost,
     acquisitionCurrency: showCost,
@@ -125,6 +127,7 @@ export function presentDetail(
     : legacySale;
   return {
     ...presentListItem(row),
+    ...(row.netGoldWeight && { netGoldWeight: row.netGoldWeight.toFixed(3) }),
     ...(acquisitionCost &&
       acquisitionCurrency && {
         acquisitionCost: presentMoney(acquisitionCost, acquisitionCurrency),

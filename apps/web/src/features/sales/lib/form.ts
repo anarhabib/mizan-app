@@ -162,7 +162,13 @@ export function buildSalePayload(
     if (row.overrideAmount.trim() && overrideAmount === undefined) {
       return { field: `tradeIns.${index}.overrideAmount` };
     }
-    tradeIns.push({ purity, weight, rateId: rate.id, overrideAmount });
+    tradeIns.push({
+      purity,
+      weight,
+      rateId: rate.id,
+      overrideAmount,
+      ...(rate.marketQuoteId && { marketQuoteId: rate.marketQuoteId }),
+    });
   }
 
   const input: SaleCreateInput =
@@ -202,7 +208,13 @@ export function buildSalePreviewInput(
       : undefined;
     if (row.overrideAmount.trim() && overrideAmount === undefined)
       return undefined;
-    tradeIns.push({ purity, weight, rateId: rate.id, overrideAmount });
+    tradeIns.push({
+      purity,
+      weight,
+      rateId: rate.id,
+      overrideAmount,
+      ...(rate.marketQuoteId && { marketQuoteId: rate.marketQuoteId }),
+    });
   }
   let saleAmounts: string[] | undefined;
   if ((values.items?.length ?? 0) < maxSaleItems) {

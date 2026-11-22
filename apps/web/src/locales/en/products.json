@@ -43,6 +43,9 @@
     "category": "Category",
     "purity": "Purity",
     "weight": "Weight",
+    "netGoldWeight": "Net gold weight",
+    "estimatedMaterialValue": "Estimated gold material value",
+    "estimatedSellingValue": "Estimated selling price",
     "acquisitionCost": "Total acquisition cost",
     "acquisitionCostPerGram": "Acquisition cost per gram",
     "createdAt": "Added",
@@ -53,6 +56,7 @@
     "name": "Product name",
     "category": "Category",
     "weight": "Weight (g)",
+    "netGoldWeight": "Net gold weight (g, optional)",
     "acquisitionCostPerGram": {
       "amount": "Acquisition cost per gram",
       "currency": "Currency"
@@ -65,6 +69,7 @@
     "category": "Enter a valid category.",
     "purity": "Select a purity grade.",
     "weight": "Enter a valid weight in grams, with up to three decimal places.",
+    "netGoldWeight": "Enter the gold weight excluding stones and other components. It cannot exceed total weight.",
     "cost": "Enter a positive rate with up to 16 decimal places and a valid currency. The rounded total must be at least 0.0001 and fit in 16 whole digits.",
     "note": "Enter a shorter note."
   },

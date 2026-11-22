@@ -33,8 +33,9 @@ export const productKeys = {
   list: (scope: ProductScope, filters: ProductFilters) =>
     [...productKeys.lists(scope), filters] as const,
   facets: (scope: ProductScope) => [...scopeKey(scope), "facets"] as const,
+  details: (scope: ProductScope) => [...scopeKey(scope), "detail"] as const,
   detail: (scope: ProductScope, id: string) =>
-    [...scopeKey(scope), "detail", id] as const,
+    [...productKeys.details(scope), id] as const,
   options: (scope: ProductScope) => [...scopeKey(scope), "options"] as const,
   create: (scope: ProductScope) => [...scopeKey(scope), "create"] as const,
   edit: (scope: ProductScope, id: string) =>

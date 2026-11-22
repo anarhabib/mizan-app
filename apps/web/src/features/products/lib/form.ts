@@ -17,6 +17,7 @@ const fields = {
   category: "category",
   purity: "purity",
   weight: "weight",
+  netGoldWeight: "netGoldWeight",
   acquisitionCostPerGram: "acquisitionCostPerGram.amount",
   "acquisitionCostPerGram.amount": "acquisitionCostPerGram.amount",
   "acquisitionCostPerGram.currency": "acquisitionCostPerGram.currency",
@@ -29,6 +30,9 @@ export function resolveProductForm(
 ): ResolverResult<ProductFormValues, ProductCreateInput> {
   const input = {
     ...values,
+    ...(values.netGoldWeight === "" && {
+      netGoldWeight: acquisitionOnly ? null : undefined,
+    }),
     purity: Number(values.purity),
     acquisitionCostPerGram: {
       amount: values.acquisitionCostPerGram.amount,

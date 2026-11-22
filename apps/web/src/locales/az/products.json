@@ -43,6 +43,9 @@
     "category": "Kateqoriya",
     "purity": "Əyar",
     "weight": "Çəki",
+    "netGoldWeight": "Xalis qızıl çəkisi",
+    "estimatedMaterialValue": "Qızılın təxmini dəyəri",
+    "estimatedSellingValue": "Təxmini satış qiyməti",
     "acquisitionCost": "Ümumi alış dəyəri",
     "acquisitionCostPerGram": "Bir qramın alış dəyəri",
     "createdAt": "Əlavə edilmə tarixi",
@@ -53,6 +56,7 @@
     "name": "Məhsulun adı",
     "category": "Kateqoriya",
     "weight": "Çəki (q)",
+    "netGoldWeight": "Xalis qızıl çəkisi (q, istəyə bağlı)",
     "acquisitionCostPerGram": {
       "amount": "Bir qramın alış dəyəri",
       "currency": "Valyuta"
@@ -65,6 +69,7 @@
     "category": "Düzgün kateqoriya daxil edin.",
     "purity": "Əyar seçin.",
     "weight": "Çəkini qramla, vergüldən sonra ən çox üç rəqəmlə daxil edin.",
+    "netGoldWeight": "Daş və digər hissələr çıxıldıqdan sonra qızılın çəkisini daxil edin. Bu çəki ümumi çəkidən çox ola bilməz.",
     "cost": "Qram üzrə müsbət məbləğ (vergüldən sonra ən çox 16 rəqəm) və düzgün valyuta kodu daxil edin. Yuvarlaqlaşdırılmış yekun ən azı 0.0001 olmalı və tam hissəsi 16 rəqəmi keçməməlidir.",
     "note": "Daha qısa qeyd daxil edin."
   },

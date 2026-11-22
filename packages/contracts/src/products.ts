@@ -6,6 +6,7 @@ export type ProductStatus = "IN_STOCK" | "SOLD";
 
 export interface ProductAcquisitionInput {
   weight: string;
+  netGoldWeight?: string | null;
   acquisitionCostPerGram: MoneyInput;
 }
 
@@ -29,6 +30,9 @@ export interface ProductListItem {
 }
 
 export interface ProductDetail extends ProductListItem {
+  netGoldWeight?: string;
+  estimatedMaterialValue?: MoneyInput;
+  estimatedSellingValue?: MoneyInput;
   acquisitionCost?: MoneyInput;
   acquisitionCostPerGram?: MoneyInput;
   canEditAcquisition?: boolean;
@@ -128,6 +132,19 @@ export function parseProductAcquisition(
   }
 
   const rate = raw?.acquisitionCostPerGram;
+  const netGoldWeight = raw?.netGoldWeight;
+  if (netGoldWeight != null) {
+    try {
+      if (
+        !isPositiveDecimal(netGoldWeight, 12, weightScale) ||
+        BigInt(roundMoneyHalfUp(netGoldWeight, weightScale).replace(".", "")) >
+          BigInt(roundMoneyHalfUp(weight, weightScale).replace(".", ""))
+      )
+        return { field: "netGoldWeight" };
+    } catch {
+      return { field: "netGoldWeight" };
+    }
+  }
   try {
     if (
       !isPositiveDecimal(rate?.amount, 19, rateScale) ||
@@ -151,6 +168,7 @@ export function parseProductAcquisition(
     return {
       input: {
         weight,
+        ...(netGoldWeight !== undefined && { netGoldWeight }),
         acquisitionCostPerGram: {
           amount: rate.amount,
           currency: rate.currency,

@@ -15,6 +15,7 @@ export interface SaleTradeInInput {
   purity: number;
   weight: string;
   rateId: string;
+  marketQuoteId?: string;
   overrideAmount?: string;
 }
 
@@ -30,6 +31,7 @@ export interface SaleTradeInPreview {
   purity: number;
   weight: string;
   rateId: string;
+  marketQuoteId?: string;
   appliedRate: string;
   calculatedValue: string;
   acceptedValue: string;

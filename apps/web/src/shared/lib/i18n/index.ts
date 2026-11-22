@@ -27,6 +27,9 @@ import rworkspace from "@/locales/ru/workspace.json";
 import azcustomers from "@/locales/az/customers.json";
 import encustomers from "@/locales/en/customers.json";
 import rucustomers from "@/locales/ru/customers.json";
+import azgoldPrices from "@/locales/az/gold-prices.json";
+import engoldPrices from "@/locales/en/gold-prices.json";
+import rugoldPrices from "@/locales/ru/gold-prices.json";
 
 export const resources = {
   az: {
@@ -34,6 +37,7 @@ export const resources = {
     products: azproducts,
     sales: azsales,
     customers: azcustomers,
+    "gold-prices": azgoldPrices,
     settings: azsettings,
     team: azteam,
     errors: azerrors,
@@ -45,6 +49,7 @@ export const resources = {
     products: enproducts,
     sales: ensales,
     customers: encustomers,
+    "gold-prices": engoldPrices,
     settings: ensettings,
     team: enteam,
     errors: enerrors,
@@ -56,6 +61,7 @@ export const resources = {
     products: ruproducts,
     sales: rusales,
     customers: rucustomers,
+    "gold-prices": rugoldPrices,
     settings: rusettings,
     team: ruteam,
     errors: ruerrors,

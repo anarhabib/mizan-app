@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
 import {
   salePaymentMethods,
+  checkoutCurrencies,
   type MoneyInput,
   type SalePaymentInput,
   type SaleResult,
@@ -13,6 +14,7 @@ import { invalidateCustomers } from "@/features/customers";
 import { invalidateProductInventory, productKeys } from "@/features/products";
 import { apiRequest, ApiError } from "@/shared/lib/api";
 import { MoneyText } from "@/shared/ui/MoneyText";
+import { useWorkspace } from "@/features/workspace";
 import { saleKeys, salePath, type SaleScope } from "../api/queries";
 import { buildPayment, saleError, type PaymentValues } from "../lib/form";
 import { PaymentFields } from "./PaymentFields";
@@ -31,6 +33,7 @@ export function SaleRepayment({
   outstanding: MoneyInput;
 }) {
   const { t } = useTranslation("sales");
+  const settings = useWorkspace().settings;
   const [open, setOpen] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const attempt = useRef<Attempt>(undefined);
@@ -39,7 +42,9 @@ export function SaleRepayment({
   const form = useForm<PaymentValues>({
     defaultValues: {
       method: "CASH",
-      currency: outstanding.currency,
+      currency: checkoutCurrencies(settings).includes(outstanding.currency)
+        ? outstanding.currency
+        : settings.defaultCurrency,
       amount: "",
       exchangeRate: "",
     },

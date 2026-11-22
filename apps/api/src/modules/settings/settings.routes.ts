@@ -10,6 +10,7 @@ import {
   changePurity,
   getTradingSettings,
   setCostVisibility,
+  setCurrencies,
 } from "./settings.service.js";
 
 export function registerSettingsRoutes(
@@ -29,6 +30,17 @@ export function registerSettingsRoutes(
   }
   type Scope = { organizationId: string };
   const base = "/organizations/:organizationId";
+  app.post<{ Params: Scope }>(
+    `${base}/settings/currencies`,
+    { preHandler },
+    (request) =>
+      setCurrencies(
+        database(),
+        request.params.organizationId,
+        request.identity!.userId,
+        request.body,
+      ),
+  );
   app.get<{ Params: Scope }>(`${base}/settings`, { preHandler }, (request) =>
     getTradingSettings(
       database(),

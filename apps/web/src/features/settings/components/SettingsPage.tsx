@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcw, RotateCw } from "lucide-react";
 import { Switch } from "radix-ui";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GoldPricingSection } from "@/features/gold-prices";
+import { productKeys } from "@/features/products";
+import { saleKeys } from "@/features/sales";
 import { useWorkspace } from "@/features/workspace";
 import { MoneyText } from "@/shared/ui/MoneyText";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -15,6 +18,7 @@ import {
 } from "../api/settings";
 import { settingsErrorKey } from "../lib/form";
 import { DeactivatePurity } from "./DeactivatePurity";
+import { CurrencySettingsForm } from "./CurrencySettingsForm";
 import { PurityForm, RateForm } from "./SettingsForms";
 
 export function SettingsPage() {
@@ -51,6 +55,7 @@ function OwnerSettings({
 }) {
   const { t } = useTranslation("settings");
   const query = useQuery(tradingSettingsQuery(scope));
+  const client = useQueryClient();
   const mutation = useSaveSettings(scope);
   const save = async (change: SettingsChange) => {
     if (mutation.isPending) return false;
@@ -95,6 +100,16 @@ function OwnerSettings({
   const change = mutation.variables;
   return (
     <div className="grid gap-6">
+      <CurrencySettingsForm
+        key={JSON.stringify([
+          settings.defaultCurrency,
+          settings.paymentCurrencies,
+        ])}
+        settings={settings}
+        busy={busy}
+        error={change?.action === "currencies" ? error : undefined}
+        save={(body) => void save({ action: "currencies", body })}
+      />
       <section
         aria-labelledby="settings-visibility-title"
         className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4"
@@ -202,6 +217,17 @@ function OwnerSettings({
           </ul>
         )}
       </section>
+
+      <GoldPricingSection
+        scope={scope}
+        affectedKeys={(kind) =>
+          kind === "BUY"
+            ? [saleKeys.options(scope)]
+            : client
+                .getQueriesData({ queryKey: productKeys.details(scope) })
+                .map(([key]) => key)
+        }
+      />
 
       <section
         aria-labelledby="settings-rates-title"
