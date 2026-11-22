@@ -1,4 +1,12 @@
 {
+  "exchangeRates": {
+    "title": "Official exchange rates",
+    "effectiveDate": "Effective {{date}}",
+    "stale": "Rates may be out of date",
+    "loading": "Loading exchange rates…",
+    "unavailable": "Exchange rates are currently unavailable.",
+    "retry": "Retry"
+  },
   "title": "Products",
   "empty": "No products in this store",
   "description": "Add a product to start tracking inventory.",

@@ -1,5 +1,11 @@
 # Mizan project state
 
+## Task 12 — automatic exchange rates (November 22, 2026)
+
+- `apps/api/src/modules/exchange-rates` reads the Central Bank of Azerbaijan's current USD, EUR and TRY bulletin. The store-scoped endpoint lazily refreshes the shared PostgreSQL snapshot at most once every six hours and retains the last valid rates on failure. Provider and refresh details are in `docs/API_NOTES.md`.
+- `apps/web/src/features/exchange-rates` shows the effective date and stale state on the Inventory landing page. Checkout and repayment suggest official rates and preview the AZN equivalent server-side. Payment records retain the rate submitted at checkout or repayment.
+- Migration `202611220003_official_exchange_rates` is applied to the configured development database. Authenticated Fastify requests verified the live bulletin, persisted cache and payment conversion. Prisma schema parity, both app builds and type checks, changed-source lint and formatting, 51 API tests on fresh PostgreSQL, and 128 web tests passed. Chromium covered the widget, checkout and repayment at 390px and 1280px in both themes with API fixtures. The separate live Storage test was skipped.
+
 ## Task 11 — sale payments and customer debt (November 22, 2026)
 
 - `apps/api/src/modules/sales` records split checkout payments with original tender, payment method, exchange rate and AZN equivalent. The calculated balance after trade-ins and monetary payments drives the customer requirement and confirmation. Repayments use the same conversion policy and a scoped idempotency key. They reduce the originating sale balance without creating sales revenue.

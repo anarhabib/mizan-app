@@ -1,4 +1,8 @@
 {
+  "aznEquivalent": "AZN equivalent",
+  "conversionLoading": "Calculating AZN equivalent…",
+  "conversionUnavailable": "Could not calculate the AZN equivalent.",
+  "cachedExchangeRate": "Using the last saved official rate.",
   "title": "Sales",
   "empty": "No sales yet",
   "description": "Open an in-stock product in Products to record a sale.",

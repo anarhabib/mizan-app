@@ -5,6 +5,7 @@ import type { OrganizationDatabase } from "./modules/access/organization-owner.j
 import { healthRoutes } from "./modules/health/health.routes.js";
 import type { ProductOptions } from "./modules/products/product.service.js";
 import type { SalesDatabase } from "./modules/sales/sale.service.js";
+import type { ExchangeRateCache } from "./modules/exchange-rates/exchange-rates.service.js";
 import {
   requestContextRoutes,
   type AccessOptions,
@@ -18,6 +19,7 @@ export interface BuildAppOptions {
   settingsDb?: OrganizationDatabase;
   products?: ProductOptions;
   salesDb?: SalesDatabase;
+  exchangeRatesDb?: ExchangeRateCache;
 }
 
 export async function buildApp(
@@ -35,6 +37,7 @@ export async function buildApp(
     settingsDb: options.settingsDb,
     products: options.products,
     salesDb: options.salesDb,
+    exchangeRatesDb: options.exchangeRatesDb,
   });
   return app;
 }

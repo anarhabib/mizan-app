@@ -1,4 +1,5 @@
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { FieldErrors, UseFormRegisterReturn } from "react-hook-form";
 import { salePaymentMethods } from "@mizan/contracts";
 import { ChevronDown } from "lucide-react";
@@ -12,21 +13,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import type { PaymentValues } from "../lib/form";
+import {
+  exchangeRatesQuery,
+  suggestedExchangeRate,
+} from "@/features/exchange-rates";
+import { MoneyText } from "@/shared/ui/MoneyText";
+import { paymentPreviewQuery, type SaleScope } from "../api/queries";
+import { buildPayment, type PaymentValues } from "../lib/form";
 import { DecimalInput, FormField } from "./SaleFields";
 
 const currencies = Intl.supportedValuesOf("currency");
 
 export function PaymentFields({
-  currency,
-  method,
+  scope,
+  values,
+  setExchangeRate,
   selectMethod,
   fields,
   errors,
   disabled,
 }: {
-  currency: string;
-  method: PaymentValues["method"];
+  scope: SaleScope;
+  values: PaymentValues;
+  setExchangeRate: (rate: string) => void;
   selectMethod: (method: string) => void;
   fields: Record<Exclude<keyof PaymentValues, "method">, UseFormRegisterReturn>;
   errors?: FieldErrors<PaymentValues>;
@@ -34,7 +43,32 @@ export function PaymentFields({
 }) {
   const { t } = useTranslation("sales");
   const id = useId();
+  const { currency, method, exchangeRate } = values;
   const normalizedCurrency = currency.trim().toUpperCase();
+  const rates = useQuery(exchangeRatesQuery(scope));
+  const suggestion = suggestedExchangeRate(rates.data, normalizedCurrency);
+  const manuallyEdited = useRef(false);
+  useEffect(() => {
+    if (!disabled && suggestion && !exchangeRate && !manuallyEdited.current) {
+      setExchangeRate(suggestion);
+    }
+  }, [disabled, exchangeRate, setExchangeRate, suggestion]);
+
+  const payment = buildPayment(values);
+  const serialized =
+    normalizedCurrency !== "AZN" && "input" in payment
+      ? JSON.stringify(payment.input)
+      : undefined;
+  const [debounced, setDebounced] = useState<string>();
+  useEffect(() => {
+    if (!serialized || disabled) return;
+    const timeout = setTimeout(() => setDebounced(serialized), 300);
+    return () => clearTimeout(timeout);
+  }, [disabled, serialized]);
+  const active = serialized !== undefined && debounced === serialized;
+  const preview = useQuery(
+    paymentPreviewQuery(scope, active ? serialized : undefined),
+  );
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <FormField
@@ -84,6 +118,14 @@ export function PaymentFields({
             errors?.currency ? `${id}-currency-error` : undefined
           }
           {...fields.currency}
+          onChange={(event) => {
+            const next = event.target.value.trim().toUpperCase();
+            void fields.currency.onChange(event);
+            if (next !== normalizedCurrency) {
+              manuallyEdited.current = false;
+              setExchangeRate(suggestedExchangeRate(rates.data, next) ?? "");
+            }
+          }}
         />
         <datalist id={`${id}-currencies`}>
           {currencies.map((option) => (
@@ -102,7 +144,13 @@ export function PaymentFields({
       />
       {normalizedCurrency !== "AZN" && (
         <DecimalInput
-          name={fields.exchangeRate}
+          name={{
+            ...fields.exchangeRate,
+            onChange: (event) => {
+              manuallyEdited.current = true;
+              return fields.exchangeRate.onChange(event);
+            },
+          }}
           label={t("fields.exchangeRate")}
           id={`${id}-rate`}
           error={errors?.exchangeRate}
@@ -111,6 +159,40 @@ export function PaymentFields({
             currency: "AZN",
           })}
         />
+      )}
+      {suggestion &&
+        exchangeRate === suggestion &&
+        (rates.data?.stale || rates.isError) && (
+          <p className="text-xs text-warning-foreground sm:col-span-2">
+            {t("cachedExchangeRate")}
+          </p>
+        )}
+      {active && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground sm:col-span-2"
+        >
+          {preview.data ? (
+            <>
+              {t("aznEquivalent")} <MoneyText value={preview.data} />
+            </>
+          ) : preview.isError ? (
+            <>
+              {t("conversionUnavailable")}
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 lg:min-h-9"
+                disabled={disabled || preview.isFetching}
+                onClick={() => void preview.refetch()}
+              >
+                {t("retryPreview")}
+              </Button>
+            </>
+          ) : (
+            t("conversionLoading")
+          )}
+        </div>
       )}
     </div>
   );

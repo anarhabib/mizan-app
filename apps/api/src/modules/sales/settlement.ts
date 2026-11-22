@@ -37,6 +37,10 @@ export function paidSaleAmount(balance: Prisma.Decimal, debt: Prisma.Decimal) {
   return SaleDecimal.max(new SaleDecimal(balance).minus(debt), 0).toFixed();
 }
 
+export function formatPaymentAzn(exactAzn: Prisma.Decimal) {
+  return exactAzn.toFixed(2, SaleDecimal.ROUND_HALF_UP);
+}
+
 export function convertPayment(
   payment: ReturnType<typeof import("./sale-input.js").parsePayment>,
   currency: string,
@@ -53,7 +57,7 @@ export function convertPayment(
     throw new AccessError("SALE_PAYMENT_TOO_SMALL", `${field}.amount`);
   return {
     ...payment,
-    amountAzn: exactAzn.toFixed(2, SaleDecimal.ROUND_HALF_UP),
+    amountAzn: formatPaymentAzn(exactAzn),
     convertedAmount: converted.toFixed(),
   };
 }

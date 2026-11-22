@@ -5,6 +5,8 @@ import type { AccessOptions } from "../../plugins/request-context.js";
 import { AccessError } from "../access/access.errors.js";
 import { resolveAccessContext } from "../access/access.service.js";
 import { SaleConfirmationRequired } from "./sale-confirmation.js";
+import { parsePayment } from "./sale-input.js";
+import { formatPaymentAzn, SaleDecimal } from "./settlement.js";
 import {
   getSale,
   getSaleOptions,
@@ -85,6 +87,14 @@ export function registerSaleRoutes(
   app.get<Scope>("/sales/options", { preHandler }, (request) =>
     getSaleOptions(db!, request.access!),
   );
+
+  app.post<Scope>("/sales/payment-preview", { preHandler }, (request) => {
+    const { amount, exchangeRate } = parsePayment(request.body);
+    return {
+      amount: formatPaymentAzn(new SaleDecimal(amount).times(exchangeRate)),
+      currency: "AZN",
+    };
+  });
 
   app.get<{
     Querystring: Scope["Querystring"] & {
