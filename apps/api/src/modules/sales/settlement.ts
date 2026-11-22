@@ -64,11 +64,16 @@ export function convertPayment(
 
 export function calculateTradeIns(
   lines: SaleTradeInInput[],
-  rates: { id: string; purity: number; amountPerGram: Prisma.Decimal }[],
+  rates: {
+    id: string;
+    purity: number;
+    amountPerGram: Prisma.Decimal;
+    marketQuoteId?: string;
+  }[],
 ) {
   const tradeIns: SaleTradeInPreview[] = lines.map((line) => {
     const rate = rates.find(({ purity }) => purity === line.purity);
-    if (rate?.id !== line.rateId)
+    if (rate?.id !== line.rateId || rate.marketQuoteId !== line.marketQuoteId)
       throw new AccessError("SALE_CONFLICT", "rateId");
     const calculatedValue = new SaleDecimal(line.weight).times(
       rate.amountPerGram,
@@ -79,6 +84,7 @@ export function calculateTradeIns(
       purity: line.purity,
       weight: line.weight,
       rateId: rate.id,
+      ...(rate.marketQuoteId && { marketQuoteId: rate.marketQuoteId }),
       appliedRate: rate.amountPerGram.toFixed(),
       calculatedValue: calculatedValue.toFixed(),
       acceptedValue: line.overrideAmount ?? calculatedValue.toFixed(),

@@ -1,4 +1,5 @@
 import type { Prisma } from "@mizan/database";
+import type { OrganizationSettings } from "@mizan/contracts";
 import { AccessError } from "./access.errors.js";
 
 export type AccessDatabase = Pick<
@@ -19,10 +20,7 @@ export interface AccessContext extends Pick<
   organizationId: string;
   storeId: string;
   role: "OWNER" | "SALESPERSON";
-  settings: {
-    defaultCurrency: string;
-    salespersonCanViewAcquisitionCost: boolean;
-  };
+  settings: OrganizationSettings;
 }
 
 export const uuidPattern =
@@ -64,6 +62,7 @@ export async function resolveAccessContext(
           organization: {
             select: {
               defaultCurrency: true,
+              paymentCurrencies: true,
               salespersonCanViewAcquisitionCost: true,
             },
           },
@@ -79,6 +78,13 @@ export async function resolveAccessContext(
     organizationId: assignment.organizationId,
     storeId: assignment.storeId,
     role: assignment.membership.role,
-    settings: assignment.membership.organization,
+    settings: {
+      defaultCurrency: assignment.membership.organization.defaultCurrency,
+      salespersonCanViewAcquisitionCost:
+        assignment.membership.organization.salespersonCanViewAcquisitionCost,
+      ...(assignment.membership.organization.paymentCurrencies?.length && {
+        paymentCurrencies: assignment.membership.organization.paymentCurrencies,
+      }),
+    },
   };
 }

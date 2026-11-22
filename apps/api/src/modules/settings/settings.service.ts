@@ -1,4 +1,8 @@
-import type { OldGoldRate, TradingSettings } from "@mizan/contracts";
+import {
+  configuredCurrencies,
+  type OldGoldRate,
+  type TradingSettings,
+} from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import {
   assertOwner,
@@ -22,6 +26,7 @@ export async function getTradingSettings(
       where: { id: organizationId },
       select: {
         ...settingsSelect,
+        paymentCurrencies: true,
         purities: {
           select: { value: true, active: true },
           orderBy: { value: "asc" },
@@ -55,7 +60,53 @@ export async function getTradingSettings(
       };
     },
   );
-  return { settings: organization, purities, rates };
+  const { paymentCurrencies, ...settings } = organization;
+  return {
+    settings: {
+      ...settings,
+      ...(paymentCurrencies.length && { paymentCurrencies }),
+    },
+    purities,
+    rates,
+  };
+}
+
+export function setCurrencies(
+  db: OrganizationDatabase,
+  organizationId: string,
+  ownerId: string,
+  body: unknown,
+) {
+  return ownerChange(db, organizationId, ownerId, async (tx) => {
+    const { defaultCurrency, paymentCurrencies } = (body ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const current = await tx.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { defaultCurrency: true, paymentCurrencies: true },
+    });
+    const allowed = new Set<string>([
+      ...configuredCurrencies,
+      current.defaultCurrency,
+      ...current.paymentCurrencies,
+    ]);
+    if (
+      typeof defaultCurrency !== "string" ||
+      !allowed.has(defaultCurrency) ||
+      !Array.isArray(paymentCurrencies) ||
+      paymentCurrencies.length > allowed.size ||
+      !paymentCurrencies.every((code) => allowed.has(code)) ||
+      !paymentCurrencies.includes(defaultCurrency) ||
+      new Set(paymentCurrencies).size !== paymentCurrencies.length
+    )
+      throw new AccessError("INVALID_SETTINGS");
+    return tx.organization.update({
+      where: { id: organizationId },
+      data: { defaultCurrency, paymentCurrencies },
+      select: { defaultCurrency: true, paymentCurrencies: true },
+    });
+  });
 }
 
 export function setCostVisibility(

@@ -1,4 +1,10 @@
 {
+  "currencies": {
+    "title": "Valyutalar",
+    "default": "Standart satış valyutası",
+    "payment": "Ödəniş üçün valyutalar",
+    "save": "Valyutaları saxla"
+  },
   "title": "Tənzimləmələr",
   "empty": "Ayar yoxdur",
   "description": "Təşkilatın ticarət ayarlarını idarə edin.",

@@ -20,6 +20,8 @@ export interface BuildAppOptions {
   products?: ProductOptions;
   salesDb?: SalesDatabase;
   exchangeRatesDb?: ExchangeRateCache;
+  goldMarketEnabled?: boolean;
+  goldPriceSync?: "interval" | "on-demand";
 }
 
 export async function buildApp(
@@ -38,6 +40,8 @@ export async function buildApp(
     products: options.products,
     salesDb: options.salesDb,
     exchangeRatesDb: options.exchangeRatesDb,
+    goldMarketEnabled: options.goldMarketEnabled,
+    goldPriceSync: options.goldPriceSync,
   });
   return app;
 }

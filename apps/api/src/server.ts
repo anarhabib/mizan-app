@@ -28,6 +28,14 @@ const verifyToken = issuer
 const db = databaseUrl ? createDatabase(databaseUrl) : undefined;
 const access = db && verifyToken ? { db, verifyToken } : undefined;
 
+const goldPriceProvider = process.env.MIZAN_GOLD_PRICE_PROVIDER || "gold-api";
+if (goldPriceProvider !== "gold-api" && goldPriceProvider !== "off") {
+  throw new Error("MIZAN_GOLD_PRICE_PROVIDER must be gold-api or off");
+}
+const goldPriceSync = process.env.MIZAN_GOLD_PRICE_SYNC || "interval";
+if (goldPriceSync !== "interval" && goldPriceSync !== "on-demand")
+  throw new Error("MIZAN_GOLD_PRICE_SYNC must be interval or on-demand");
+
 const memberships =
   db && issuer
     ? {
@@ -44,6 +52,8 @@ const app = await buildApp({
   settingsDb: db,
   salesDb: db,
   exchangeRatesDb: db?.officialExchangeRateSnapshot,
+  goldMarketEnabled: goldPriceProvider === "gold-api",
+  goldPriceSync,
   products: db
     ? {
         db,

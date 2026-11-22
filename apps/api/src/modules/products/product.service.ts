@@ -1,5 +1,6 @@
 import { Prisma } from "@mizan/database";
 import { randomUUID } from "node:crypto";
+import { officialRateCurrencies } from "@mizan/contracts";
 import type {
   MoneyInput,
   ProductAcquisitionInput,
@@ -26,6 +27,14 @@ import {
   presentListItem,
 } from "./product.presenter.js";
 import type { ProductPhotoStorage } from "./product.storage.js";
+import { readGoldMarket } from "../gold-prices/gold-market.service.js";
+import { presentExchangeRates } from "../exchange-rates/exchange-rates.service.js";
+import {
+  currentGoldRules,
+  effectiveGoldRate,
+  goldValue,
+  marketPurityRate,
+} from "../gold-prices/store-pricing.service.js";
 
 export interface ProductOptions {
   db: OrganizationDatabase;
@@ -141,12 +150,18 @@ export async function updateProductAcquisition(
     const row = await findProduct(tx, currentAccess, id);
     if (!canEditAcquisition(row))
       throw new AccessError("PRODUCT_EDIT_CONFLICT");
+    if (
+      input.netGoldWeight === undefined &&
+      row.netGoldWeight?.gt(input.weight)
+    )
+      throw new AccessError("INVALID_PRODUCT", "netGoldWeight");
     await tx.product.update({
       where: {
         organizationId_storeId_id: { ...scope(currentAccess), id: row.id },
       },
       data: {
         weight: input.weight,
+        netGoldWeight: input.netGoldWeight,
         acquisitionCost: total.amount,
         acquisitionCostPerGram: input.acquisitionCostPerGram.amount,
         acquisitionCurrency: input.acquisitionCostPerGram.currency,
@@ -276,7 +291,47 @@ export async function getProduct(
       // Inventory detail stays usable during a storage outage.
     }
   }
-  return presentDetail(row, photoUrl, access);
+  const detail = presentDetail(row, photoUrl, access);
+  if (row.status !== "IN_STOCK" || !row.netGoldWeight) return detail;
+  const [market, [rule]] = await Promise.all([
+    readGoldMarket(options.db),
+    currentGoldRules(options.db, access, "SELL", [row.purity]),
+  ]);
+  const quote = market.stale ? null : market.quote;
+  const material = goldValue(
+    marketPurityRate(quote, row.purity),
+    row.netGoldWeight,
+  );
+  const currency = access.settings.defaultCurrency;
+  const sellingRate = rule
+    ? effectiveGoldRate(rule, quote)
+    : row.grade.active
+      ? marketPurityRate(quote, row.purity)
+      : null;
+  const official = officialRateCurrencies.find((code) => code === currency);
+  const exchange =
+    sellingRate &&
+    official &&
+    presentExchangeRates(
+      await options.db.officialExchangeRateSnapshot.findUnique({
+        where: { source: "CBAR" },
+      }),
+      new Date(),
+    );
+  const aznPerUnit =
+    currency === "AZN"
+      ? "1"
+      : official && exchange && !exchange.stale
+        ? exchange.snapshot?.rates[official]
+        : undefined;
+  const selling =
+    aznPerUnit &&
+    goldValue(sellingRate, row.netGoldWeight, currency, aznPerUnit);
+  return {
+    ...detail,
+    ...(material && { estimatedMaterialValue: material }),
+    ...(selling && { estimatedSellingValue: selling }),
+  };
 }
 
 function photoDirectory(access: AccessContext, id: string) {

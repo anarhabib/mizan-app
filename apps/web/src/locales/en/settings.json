@@ -1,4 +1,10 @@
 {
+  "currencies": {
+    "title": "Currencies",
+    "default": "Default sale currency",
+    "payment": "Accepted payment currencies",
+    "save": "Save currencies"
+  },
   "title": "Settings",
   "empty": "No settings",
   "description": "Manage trading settings for this organization.",

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { FieldErrors, UseFormRegisterReturn } from "react-hook-form";
-import { salePaymentMethods } from "@mizan/contracts";
+import { checkoutCurrencies, salePaymentMethods } from "@mizan/contracts";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,15 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   exchangeRatesQuery,
   suggestedExchangeRate,
 } from "@/features/exchange-rates";
 import { MoneyText } from "@/shared/ui/MoneyText";
+import { useWorkspace } from "@/features/workspace";
 import { paymentPreviewQuery, type SaleScope } from "../api/queries";
 import { buildPayment, type PaymentValues } from "../lib/form";
 import { DecimalInput, FormField } from "./SaleFields";
-
-const currencies = Intl.supportedValuesOf("currency");
 
 export function PaymentFields({
   scope,
@@ -42,6 +40,7 @@ export function PaymentFields({
   disabled: boolean;
 }) {
   const { t } = useTranslation("sales");
+  const currencies = checkoutCurrencies(useWorkspace().settings);
   const id = useId();
   const { currency, method, exchangeRate } = values;
   const normalizedCurrency = currency.trim().toUpperCase();
@@ -106,18 +105,18 @@ export function PaymentFields({
         label={t("fields.paymentCurrency")}
         error={errors?.currency}
       >
-        <Input
+        <select
           id={`${id}-currency`}
-          list={`${id}-currencies`}
-          autoComplete="off"
-          autoCapitalize="characters"
-          maxLength={3}
-          className="min-h-11 uppercase lg:min-h-9"
+          disabled={disabled}
+          className="h-11 rounded-md border border-control-border bg-control px-2 focus-visible:ring-2 focus-visible:ring-ring lg:h-9"
           aria-invalid={Boolean(errors?.currency)}
           aria-describedby={
             errors?.currency ? `${id}-currency-error` : undefined
           }
           {...fields.currency}
+          value={
+            currencies.includes(normalizedCurrency) ? normalizedCurrency : ""
+          }
           onChange={(event) => {
             const next = event.target.value.trim().toUpperCase();
             void fields.currency.onChange(event);
@@ -126,12 +125,18 @@ export function PaymentFields({
               setExchangeRate(suggestedExchangeRate(rates.data, next) ?? "");
             }
           }}
-        />
-        <datalist id={`${id}-currencies`}>
+        >
+          {!currencies.includes(normalizedCurrency) && (
+            <option value="" disabled>
+              —
+            </option>
+          )}
           {currencies.map((option) => (
-            <option key={option} value={option} />
+            <option key={option} value={option}>
+              {option}
+            </option>
           ))}
-        </datalist>
+        </select>
       </FormField>
       <DecimalInput
         name={fields.amount}

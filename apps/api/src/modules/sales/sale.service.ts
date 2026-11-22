@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { type OrganizationSettings } from "@mizan/contracts";
 import type {
   SaleItem,
   SalePayment,
@@ -11,6 +12,11 @@ import type {
 import { Prisma, type createDatabase } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
 import { canManageAsOwner } from "../access/display-mode.js";
+import { readGoldMarket } from "../gold-prices/gold-market.service.js";
+import {
+  currentGoldRules,
+  effectiveGoldRate,
+} from "../gold-prices/store-pricing.service.js";
 import { lockOrganization } from "../access/organization-owner.js";
 import {
   resolveAccessContext,
@@ -43,6 +49,18 @@ const include = {
   },
 } satisfies Prisma.SaleInclude;
 type SaleRecord = Prisma.SaleGetPayload<{ include: typeof include }>;
+
+function assertPaymentCurrency(
+  settings: OrganizationSettings,
+  currency: string,
+  field: string,
+) {
+  if (
+    settings.paymentCurrencies?.length &&
+    !settings.paymentCurrencies.includes(currency)
+  )
+    throw new AccessError("INVALID_SALE", field);
+}
 
 async function resolveSaleMutationAccess(
   tx: Prisma.TransactionClient,
@@ -88,15 +106,15 @@ function productSnapshot(
   };
 }
 
-function currentRates(
-  db: Pick<SalesDatabase, "oldGoldRate">,
-  organizationId: string,
+async function currentRates(
+  db: Prisma.TransactionClient,
+  scope: Pick<AccessContext, "organizationId" | "storeId">,
   currency: string,
   purities?: number[],
 ) {
-  return db.oldGoldRate.findMany({
+  const legacyRates = await db.oldGoldRate.findMany({
     where: {
-      organizationId,
+      organizationId: scope.organizationId,
       currency,
       grade: { active: true },
       purity: purities && { in: purities },
@@ -104,6 +122,35 @@ function currentRates(
     orderBy: [{ effectiveAt: "desc" }, { id: "desc" }],
     distinct: ["purity"],
   });
+  const rates = legacyRates.map(({ id, purity, amountPerGram }) => ({
+    id,
+    purity,
+    amountPerGram,
+    storeRule: false,
+    marketQuoteId: undefined as string | undefined,
+  }));
+  if (currency !== "AZN") return rates;
+  const rules = await currentGoldRules(db, scope, "BUY", purities);
+  if (!rules.length) return rates;
+  const market = rules.some(({ mode }) => mode !== "FIXED")
+    ? await readGoldMarket(db)
+    : undefined;
+  const quote = market && !market.stale ? market.quote : null;
+  for (const rule of rules) {
+    const amountPerGram = effectiveGoldRate(rule, quote);
+    if (!amountPerGram) continue;
+    const existing = rates.findIndex(({ purity }) => purity === rule.purity);
+    const rate = {
+      id: rule.id,
+      purity: rule.purity,
+      amountPerGram,
+      storeRule: true,
+      marketQuoteId: rule.mode === "FIXED" ? undefined : quote?.id,
+    };
+    if (existing === -1) rates.push(rate);
+    else rates[existing] = rate;
+  }
+  return rates;
 }
 
 export async function getSaleOptions(
@@ -111,13 +158,14 @@ export async function getSaleOptions(
   context: AccessContext,
 ) {
   const currency = context.settings.defaultCurrency;
-  const rates = await currentRates(db, context.organizationId, currency);
+  const rates = await currentRates(db, context, currency);
   return {
     currency,
-    rates: rates.map(({ id, purity, amountPerGram }) => ({
+    rates: rates.map(({ id, purity, amountPerGram, marketQuoteId }) => ({
       id,
       purity,
       amountPerGram: amountPerGram.toFixed(),
+      ...(marketQuoteId && { marketQuoteId }),
     })),
   };
 }
@@ -129,10 +177,17 @@ export async function previewSale(
 ): Promise<SalePreview> {
   const currency = context.settings.defaultCurrency;
   const input = parseSalePreview(body, currency);
+  input.payments?.forEach((payment, index) =>
+    assertPaymentCurrency(
+      context.settings,
+      payment.currency,
+      `payments.${index}.currency`,
+    ),
+  );
   const rates = input.tradeIns.length
     ? await currentRates(
         db,
-        context.organizationId,
+        context,
         currency,
         input.tradeIns.map(({ purity }) => purity),
       )
@@ -301,7 +356,8 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
     tradeIns: sale.tradeIns.map((line) => ({
       id: line.id,
       purity: line.purity,
-      rateId: line.rateId,
+      rateId: line.rateId ?? line.storeGoldPriceRuleId!,
+      ...(line.goldMarketQuoteId && { marketQuoteId: line.goldMarketQuoteId }),
       weight: line.weight.toFixed(),
       appliedRate: line.appliedRate.toFixed(),
       calculatedValue: line.calculatedValue.toFixed(),
@@ -526,6 +582,19 @@ export async function recordSale(
           throw new AccessError("SALE_CONFLICT", "idempotencyKey");
         return presentSale(previous, access);
       }
+      input.payments?.forEach((payment, index) =>
+        assertPaymentCurrency(
+          access.settings,
+          payment.currency,
+          `payments.${index}.currency`,
+        ),
+      );
+      if (requestedTender)
+        assertPaymentCurrency(
+          access.settings,
+          requestedTender.currency,
+          "payment.currency",
+        );
 
       if (
         input.customerId &&
@@ -575,7 +644,7 @@ export async function recordSale(
       const rates = input.tradeIns.length
         ? await currentRates(
             tx,
-            organizationId,
+            scope,
             currency,
             input.tradeIns.map(({ purity }) => purity),
           )
@@ -722,8 +791,20 @@ export async function recordSale(
       });
       const savedLines = [];
       for (const line of tradeIns) {
+        const { rateId, marketQuoteId, ...values } = line;
+        const storeRule = rates.find(({ id }) => id === rateId)?.storeRule;
         const tradeIn = await tx.tradeIn.create({
-          data: { ...scope, saleId: sale.id, ...line },
+          data: {
+            ...scope,
+            saleId: sale.id,
+            ...values,
+            ...(storeRule
+              ? {
+                  storeGoldPriceRuleId: rateId,
+                  goldMarketQuoteId: marketQuoteId,
+                }
+              : { rateId }),
+          },
         });
         savedLines.push(tradeIn);
         await tx.receivedOldGold.create({
@@ -785,6 +866,11 @@ export async function recordRepayment(
       }
       if (!sale.customerId || !sale.outstandingDebt.gt(0))
         throw new AccessError("SALE_PAYMENT_NOT_DUE", "payment");
+      assertPaymentCurrency(
+        access.settings,
+        payment.currency,
+        "payment.currency",
+      );
       const currency = sale.defaultCurrency;
       const rate =
         currency === "AZN" ? "1" : sale.customerReportingRate?.toFixed();

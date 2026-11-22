@@ -1,5 +1,14 @@
 # Mizan project state
 
+## Task 13 — market and store gold prices (November 23, 2026)
+
+- Follow-up on `task/13-gold-prices`: active purities use the market selling rate unless an owner saved an override. Settings exposes selling rules and lets owners pick the default sale currency and accepted payment currencies. Checkout and the inventory exchange-rate widget use the selection. New buying rules await the lom qızıl workflow. Existing trade-in rates remain available.
+- Applied `202611230001_payment_currencies` to development and verified Settings and workspace access against that database. Prisma schema parity, API and web type checks, changed-file lint, 65 API tests and 128 web tests passed. Chromium covered settings, rates and checkout at 390px and 1280px in both themes. Live Storage was skipped.
+
+- `apps/api/src/modules/gold-prices` normalizes keyless Gold API XAU quotes with official CBAR USD/AZN and coordinates shared refreshes through PostgreSQL. The default schedules gold every 15 minutes and FX daily while Fastify runs. `docs/API_NOTES.md#gold-prices` records the provider terms, cache behavior and on-demand option for sleeping hosts.
+- `apps/web/src/features/gold-prices` adds the market widget and owner-only buying and selling rules with fixed, percentage and offset modes. Product detail estimates use recorded net gold weight. AZN checkout suggests selling values and uses effective store buying rates with a legacy manual fallback. Sale and trade-in receipts use the amounts stored at completion. Market history and store rule history are exposed through scoped APIs.
+- Applied `202611220004_gold_prices` and `202611220005_store_gold_pricing` to the configured development database. The scheduled live refresh persisted a Gold API quote with CBAR USD/AZN, and the market and owner settings endpoints returned HTTP 200. Prisma validation and schema parity, builds and type checks, changed-source lint and formatting, 65 API tests, 3 database tests, 23 contracts tests and 128 web tests passed. Chromium covered the dashboard, product values, pricing preview and save, and the stale state at 390px and 1280px in light and dark. The checkout browser check exercised prefill and manual edits. Live Storage was skipped. Workmanship, automatic suggestions in non-AZN checkout, and the historical dashboard chart remain separate work.
+
 ## Task 12 — automatic exchange rates (November 22, 2026)
 
 - `apps/api/src/modules/exchange-rates` reads the Central Bank of Azerbaijan's current USD, EUR and TRY bulletin. The store-scoped endpoint lazily refreshes the shared PostgreSQL snapshot at most once every six hours and retains the last valid rates on failure. Provider and refresh details are in `docs/API_NOTES.md`.

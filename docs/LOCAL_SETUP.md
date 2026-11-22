@@ -61,6 +61,8 @@ Each independently opened terminal needs its own environment configuration. `pnp
 
 ## Check the schema used by the running API
 
+Task 13 enables the Gold API provider and centralized refresh by default. A continuously running Fastify API checks for due jobs at startup and once per minute, with PostgreSQL coordinating instances. Gold is due every 15 minutes and CBAR once every 24 hours. On sleeping or request-only hosts, set `MIZAN_GOLD_PRICE_SYNC=on-demand` to refresh from the next authorized pricing or exchange-rate read. Refreshes pause while the process is stopped or idle, respectively. Set `MIZAN_GOLD_PRICE_PROVIDER=off` to disable gold fetching and keep fixed and manual pricing available. No API keys or new services are required. [Provider and cache behavior](API_NOTES.md#gold-prices)
+
 After switching to a branch with a new migration, check the database used by the local API. For the standard setup that loads apps/api/.env, run this from the repository root. If the API was started with a shell override, use that same shell value for DATABASE_URL. The commands keep the connection string out of terminal output.
 
 ~~~powershell

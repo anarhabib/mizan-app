@@ -6,6 +6,8 @@ export type AccessFailure =
   | "INVALID_MEMBERSHIP"
   | "INVALID_SETTINGS"
   | "PURITY_CONFLICT"
+  | "GOLD_PRICE_CONFLICT"
+  | "GOLD_PRICE_UNAVAILABLE"
   | "INVALID_SALE"
   | "SALE_CUSTOMER_REQUIRED"
   | "INVALID_CUSTOMER"
@@ -88,6 +90,14 @@ const details = {
   PURITY_CONFLICT: {
     statusCode: 409,
     message: "Əyar artıq mövcuddur və ya aktiv deyil.",
+  },
+  GOLD_PRICE_CONFLICT: {
+    statusCode: 409,
+    message: "Qiymət dəyişib və ya artıq aktual deyil.",
+  },
+  GOLD_PRICE_UNAVAILABLE: {
+    statusCode: 409,
+    message: "Aktual bazar qiyməti əlçatan deyil.",
   },
   UNAUTHENTICATED: {
     statusCode: 401,

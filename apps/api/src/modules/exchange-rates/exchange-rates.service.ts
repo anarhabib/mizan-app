@@ -2,7 +2,7 @@ import type { ExchangeRatesResponse } from "@mizan/contracts";
 import type { createDatabase } from "@mizan/database";
 import { retrieveCbarRates } from "./cbar.js";
 
-export const refreshIntervalMs = 6 * 60 * 60 * 1000;
+export const refreshIntervalMs = 24 * 60 * 60 * 1000;
 const source = "CBAR" as const;
 const where = { source };
 export type ExchangeRateCache = Pick<

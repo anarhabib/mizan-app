@@ -5,10 +5,12 @@ import {
 } from "@tanstack/react-query";
 import type {
   OrganizationSettings,
+  CurrencySettings,
   StoreContext,
   TradingSettings,
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
+import { invalidateGoldPrices } from "@/features/gold-prices";
 import type { RateInput } from "../lib/form";
 
 type SettingsScope = Pick<StoreContext, "organizationId" | "storeId">;
@@ -37,6 +39,7 @@ type CostVisibility = Pick<
 >;
 export type SettingsChange =
   | { action: "visibility"; body: CostVisibility }
+  | { action: "currencies"; body: CurrencySettings }
   | { action: "addPurity"; body: { value: number } }
   | { action: "deactivate" | "reactivate"; value: number }
   | { action: "addRate"; body: RateInput };
@@ -44,6 +47,11 @@ export type SettingsChange =
 function saveSettings(scope: SettingsScope, change: SettingsChange) {
   const base = organizationPath(scope);
   switch (change.action) {
+    case "currencies":
+      return apiRequest<CurrencySettings>(`${base}/settings/currencies`, {
+        method: "POST",
+        body: change.body,
+      });
     case "visibility":
       return apiRequest<unknown>(`${base}/settings`, {
         method: "POST",
@@ -70,16 +78,53 @@ function saveSettings(scope: SettingsScope, change: SettingsChange) {
 
 export function useSaveSettings(scope: SettingsScope) {
   const client = useQueryClient();
-  const refresh = () =>
-    client.invalidateQueries({ queryKey: settingsKey(scope), exact: true });
+  const refresh = (change: SettingsChange) => {
+    const settings = client.invalidateQueries({
+      queryKey: settingsKey(scope),
+      exact: true,
+    });
+    if (change.action === "currencies") {
+      const keys = client
+        .getQueryCache()
+        .findAll()
+        .map(({ queryKey }) => queryKey)
+        .filter(
+          (key) =>
+            key[1] === scope.organizationId &&
+            ((key[0] === "store" &&
+              key[3] === "workspace" &&
+              key[4] === "access") ||
+              (key[0] === "sales" && key[3] === "options") ||
+              (key[0] === "products" &&
+                (key[3] === "detail" || key[3] === "options"))),
+        );
+      return Promise.all([
+        settings,
+        ...keys.map((queryKey) =>
+          client.invalidateQueries({ queryKey, exact: true }),
+        ),
+      ]);
+    }
+    if (
+      change.action === "addPurity" ||
+      change.action === "deactivate" ||
+      change.action === "reactivate"
+    )
+      return Promise.all([
+        settings,
+        invalidateGoldPrices(client, scope.organizationId),
+      ]);
+    return settings;
+  };
 
   return useMutation({
     mutationKey: [...settingsKey(scope), "save"],
     mutationFn: (change: SettingsChange) => saveSettings(scope, change),
     retry: false,
-    onSuccess: refresh,
-    onError: (error: ApiError) => {
-      if (error.isNetwork || error.code === "PURITY_CONFLICT") return refresh();
+    onSuccess: (_result, change) => refresh(change),
+    onError: (error: ApiError, change) => {
+      if (error.isNetwork || error.code === "PURITY_CONFLICT")
+        return refresh(change);
     },
   });
 }

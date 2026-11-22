@@ -1,15 +1,23 @@
 import { useId } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { officialRateCurrencies } from "@mizan/contracts";
+import { checkoutCurrencies, officialRateCurrencies } from "@mizan/contracts";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { MoneyText } from "@/shared/ui/MoneyText";
+import { useWorkspace } from "@/features/workspace";
 import { exchangeRatesQuery, type ExchangeRateScope } from "../api/queries";
 
 export function ExchangeRateWidget({ scope }: { scope: ExchangeRateScope }) {
   const { t, i18n } = useTranslation("products");
   const heading = useId();
-  const query = useQuery(exchangeRatesQuery(scope));
+  const selected = checkoutCurrencies(useWorkspace().settings);
+  const currencies = officialRateCurrencies.filter((code) =>
+    selected.includes(code),
+  );
+  const query = useQuery({
+    ...exchangeRatesQuery(scope),
+    enabled: currencies.length > 0,
+  });
   const snapshot = query.data?.snapshot;
   const date =
     snapshot &&
@@ -18,6 +26,7 @@ export function ExchangeRateWidget({ scope }: { scope: ExchangeRateScope }) {
       timeZone: "UTC",
     }).format(new Date(snapshot.effectiveDate));
 
+  if (!currencies.length) return null;
   return (
     <section
       aria-labelledby={heading}
@@ -36,7 +45,7 @@ export function ExchangeRateWidget({ scope }: { scope: ExchangeRateScope }) {
       {snapshot ? (
         <>
           <dl className="grid w-full grid-cols-3 gap-3 sm:flex sm:w-auto sm:gap-6">
-            {officialRateCurrencies.map((currency) => (
+            {currencies.map((currency) => (
               <div key={currency} className="min-w-0">
                 <dt className="text-xs text-muted-foreground">{currency}</dt>
                 <dd className="break-words font-medium tabular-nums">

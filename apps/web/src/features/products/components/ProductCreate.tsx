@@ -35,6 +35,7 @@ type TextField =
   | "name"
   | "category"
   | "weight"
+  | "netGoldWeight"
   | "acquisitionCostPerGram.amount"
   | "acquisitionCostPerGram.currency"
   | "note";
@@ -109,6 +110,7 @@ export function ProductForm({
       category: product?.category ?? "",
       purity: product ? String(product.purity) : "",
       weight: product?.weight ?? "",
+      netGoldWeight: product?.netGoldWeight ?? "",
       acquisitionCostPerGram: product?.acquisitionCostPerGram ?? {
         amount: "",
         currency: product?.acquisitionCost?.currency ?? currency,
@@ -188,7 +190,9 @@ export function ProductForm({
             {...accessibility}
             readOnly={busy}
             inputMode={
-              field === "weight" || field === "acquisitionCostPerGram.amount"
+              field === "weight" ||
+              field === "netGoldWeight" ||
+              field === "acquisitionCostPerGram.amount"
                 ? "decimal"
                 : "text"
             }
@@ -266,6 +270,7 @@ export function ProductForm({
         </>
       )}
       {product && renderText("weight", errors.weight)}
+      {renderText("netGoldWeight", errors.netGoldWeight)}
       <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
         {renderText(
           "acquisitionCostPerGram.amount",

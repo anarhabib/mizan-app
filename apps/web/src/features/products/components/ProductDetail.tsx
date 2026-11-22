@@ -223,6 +223,21 @@ function ProductRecord({
         <Fact label={t("fields.weight")}>
           <WeightText value={product.weight} />
         </Fact>
+        {product.netGoldWeight && (
+          <Fact label={t("fields.netGoldWeight")}>
+            <WeightText value={product.netGoldWeight} />
+          </Fact>
+        )}
+        {product.estimatedMaterialValue && (
+          <Fact label={t("fields.estimatedMaterialValue")}>
+            <MoneyText value={product.estimatedMaterialValue} />
+          </Fact>
+        )}
+        {product.estimatedSellingValue && (
+          <Fact label={t("fields.estimatedSellingValue")}>
+            <MoneyText value={product.estimatedSellingValue} />
+          </Fact>
+        )}
         {canViewAcquisition && product.acquisitionCostPerGram && (
           <Fact label={t("fields.acquisitionCostPerGram")}>
             <MoneyText value={product.acquisitionCostPerGram} />

@@ -53,6 +53,7 @@ model Organization {
   id                                String                   @id @default(uuid()) @db.Uuid
   name                              String
   defaultCurrency                   String                   @db.Char(3)
+  paymentCurrencies                 String[]                 @default([])
   salespersonCanViewAcquisitionCost Boolean                  @default(false)
   createdAt                         DateTime                 @default(now())
   memberships                       OrganizationMembership[]
@@ -71,6 +72,7 @@ model Store {
   invitations    Invitation[]
   products       Product[]
   customers      Customer[]
+  goldPriceRules StoreGoldPriceRule[]
   ownerOnboardings OwnerOnboarding[]
 
   @@id([organizationId, id])
@@ -98,6 +100,7 @@ model OrganizationMembership {
   invitations    Invitation[] @relation("InvitedBy")
   acceptedInvitations Invitation[] @relation("AcceptedBy")
   rates          OldGoldRate[]
+  retailGoldPrices StoreGoldPriceRule[]
 
   @@id([organizationId, userId])
   @@index([userId])
@@ -148,6 +151,7 @@ model PurityGrade {
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   rates          OldGoldRate[]
   products       Product[]
+  retailGoldPrices StoreGoldPriceRule[]
 
   @@id([organizationId, value])
   @@schema("mizan")
@@ -162,6 +166,57 @@ model OfficialExchangeRateSnapshot {
   eur           Decimal?  @db.Decimal(20, 8)
   try           Decimal?  @db.Decimal(20, 8)
 
+  @@schema("mizan")
+}
+
+model GoldMarketCache {
+  source      String    @id
+  attemptedAt DateTime
+  retrievedAt DateTime?
+  quoteId     String?   @db.Uuid
+  quote       GoldMarketQuote? @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+
+  @@schema("mizan")
+}
+
+model GoldMarketQuote {
+  id                  String   @id @default(uuid()) @db.Uuid
+  source              String
+  effectiveAt         DateTime
+  firstRetrievedAt    DateTime?
+  usdPerTroyOunce     Decimal  @db.Decimal(26, 12)
+  usdAzn              Decimal  @db.Decimal(20, 8)
+  exchangeDate        DateTime @db.Date
+  aznPerGram          Decimal  @db.Decimal(22, 8)
+  caches              GoldMarketCache[]
+  retailGoldPrices    StoreGoldPriceRule[]
+  tradeIns            TradeIn[]
+
+  @@unique([source, effectiveAt, usdPerTroyOunce, usdAzn, exchangeDate], map: "GoldMarketQuote_observation_key")
+  @@schema("mizan")
+}
+
+model StoreGoldPriceRule {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  storeId        String? @db.Uuid
+  purity         Int
+  actorId        String   @db.Uuid
+  currency       String   @db.Char(3)
+  kind           String   @default("SELL")
+  mode           String   @default("FIXED")
+  amountPerGram  Decimal  @db.Decimal(18, 4)
+  effectiveAt    DateTime @default(now())
+  marketQuoteId  String?  @db.Uuid
+  grade          PurityGrade @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
+  actor          OrganizationMembership @relation(fields: [organizationId, actorId], references: [organizationId, userId], onDelete: Restrict)
+  marketQuote    GoldMarketQuote? @relation(fields: [marketQuoteId], references: [id], onDelete: Restrict)
+  store          Store? @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict, map: "RetailGoldPrice_store_fkey")
+  tradeIns       TradeIn[]
+
+  @@index([organizationId, purity, currency, effectiveAt], map: "RetailGoldPrice_organizationId_purity_currency_effectiveAt_idx")
+  @@index([organizationId, storeId, kind, purity, effectiveAt], map: "RetailGoldPrice_store_history_idx")
+  @@map("RetailGoldPrice")
   @@schema("mizan")
 }
 
@@ -191,6 +246,7 @@ model Product {
   category               String
   purity                 Int
   weight                 Decimal             @db.Decimal(15, 3)
+  netGoldWeight          Decimal?            @db.Decimal(15, 3)
   acquisitionCost        Decimal             @db.Decimal(20, 4)
   acquisitionCostPerGram Decimal?            @db.Decimal(35, 16)
   acquisitionCurrency    String              @db.Char(3)
@@ -327,7 +383,9 @@ model TradeIn {
   storeId         String              @db.Uuid
   id              String              @default(uuid()) @db.Uuid
   saleId          String              @db.Uuid
-  rateId          String              @db.Uuid
+  rateId          String?             @db.Uuid
+  storeGoldPriceRuleId String?        @db.Uuid
+  goldMarketQuoteId String?           @db.Uuid
   purity          Int
   weight          Decimal             @db.Decimal(15, 3)
   appliedRate     Decimal             @db.Decimal(18, 4)
@@ -335,7 +393,9 @@ model TradeIn {
   acceptedValue   Decimal             @db.Decimal(32, 15)
   overridden      Boolean
   sale            Sale                @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
-  rate            OldGoldRate         @relation(fields: [organizationId, purity, rateId], references: [organizationId, purity, id], onDelete: Restrict)
+  rate            OldGoldRate?        @relation(fields: [organizationId, purity, rateId], references: [organizationId, purity, id], onDelete: Restrict)
+  storeGoldPriceRule StoreGoldPriceRule? @relation(fields: [storeGoldPriceRuleId], references: [id], onDelete: Restrict)
+  goldMarketQuote GoldMarketQuote?    @relation(fields: [goldMarketQuoteId], references: [id], onDelete: Restrict)
   receivedAsset   ReceivedOldGold?
   movements       InventoryMovement[]
 
