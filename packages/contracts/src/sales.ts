@@ -14,8 +14,9 @@ export interface SaleItemInput {
 export interface SaleTradeInInput {
   purity: number;
   weight: string;
-  rateId: string;
+  rateId: string | null;
   marketQuoteId?: string;
+  rateExchangeRate?: string;
   overrideAmount?: string;
 }
 
@@ -30,12 +31,24 @@ export interface SalePreviewInput {
 export interface SaleTradeInPreview {
   purity: number;
   weight: string;
-  rateId: string;
+  rateId: string | null;
   marketQuoteId?: string;
-  appliedRate: string;
-  calculatedValue: string;
+  rateExchangeRate?: string;
+  appliedRate: string | null;
+  calculatedValue: string | null;
   acceptedValue: string;
   overridden: boolean;
+}
+
+export interface SaleOptions {
+  currency: string;
+  rates: {
+    id: string | null;
+    purity: number;
+    amountPerGram: string | null;
+    marketQuoteId?: string;
+    rateExchangeRate?: string;
+  }[];
 }
 
 export interface SalePreview {

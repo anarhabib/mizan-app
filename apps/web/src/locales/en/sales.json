@@ -38,7 +38,7 @@
   "payment": "Payment",
   "noPayment": "No payment was recorded.",
   "noTradeIns": "No trade-ins were recorded.",
-  "noRates": "No current old-gold rates are available.",
+  "noRates": "No active purities are available for trade-in.",
   "chooseRate": "Select a purity",
   "rateOption": "{{purity}} · {{rate}}/g",
   "amountCurrency": "{{label}} ({{currency}})",
@@ -79,7 +79,6 @@
     "convertedAmount": "Converted payment",
     "change": "Change",
     "purity": "Purity",
-    "purityRate": "Purity and current rate",
     "weight": "Weight",
     "weightGrams": "Weight (g)",
     "rate": "Rate per gram",
@@ -102,7 +101,9 @@
     "generic": "The sale could not be recorded. Try again.",
     "unknownOutcome": "The sale status could not be confirmed.",
     "paymentTooSmall": "This payment rounds to zero at the entered exchange rate.",
-    "paymentExceedsBalance": "Payment exceeds the outstanding balance."
+    "paymentExceedsBalance": "Payment exceeds the outstanding balance.",
+    "rateUnavailable": "No automatic buying rate is available for this purity. Enter an agreed amount.",
+    "purityUnavailable": "The selected purity is no longer available."
   },
   "noPaymentAtCheckout": "No payment at checkout",
   "confirmDebt": "Confirm that the outstanding balance will be recorded as customer debt.",
@@ -124,5 +125,8 @@
   "paymentKind": {
     "CHECKOUT": "Checkout payment",
     "REPAYMENT": "Debt repayment"
-  }
+  },
+  "unavailableRateOption": "{{purity}} · Rate unavailable",
+  "perGram": " / g",
+  "agreedAmount": "Agreed amount"
 }

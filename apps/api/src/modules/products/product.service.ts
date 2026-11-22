@@ -1,6 +1,5 @@
 import { Prisma } from "@mizan/database";
 import { randomUUID } from "node:crypto";
-import { officialRateCurrencies } from "@mizan/contracts";
 import type {
   MoneyInput,
   ProductAcquisitionInput,
@@ -28,12 +27,12 @@ import {
 } from "./product.presenter.js";
 import type { ProductPhotoStorage } from "./product.storage.js";
 import { readGoldMarket } from "../gold-prices/gold-market.service.js";
-import { presentExchangeRates } from "../exchange-rates/exchange-rates.service.js";
 import {
   currentGoldRules,
-  effectiveGoldRate,
+  goldExchangeRate,
   goldValue,
   marketPurityRate,
+  resolveGoldRate,
 } from "../gold-prices/store-pricing.service.js";
 
 export interface ProductOptions {
@@ -293,9 +292,11 @@ export async function getProduct(
   }
   const detail = presentDetail(row, photoUrl, access);
   if (row.status !== "IN_STOCK" || !row.netGoldWeight) return detail;
-  const [market, [rule]] = await Promise.all([
+  const [market, rules] = await Promise.all([
     readGoldMarket(options.db),
-    currentGoldRules(options.db, access, "SELL", [row.purity]),
+    row.grade.active
+      ? currentGoldRules(options.db, access, ["RETAIL_SELL"], [row.purity])
+      : [],
   ]);
   const quote = market.stale ? null : market.quote;
   const material = goldValue(
@@ -303,27 +304,11 @@ export async function getProduct(
     row.netGoldWeight,
   );
   const currency = access.settings.defaultCurrency;
-  const sellingRate = rule
-    ? effectiveGoldRate(rule, quote)
-    : row.grade.active
-      ? marketPurityRate(quote, row.purity)
-      : null;
-  const official = officialRateCurrencies.find((code) => code === currency);
-  const exchange =
-    sellingRate &&
-    official &&
-    presentExchangeRates(
-      await options.db.officialExchangeRateSnapshot.findUnique({
-        where: { source: "CBAR" },
-      }),
-      new Date(),
-    );
+  const sellingRate = row.grade.active
+    ? resolveGoldRate(rules, "RETAIL_SELL", row.purity, market).rate
+    : null;
   const aznPerUnit =
-    currency === "AZN"
-      ? "1"
-      : official && exchange && !exchange.stale
-        ? exchange.snapshot?.rates[official]
-        : undefined;
+    sellingRate && (await goldExchangeRate(options.db, currency));
   const selling =
     aznPerUnit &&
     goldValue(sellingRate, row.netGoldWeight, currency, aznPerUnit);

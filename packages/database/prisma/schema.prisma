@@ -30,6 +30,22 @@ enum MovementKind {
   @@schema("mizan")
 }
 
+enum GoldPriceKind {
+  RETAIL_SELL
+  SCRAP_BUY
+  SCRAP_SELL
+
+  @@schema("mizan")
+}
+
+enum GoldPriceMode {
+  FIXED
+  PERCENTAGE
+  OFFSET
+
+  @@schema("mizan")
+}
+
 model User {
   id          String                   @id @db.Uuid
   createdAt   DateTime                 @default(now())
@@ -99,8 +115,7 @@ model OrganizationMembership {
   assignments    StoreAssignment[]
   invitations    Invitation[] @relation("InvitedBy")
   acceptedInvitations Invitation[] @relation("AcceptedBy")
-  rates          OldGoldRate[]
-  retailGoldPrices StoreGoldPriceRule[]
+  goldPriceRules StoreGoldPriceRule[]
 
   @@id([organizationId, userId])
   @@index([userId])
@@ -149,9 +164,9 @@ model PurityGrade {
   value          Int
   active         Boolean       @default(true)
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  rates          OldGoldRate[]
   products       Product[]
-  retailGoldPrices StoreGoldPriceRule[]
+  goldPriceRules StoreGoldPriceRule[]
+  tradeIns       TradeIn[]
 
   @@id([organizationId, value])
   @@schema("mizan")
@@ -189,7 +204,7 @@ model GoldMarketQuote {
   exchangeDate        DateTime @db.Date
   aznPerGram          Decimal  @db.Decimal(22, 8)
   caches              GoldMarketCache[]
-  retailGoldPrices    StoreGoldPriceRule[]
+  goldPriceRules      StoreGoldPriceRule[]
   tradeIns            TradeIn[]
 
   @@unique([source, effectiveAt, usdPerTroyOunce, usdAzn, exchangeDate], map: "GoldMarketQuote_observation_key")
@@ -199,41 +214,27 @@ model GoldMarketQuote {
 model StoreGoldPriceRule {
   id             String   @id @default(uuid()) @db.Uuid
   organizationId String  @db.Uuid
-  storeId        String? @db.Uuid
-  purity         Int
+  storeId        String  @db.Uuid
+  purity         Int?
   actorId        String   @db.Uuid
-  currency       String   @db.Char(3)
-  kind           String   @default("SELL")
-  mode           String   @default("FIXED")
-  amountPerGram  Decimal  @db.Decimal(18, 4)
+  kind           GoldPriceKind
+  mode           GoldPriceMode?
+  value          Decimal? @db.Decimal(18, 4)
   effectiveAt    DateTime @default(now())
   marketQuoteId  String?  @db.Uuid
-  grade          PurityGrade @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
+  previousId     String?  @db.Uuid
+  grade          PurityGrade? @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
   actor          OrganizationMembership @relation(fields: [organizationId, actorId], references: [organizationId, userId], onDelete: Restrict)
   marketQuote    GoldMarketQuote? @relation(fields: [marketQuoteId], references: [id], onDelete: Restrict)
-  store          Store? @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict, map: "RetailGoldPrice_store_fkey")
+  store          Store @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
+  previous       StoreGoldPriceRule? @relation("GoldRuleVersions", fields: [organizationId, storeId, kind, previousId], references: [organizationId, storeId, kind, id], onDelete: Restrict)
+  successors     StoreGoldPriceRule[] @relation("GoldRuleVersions")
   tradeIns       TradeIn[]
 
-  @@index([organizationId, purity, currency, effectiveAt], map: "RetailGoldPrice_organizationId_purity_currency_effectiveAt_idx")
-  @@index([organizationId, storeId, kind, purity, effectiveAt], map: "RetailGoldPrice_store_history_idx")
-  @@map("RetailGoldPrice")
-  @@schema("mizan")
-}
-
-model OldGoldRate {
-  organizationId String                 @db.Uuid
-  purity         Int
-  id             String                 @default(uuid()) @db.Uuid
-  actorId        String                 @db.Uuid
-  currency       String                 @db.Char(3)
-  amountPerGram  Decimal                @db.Decimal(18, 4)
-  effectiveAt    DateTime               @default(now())
-  grade          PurityGrade            @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
-  actor          OrganizationMembership @relation(fields: [organizationId, actorId], references: [organizationId, userId], onDelete: Restrict)
-  tradeIns       TradeIn[]
-
-  @@id([organizationId, purity, id])
-  @@index([organizationId, purity, currency, effectiveAt])
+  @@unique([organizationId, storeId, id])
+  @@unique([organizationId, storeId, kind, id], map: "StoreGoldPriceRule_version_key")
+  @@index([organizationId, storeId, kind, purity, effectiveAt], map: "StoreGoldPriceRule_scope_idx")
+  @@index([organizationId, storeId, effectiveAt, id], map: "StoreGoldPriceRule_history_idx")
   @@schema("mizan")
 }
 
@@ -383,18 +384,18 @@ model TradeIn {
   storeId         String              @db.Uuid
   id              String              @default(uuid()) @db.Uuid
   saleId          String              @db.Uuid
-  rateId          String?             @db.Uuid
   storeGoldPriceRuleId String?        @db.Uuid
   goldMarketQuoteId String?           @db.Uuid
   purity          Int
   weight          Decimal             @db.Decimal(15, 3)
-  appliedRate     Decimal             @db.Decimal(18, 4)
-  calculatedValue Decimal             @db.Decimal(32, 15)
+  appliedRate     Decimal?            @db.Decimal(18, 4)
+  rateExchangeRate Decimal?           @db.Decimal(24, 8)
+  calculatedValue Decimal?            @db.Decimal(32, 15)
   acceptedValue   Decimal             @db.Decimal(32, 15)
   overridden      Boolean
   sale            Sale                @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
-  rate            OldGoldRate?        @relation(fields: [organizationId, purity, rateId], references: [organizationId, purity, id], onDelete: Restrict)
-  storeGoldPriceRule StoreGoldPriceRule? @relation(fields: [storeGoldPriceRuleId], references: [id], onDelete: Restrict)
+  grade           PurityGrade         @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
+  storeGoldPriceRule StoreGoldPriceRule? @relation(fields: [organizationId, storeId, storeGoldPriceRuleId], references: [organizationId, storeId, id], onDelete: Restrict)
   goldMarketQuote GoldMarketQuote?    @relation(fields: [goldMarketQuoteId], references: [id], onDelete: Restrict)
   receivedAsset   ReceivedOldGold?
   movements       InventoryMovement[]

@@ -138,13 +138,15 @@ test.skipIf(!db)(
         createProduct("Unpaid"),
         createProduct("Foreign", "USD"),
       ]);
-      const rate = await db.oldGoldRate.create({
+      const rate = await db.storeGoldPriceRule.create({
         data: {
           organizationId,
+          storeId,
           actorId: ownerId,
           purity: 585,
-          currency: "AZN",
-          amountPerGram: "10",
+          kind: "SCRAP_BUY",
+          mode: "FIXED",
+          value: "10",
         },
       });
       const query = new URLSearchParams(scope);

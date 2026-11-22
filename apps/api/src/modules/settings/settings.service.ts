@@ -1,8 +1,4 @@
-import {
-  configuredCurrencies,
-  type OldGoldRate,
-  type TradingSettings,
-} from "@mizan/contracts";
+import { configuredCurrencies, type TradingSettings } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import {
   assertOwner,
@@ -34,32 +30,6 @@ export async function getTradingSettings(
       },
     },
   );
-  const entries = await db.oldGoldRate.findMany({
-    where: { organizationId },
-    orderBy: [{ effectiveAt: "desc" }, { id: "desc" }],
-    select: {
-      id: true,
-      purity: true,
-      currency: true,
-      amountPerGram: true,
-      effectiveAt: true,
-      grade: { select: { active: true } },
-    },
-  });
-  const seen = new Set<string>();
-  const rates: OldGoldRate[] = entries.map(
-    ({ grade, amountPerGram, effectiveAt, ...entry }) => {
-      const key = `${entry.purity}:${entry.currency}`;
-      const current = grade.active && !seen.has(key);
-      seen.add(key);
-      return {
-        ...entry,
-        current,
-        amountPerGram: amountPerGram.toFixed(4),
-        effectiveAt: effectiveAt.toISOString(),
-      };
-    },
-  );
   const { paymentCurrencies, ...settings } = organization;
   return {
     settings: {
@@ -67,7 +37,6 @@ export async function getTradingSettings(
       ...(paymentCurrencies.length && { paymentCurrencies }),
     },
     purities,
-    rates,
   };
 }
 
@@ -146,43 +115,5 @@ export function changePurity(
       data: { active: action === "reactivate" },
       select,
     });
-  });
-}
-
-export function appendOldGoldRate(
-  db: OrganizationDatabase,
-  organizationId: string,
-  ownerId: string,
-  rate: {
-    purity: number;
-    currency: string;
-    amountPerGram: string;
-  },
-): Promise<OldGoldRate> {
-  return ownerChange(db, organizationId, ownerId, async (tx) => {
-    const grade = await tx.purityGrade.findUnique({
-      where: { organizationId_value: { organizationId, value: rate.purity } },
-    });
-    if (!grade?.active) throw new AccessError("PURITY_CONFLICT");
-    const previous = await tx.oldGoldRate.findFirst({
-      where: { organizationId, purity: rate.purity, currency: rate.currency },
-      orderBy: { effectiveAt: "desc" },
-      select: { effectiveAt: true },
-    });
-    // Writes are serialized per organization. Keep order stable even within one clock tick.
-    const effectiveAt = new Date(
-      Math.max(Date.now(), previous ? previous.effectiveAt.getTime() + 1 : 0),
-    );
-    const { id, amountPerGram } = await tx.oldGoldRate.create({
-      data: { ...rate, organizationId, actorId: ownerId, effectiveAt },
-      select: { id: true, amountPerGram: true },
-    });
-    return {
-      ...rate,
-      id,
-      amountPerGram: amountPerGram.toFixed(4),
-      effectiveAt: effectiveAt.toISOString(),
-      current: true,
-    };
   });
 }

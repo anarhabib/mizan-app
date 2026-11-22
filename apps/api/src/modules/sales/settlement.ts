@@ -65,29 +65,42 @@ export function convertPayment(
 export function calculateTradeIns(
   lines: SaleTradeInInput[],
   rates: {
-    id: string;
+    id: string | null;
     purity: number;
-    amountPerGram: Prisma.Decimal;
+    amountPerGram: Prisma.Decimal | null;
     marketQuoteId?: string;
+    rateExchangeRate?: string;
   }[],
 ) {
   const tradeIns: SaleTradeInPreview[] = lines.map((line) => {
     const rate = rates.find(({ purity }) => purity === line.purity);
-    if (rate?.id !== line.rateId || rate.marketQuoteId !== line.marketQuoteId)
+    if (!rate) throw new AccessError("PURITY_CONFLICT", "purity");
+    if (
+      rate.id !== line.rateId ||
+      rate.marketQuoteId !== line.marketQuoteId ||
+      (rate.rateExchangeRate === undefined
+        ? line.rateExchangeRate !== undefined
+        : line.rateExchangeRate === undefined ||
+          !new SaleDecimal(rate.rateExchangeRate).eq(line.rateExchangeRate))
+    )
       throw new AccessError("SALE_CONFLICT", "rateId");
-    const calculatedValue = new SaleDecimal(line.weight).times(
-      rate.amountPerGram,
-    );
-    if (calculatedValue.gte("1e17"))
+    const calculatedValue = rate.amountPerGram
+      ? new SaleDecimal(line.weight).times(rate.amountPerGram)
+      : null;
+    if (calculatedValue?.gte("1e17"))
       throw new AccessError("INVALID_SALE", "weight");
+    const acceptedValue = line.overrideAmount ?? calculatedValue?.toFixed();
+    if (acceptedValue === undefined)
+      throw new AccessError("GOLD_PRICE_UNAVAILABLE", "rateId");
     return {
       purity: line.purity,
       weight: line.weight,
       rateId: rate.id,
       ...(rate.marketQuoteId && { marketQuoteId: rate.marketQuoteId }),
-      appliedRate: rate.amountPerGram.toFixed(),
-      calculatedValue: calculatedValue.toFixed(),
-      acceptedValue: line.overrideAmount ?? calculatedValue.toFixed(),
+      ...(rate.rateExchangeRate && { rateExchangeRate: rate.rateExchangeRate }),
+      appliedRate: rate.amountPerGram?.toFixed() ?? null,
+      calculatedValue: calculatedValue?.toFixed() ?? null,
+      acceptedValue,
       overridden: line.overrideAmount !== undefined,
     };
   });

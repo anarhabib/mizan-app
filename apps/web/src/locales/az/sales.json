@@ -38,7 +38,7 @@
   "payment": "Ödəniş",
   "noPayment": "Ödəniş qeydə alınmayıb.",
   "noTradeIns": "Köhnə qızıl qəbulu qeydə alınmayıb.",
-  "noRates": "Köhnə qızıl üçün cari tarif yoxdur.",
+  "noRates": "Qızıl qəbulu üçün aktiv əyar yoxdur.",
   "chooseRate": "Əyarı seçin",
   "rateOption": "{{purity}} · {{rate}}/q",
   "amountCurrency": "{{label}} ({{currency}})",
@@ -79,7 +79,6 @@
     "convertedAmount": "Çevrilmiş ödəniş",
     "change": "Pul qalığı",
     "purity": "Əyar",
-    "purityRate": "Əyar və cari tarif",
     "weight": "Çəki",
     "weightGrams": "Çəki (q)",
     "rate": "Bir qramın tarifi",
@@ -102,7 +101,9 @@
     "generic": "Satış qeydə alınmadı. Yenidən cəhd edin.",
     "unknownOutcome": "Satışın vəziyyəti təsdiqlənmədi.",
     "paymentTooSmall": "Bu məbləğ daxil edilən məzənnə ilə sıfıra yuvarlaqlaşır.",
-    "paymentExceedsBalance": "Ödəniş qalıq borcdan çoxdur."
+    "paymentExceedsBalance": "Ödəniş qalıq borcdan çoxdur.",
+    "rateUnavailable": "Bu əyar üçün avtomatik alış qiyməti yoxdur. Razılaşdırılmış məbləği daxil edin.",
+    "purityUnavailable": "Seçilmiş əyar artıq aktiv deyil."
   },
   "noPaymentAtCheckout": "Satış zamanı ödəniş yoxdur",
   "confirmDebt": "Qalan məbləğin müştəri borcu kimi qeydə alınacağını təsdiqləyin.",
@@ -124,5 +125,8 @@
   "paymentKind": {
     "CHECKOUT": "Satış ödənişi",
     "REPAYMENT": "Borc ödənişi"
-  }
+  },
+  "unavailableRateOption": "{{purity}} · Qiymət mövcud deyil",
+  "perGram": " / q",
+  "agreedAmount": "Razılaşdırılmış məbləğ"
 }

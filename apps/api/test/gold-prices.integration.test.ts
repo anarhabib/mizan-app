@@ -117,11 +117,46 @@ test.skipIf(!db)(
       });
       const otherSettings = `${organization}/stores/${other.id}/gold-prices/settings`;
       const fixed = {
-        kind: "SELL",
+        kind: "RETAIL_SELL",
         mode: "FIXED",
         value: "140",
         purity: 585,
-        expectedPriceId: null,
+      };
+      const previewDraft = (body: object, instance = app) =>
+        send("POST", settings + "/preview", owner, body, instance);
+      const saveDraft = async (
+        body: object,
+        instance = app,
+        confirmFixedDefault?: true,
+      ) => {
+        const preview = await previewDraft(body, instance);
+        expect(preview.statusCode).toBe(200);
+        const { expectedPriceId, quoteId, revision } = preview.json();
+        return send(
+          "POST",
+          settings,
+          owner,
+          {
+            ...body,
+            expectedPriceId,
+            quoteId,
+            revision,
+            confirmFixedDefault,
+          },
+          instance,
+        );
+      };
+      const currentRate = async (
+        purity: number,
+        kind: string,
+        instance = app,
+      ) => {
+        const { rates } = (
+          await send("GET", settings, owner, undefined, instance)
+        ).json();
+        return rates
+          .find((row: { purity: number }) => row.purity === purity)
+          ?.prices.find((row: { kind: string }) => row.kind === kind);
       };
       expect((await send("GET", market, outsider)).statusCode).toBe(403);
       expect((await send("GET", otherSettings, seller)).statusCode).toBe(403);
@@ -135,16 +170,30 @@ test.skipIf(!db)(
       expect(
         (await send("GET", settings, owner, undefined, disabled)).json(),
       ).toMatchObject({ quote: null, stale: true });
-      const selling = await send("POST", settings, owner, fixed, disabled);
+      const selling = await saveDraft(fixed, disabled);
       expect(selling.statusCode).toBe(200);
       expect(selling.json()).toMatchObject({
-        mode: "FIXED",
-        pricePerGram: { amount: "140", currency: "AZN" },
+        configuration: { mode: "FIXED", value: "140" },
       });
       expect(
         (await send("GET", otherSettings, owner, undefined, disabled)).json()
           .rules,
       ).toEqual([]);
+
+      expect(await currentRate(585, "RETAIL_SELL", disabled)).toMatchObject({
+        pricePerGram: { amount: "140", currency: "AZN" },
+        source: "INDIVIDUAL",
+      });
+      expect(await currentRate(585, "SCRAP_BUY", disabled)).toMatchObject({
+        pricePerGram: null,
+        status: "UNAVAILABLE",
+        source: null,
+      });
+      expect(
+        (
+          await previewDraft({ ...fixed, mode: "OFFSET", value: "0" }, disabled)
+        ).json().code,
+      ).toBe("GOLD_PRICE_UNAVAILABLE");
 
       const concurrent = await Promise.all([
         send("GET", market, seller),
@@ -170,12 +219,11 @@ test.skipIf(!db)(
         ...fixed,
         mode: "OFFSET",
         value: "-5",
-        expectedPriceId: selling.json().id,
       };
       const preview = await send("POST", `${settings}/preview`, owner, draft);
       expect(preview.json()).toMatchObject({
         quoteId,
-        pricePerGram: { amount: "94.45", currency: "AZN" },
+        rates: [{ pricePerGram: { amount: "94.45", currency: "AZN" } }],
       });
       for (const value of ["-100", "1.00001"]) {
         expect(
@@ -191,6 +239,8 @@ test.skipIf(!db)(
         (
           await send("POST", settings, owner, {
             ...draft,
+            revision: preview.json().revision,
+            expectedPriceId: selling.json().id,
             quoteId: randomUUID(),
           })
         ).statusCode,
@@ -204,25 +254,135 @@ test.skipIf(!db)(
           })
         ).statusCode,
       ).toBe(400);
-      const { id: ruleId } = await db.storeGoldPriceRule.create({
-        data: {
-          organizationId,
-          storeId,
-          actorId: owner,
-          kind: "BUY",
-          mode: "OFFSET",
-          purity: 585,
-          currency: "AZN",
-          amountPerGram: "-5",
-        },
+      const buy = {
+        ...draft,
+        purity: null,
+        kind: "SCRAP_BUY",
+        mode: "PERCENTAGE",
+        value: "-5",
+      };
+      const relativeBuy = await saveDraft(buy);
+      expect(relativeBuy.statusCode).toBe(200);
+      const scrapSell = {
+        ...draft,
+        kind: "SCRAP_SELL",
+        purity: null,
+        value: "-12",
+      };
+      expect((await saveDraft(scrapSell)).statusCode).toBe(200);
+      expect(await currentRate(585, "SCRAP_SELL")).toMatchObject({
+        pricePerGram: { amount: "87.45" },
+        source: "DEFAULT",
+        warnings: ["SCRAP_SPREAD"],
       });
+      expect(await currentRate(585, "SCRAP_BUY")).toMatchObject({
+        pricePerGram: { amount: "94.4775" },
+        source: "DEFAULT",
+      });
+      const deviation = await previewDraft({ ...fixed, value: "300" });
+      expect(deviation.json().rates).toMatchObject([
+        { pricePerGram: { amount: "300" }, warnings: ["MARKET_DEVIATION"] },
+      ]);
+      const individual = { ...draft, kind: "SCRAP_BUY" };
+      const { id: ruleId } = (await saveDraft(individual)).json();
+      expect(typeof ruleId).toBe("string");
+
+      const staleDefaultDraft = await previewDraft({ ...buy, value: "-7" });
+      expect(
+        staleDefaultDraft
+          .json()
+          .rates.map(({ purity }: { purity: number }) => purity),
+      ).not.toContain(585);
+      expect(
+        (await send("POST", organization + "/purities", owner, { value: 610 }))
+          .statusCode,
+      ).toBe(200);
+      expect(await currentRate(610, "SCRAP_BUY")).toMatchObject({
+        source: "DEFAULT",
+        pricePerGram: { amount: "98.515" },
+      });
+      const {
+        revision: staleRevision,
+        quoteId: staleQuote,
+        expectedPriceId: stalePrice,
+      } = staleDefaultDraft.json();
+      expect(
+        (
+          await send("POST", settings, owner, {
+            ...buy,
+            value: "-7",
+            revision: staleRevision,
+            quoteId: staleQuote,
+            expectedPriceId: stalePrice,
+          })
+        ).json().code,
+      ).toBe("GOLD_PRICE_CONFLICT");
+
+      const fixedDefault = { ...buy, mode: "FIXED", value: "80" };
+      expect((await saveDraft(fixedDefault)).json().code).toBe(
+        "INVALID_SETTINGS",
+      );
+      expect((await saveDraft(fixedDefault, app, true)).statusCode).toBe(200);
+      expect(await currentRate(585, "SCRAP_BUY")).toMatchObject({
+        source: "INDIVIDUAL",
+        pricePerGram: { amount: "94.45" },
+      });
+      expect(await currentRate(610, "SCRAP_BUY")).toMatchObject({
+        source: "DEFAULT",
+        pricePerGram: { amount: "80" },
+      });
+      expect(
+        (await send("GET", otherSettings))
+          .json()
+          .rates.find(({ purity }: { purity: number }) => purity === 585)
+          .prices,
+      ).toContainEqual(
+        expect.objectContaining({ kind: "SCRAP_BUY", pricePerGram: null }),
+      );
+      expect(
+        (
+          await send(
+            "POST",
+            organization + "/purities/610/deactivate",
+            owner,
+            {},
+          )
+        ).statusCode,
+      ).toBe(200);
+      expect(
+        (await previewDraft({ ...individual, purity: 610 })).json().code,
+      ).toBe("PURITY_CONFLICT");
+      expect(await currentRate(610, "SCRAP_BUY")).toBeUndefined();
+      expect(
+        (
+          await send(
+            "POST",
+            organization + "/purities/610/reactivate",
+            owner,
+            {},
+          )
+        ).statusCode,
+      ).toBe(200);
+      expect(await currentRate(610, "SCRAP_BUY")).toMatchObject({
+        source: "DEFAULT",
+      });
+      for (const invalid of [
+        { ...buy, value: "-100" },
+        { ...buy, value: "NaN" },
+        { ...buy, mode: "FIXED", value: "0" },
+        { ...buy, mode: "OFFSET", value: "-200" },
+        { ...scrapSell, mode: "FIXED", value: "-1" },
+        { ...buy, currency: "USD" },
+      ])
+        expect((await previewDraft(invalid)).statusCode).toBe(400);
+
       const percentage = await send("POST", `${settings}/preview`, owner, {
         ...draft,
         mode: "PERCENTAGE",
-        value: "10",
+        value: "+10",
       });
       expect(percentage.json()).toMatchObject({
-        pricePerGram: { amount: "109.395" },
+        rates: [{ pricePerGram: { amount: "109.395" } }],
       });
       expect(
         (
@@ -232,16 +392,7 @@ test.skipIf(!db)(
             value: "-100",
           })
         ).json(),
-      ).toMatchObject({ pricePerGram: { amount: "0" } });
-      expect(
-        (
-          await send("POST", `${organization}/rates`, owner, {
-            purity: 585,
-            currency: "AZN",
-            amountPerGram: "85",
-          })
-        ).statusCode,
-      ).toBe(200);
+      ).toMatchObject({ rates: [{ pricePerGram: { amount: "0" } }] });
 
       const intake = {
         code: randomUUID(),
@@ -319,23 +470,29 @@ test.skipIf(!db)(
         ],
       });
 
+      const beforeRefresh = (await send("GET", settings + "/history")).json()
+        .items;
       await expireClaim();
       price = 6220.69536;
       effectiveAt = new Date(now.getTime() + 1);
       const refreshed = (await send("GET", market, seller)).json();
       expect(refreshed.quote.id).not.toBe(quoteId);
-      expect((await send("GET", settings)).json().rules).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            id: ruleId,
-            pricePerGram: { amount: "193.9", currency: "AZN" },
-          }),
-          expect.objectContaining({
-            id: selling.json().id,
-            pricePerGram: { amount: "140", currency: "AZN" },
-          }),
-        ]),
-      );
+      expect(await currentRate(585, "SCRAP_BUY")).toMatchObject({
+        pricePerGram: { amount: "193.9", currency: "AZN" },
+      });
+      expect(await currentRate(585, "RETAIL_SELL")).toMatchObject({
+        pricePerGram: { amount: "140", currency: "AZN" },
+      });
+      expect(
+        (
+          await send("POST", settings, owner, {
+            ...draft,
+            expectedPriceId: selling.json().id,
+            revision: preview.json().revision,
+            quoteId,
+          })
+        ).json().code,
+      ).toBe("GOLD_PRICE_CONFLICT");
       const history = (await send("GET", `${market}/history`, seller)).json();
       expect(history.items.map(({ id }: { id: string }) => id)).toEqual(
         expect.arrayContaining([quoteId, refreshed.quote.id]),
@@ -357,9 +514,9 @@ test.skipIf(!db)(
         (await send("GET", `${market}/history?from=2026-02-30`, seller))
           .statusCode,
       ).toBe(400);
-      expect(
-        (await send("GET", `${settings}/history`)).json().items,
-      ).toHaveLength(2);
+      expect((await send("GET", `${settings}/history`)).json().items).toEqual(
+        beforeRefresh,
+      );
       const receipt = await send("GET", `/sales/${sale.json().id}?${query}`);
       expect(receipt.json()).toEqual(sale.json());
 
@@ -386,6 +543,38 @@ test.skipIf(!db)(
         await send("GET", `${organization}/stores/${storeId}/access`, seller)
       ).json();
       expect(workspace.settings).toMatchObject(currencies);
+      const foreignRate = (await send("GET", "/sales/options?" + query, seller))
+        .json()
+        .rates.find(({ purity }: { purity: number }) => purity === 585);
+      expect(foreignRate).toMatchObject({
+        amountPerGram: "114.0588",
+        rateExchangeRate: "1.7",
+        marketQuoteId: refreshed.quote.id,
+      });
+      const trade = {
+        purity: 585,
+        weight: "1.005",
+        rateId: ruleId,
+        rateExchangeRate: "1.7",
+        marketQuoteId: refreshed.quote.id,
+      };
+      const foreignPreview = await send(
+        "POST",
+        "/sales/preview?" + query,
+        seller,
+        { tradeIns: [trade], expectedCurrency: "USD" },
+      );
+      expect(foreignPreview.json()).toMatchObject({
+        currency: "USD",
+        tradeInTotal: "114.629094",
+      });
+      expect(
+        (
+          await send("POST", "/sales/preview?" + query, seller, {
+            tradeIns: [{ ...trade, rateExchangeRate: "1.8" }],
+          })
+        ).json().code,
+      ).toBe("SALE_CONFLICT");
       const marketOnly = await send("POST", `/products?${query}`, owner, {
         ...intake,
         code: randomUUID(),
@@ -417,6 +606,28 @@ test.skipIf(!db)(
       });
       expect(currencySale.statusCode).toBe(400);
       expect(currencySale.json().field).toBe("payments.0.currency");
+      const savedForeignSale = await send("POST", `/sales?${query}`, seller, {
+        productId: marketOnlyId,
+        saleAmount: "225",
+        expectedCurrency: "USD",
+        customerReportingRate: "1.7",
+        tradeIns: [trade],
+      });
+      expect(savedForeignSale.statusCode).toBe(201);
+      expect(savedForeignSale.json()).toMatchObject({
+        currency: "USD",
+        saleAmount: "225",
+        balance: "110.37",
+        tradeIns: [
+          {
+            rateId: ruleId,
+            marketQuoteId: refreshed.quote.id,
+            rateExchangeRate: "1.7",
+            appliedRate: "114.0588",
+            acceptedValue: "114.629094",
+          },
+        ],
+      });
       expect(
         (await send("GET", `/sales/${sale.json().id}?${query}`)).json(),
       ).toEqual(sale.json());
@@ -438,22 +649,85 @@ test.skipIf(!db)(
         quote: refreshed.quote,
       });
       expect(
-        (await send("GET", `/sales/options?${query}`, seller)).json().rates,
-      ).toEqual([
-        expect.objectContaining({ purity: 585, amountPerGram: "85" }),
-      ]);
+        (await send("GET", "/sales/options?" + query, seller)).json().rates,
+      ).toContainEqual({ purity: 585, id: null, amountPerGram: null });
+      expect(await currentRate(585, "SCRAP_BUY")).toMatchObject({
+        pricePerGram: null,
+        status: "STALE",
+        source: "INDIVIDUAL",
+      });
+      const manual = {
+        purity: 585,
+        weight: "1.05",
+        rateId: null,
+        overrideAmount: "85",
+      };
       expect(
-        (await send("POST", `${settings}/preview`, owner, draft)).json().code,
+        (
+          await send("POST", "/sales/preview?" + query, seller, {
+            tradeIns: [{ ...manual, overrideAmount: undefined }],
+          })
+        ).json().code,
       ).toBe("GOLD_PRICE_UNAVAILABLE");
+      const manualSale = await send("POST", "/sales?" + query, seller, {
+        productId: unweighed.json().id,
+        saleAmount: "200",
+        tradeIns: [manual],
+      });
+      expect(manualSale.statusCode).toBe(201);
+      expect(manualSale.json().tradeIns).toMatchObject([
+        {
+          rateId: null,
+          appliedRate: null,
+          calculatedValue: null,
+          acceptedValue: "85",
+          overridden: true,
+        },
+      ]);
+
+      const reset = { kind: "SCRAP_BUY", purity: 585, reset: true };
+      const pendingReset = (await previewDraft(reset)).json();
+      const nextDefault = await saveDraft(
+        { ...fixedDefault, value: "82" },
+        app,
+        true,
+      );
+      expect(nextDefault.statusCode).toBe(200);
+      const { revision, expectedPriceId } = pendingReset;
       expect(
         (
           await send("POST", settings, owner, {
-            ...fixed,
-            value: "0",
-            expectedPriceId: selling.json().id,
+            ...reset,
+            revision,
+            expectedPriceId,
           })
-        ).statusCode,
-      ).toBe(200);
+        ).json().code,
+      ).toBe("GOLD_PRICE_CONFLICT");
+      const resetResult = await saveDraft(reset);
+      expect(resetResult.statusCode).toBe(200);
+      expect(await currentRate(585, "SCRAP_BUY")).toMatchObject({
+        pricePerGram: { amount: "82" },
+        status: "CURRENT",
+        source: "DEFAULT",
+      });
+      expect(
+        (await send("GET", settings + "/history")).json().items[0],
+      ).toMatchObject({
+        id: resetResult.json().id,
+        actorId: owner,
+        configuration: null,
+        previous: { mode: "OFFSET", value: "-5" },
+      });
+      expect(
+        (await send("GET", "/sales/" + sale.json().id + "?" + query)).json(),
+      ).toEqual(sale.json());
+      expect(
+        await db.storeGoldPriceRule.findUnique({ where: { id: ruleId } }),
+      ).not.toBeNull();
+      expect(
+        (await send("POST", `${settings}/preview`, owner, draft)).json().code,
+      ).toBe("GOLD_PRICE_UNAVAILABLE");
+      expect((await saveDraft({ ...fixed, value: "0" })).statusCode).toBe(200);
     } finally {
       vi.unstubAllGlobals();
       await Promise.all([app.close(), secondApp.close(), disabled.close()]);

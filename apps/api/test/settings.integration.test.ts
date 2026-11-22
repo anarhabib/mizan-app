@@ -11,7 +11,7 @@ const db = url
 afterAll(async () => db?.$disconnect());
 
 test.skipIf(!db)(
-  "only owners can edit their settings and rates remain available after grade deactivation",
+  "only owners can edit trading settings and manage purity activation",
   async () => {
     if (!db) throw new Error("Test database missing");
     const identities: Record<string, string> = {
@@ -80,7 +80,6 @@ test.skipIf(!db)(
           value,
           active: true,
         })),
-        rates: [],
       });
       expect((await send("GET", `${base}/settings`, "seller")).statusCode).toBe(
         403,
@@ -138,45 +137,11 @@ test.skipIf(!db)(
       expect((await update("purities", { value: 1001 })).statusCode).toBe(400);
       expect((await update("purities", { value: 610 })).statusCode).toBe(200);
       expect((await update("purities", { value: 610 })).statusCode).toBe(409);
-      const rate = (amountPerGram: unknown, currency = "USD", purity = 610) =>
-        update("rates", { purity, currency, amountPerGram });
-      for (const invalid of ["0", "-2", "1.00001", "100000000000000.00", 20])
-        expect((await rate(invalid)).statusCode).toBe(400);
-      expect((await rate("1", "ZZZ")).statusCode).toBe(400);
-      expect((await rate("1", "USD", 611)).statusCode).toBe(409);
-      expect((await rate("32.7901")).statusCode).toBe(200);
-      expect((await rate("35.1000")).statusCode).toBe(200);
-      expect((await rate("58.11", "AZN")).statusCode).toBe(200);
-      const activeRates = (await directory()).json().rates;
-      expect(activeRates).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            currency: "USD",
-            amountPerGram: "32.7901",
-            current: false,
-          }),
-          expect.objectContaining({
-            currency: "USD",
-            amountPerGram: "35.1000",
-            current: true,
-          }),
-          expect.objectContaining({
-            currency: "AZN",
-            amountPerGram: "58.1100",
-            current: true,
-          }),
-        ]),
-      );
-      expect(activeRates).toHaveLength(3);
       expect((await update("purities/610/deactivate", {})).statusCode).toBe(
         200,
       );
-      expect((await rate("36")).statusCode).toBe(409);
       const historical = (await directory()).json();
       expect(historical.purities).toContainEqual({ value: 610, active: false });
-      expect(historical.rates).toEqual(
-        activeRates.map((entry: object) => ({ ...entry, current: false })),
-      );
       expect(
         (await update("purities/610/reactivate", {}, "seller")).statusCode,
       ).toBe(403);
@@ -190,7 +155,6 @@ test.skipIf(!db)(
       }
       const restored = (await directory()).json();
       expect(restored.purities).toContainEqual({ value: 610, active: true });
-      expect(restored.rates).toEqual(activeRates);
     } finally {
       await app.close();
     }

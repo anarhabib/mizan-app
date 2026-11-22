@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import type {
   SaleList,
+  SaleOptions,
   MoneyInput,
   SalePaymentInput,
   SalePreview,
@@ -17,17 +18,6 @@ import { apiRequest, type ApiError } from "@/shared/lib/api";
 
 export type SaleScope = Pick<StoreContext, "organizationId" | "storeId">;
 export type SaleFilters = { q?: string; date?: string };
-
-// GET /sales/options in docs/API_NOTES.md has no shared response contract.
-export type SaleOptions = {
-  currency: string;
-  rates: {
-    id: string;
-    purity: number;
-    amountPerGram: string;
-    marketQuoteId?: string;
-  }[];
-};
 
 const scopeKey = ({ organizationId, storeId }: SaleScope) =>
   ["sales", organizationId, storeId] as const;

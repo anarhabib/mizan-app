@@ -118,12 +118,16 @@ function SaleRecord({ sale, scope }: { sale: Result; scope: SaleScope }) {
                   <Fact label={t("fields.weight")}>
                     <WeightText value={trade.weight} />
                   </Fact>
-                  <Fact label={t("fields.rate")}>
-                    {money(trade.appliedRate)}
-                  </Fact>
-                  <Fact label={t("fields.calculatedValue")}>
-                    {money(trade.calculatedValue)}
-                  </Fact>
+                  {trade.appliedRate !== null && (
+                    <Fact label={t("fields.rate")}>
+                      {money(trade.appliedRate)}
+                    </Fact>
+                  )}
+                  {trade.calculatedValue !== null && (
+                    <Fact label={t("fields.calculatedValue")}>
+                      {money(trade.calculatedValue)}
+                    </Fact>
+                  )}
                   <Fact
                     label={t(
                       trade.overridden

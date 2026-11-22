@@ -1,12 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { parsePurity, parseRate } from "@mizan/contracts";
+import { parsePurity } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { requireOwnerDisplay } from "../access/display-mode.js";
 import type { OrganizationDatabase } from "../access/organization-owner.js";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import {
-  appendOldGoldRate,
   changePurity,
   getTradingSettings,
   setCostVisibility,
@@ -102,14 +101,4 @@ export function registerSettingsRoutes(
       },
     );
   }
-  app.post<{ Params: Scope }>(`${base}/rates`, { preHandler }, (request) => {
-    const rate = parseRate(request.body);
-    if (!rate) throw new AccessError("INVALID_SETTINGS");
-    return appendOldGoldRate(
-      database(),
-      request.params.organizationId,
-      request.identity!.userId,
-      rate,
-    );
-  });
 }

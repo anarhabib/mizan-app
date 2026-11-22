@@ -46,12 +46,14 @@ export function DecimalInput({
   id,
   error,
   hint,
+  required,
 }: {
   name: UseFormRegisterReturn;
   label: string;
   id: string;
   error?: FieldError;
   hint?: string;
+  required?: boolean;
 }) {
   const describedBy =
     [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
@@ -63,6 +65,7 @@ export function DecimalInput({
         inputMode="decimal"
         autoComplete="off"
         aria-invalid={Boolean(error)}
+        aria-required={required}
         aria-describedby={describedBy}
         className="min-h-11 tabular-nums lg:min-h-9"
         {...name}

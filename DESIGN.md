@@ -20,6 +20,6 @@ Density: 14px base text, compact desktop controls, 44px mobile targets, spacing 
 
 Shell: one semantic navigation list becomes bottom navigation below lg and a 224px sidebar at lg. Four destinations: products, sales, settings, team. Compact top bar reserves a store-switcher slot. Content max-w-5xl; safe-area padding, skip link, keyboard focus and current-page indication.
 
-Shared components: PageHeader with actions; EmptyState with description/action; ErrorState with localized ApiError and pending-aware retry; ListSkeleton with accessible loading label and reduced-motion support; MoneyText, WeightText and PurityText preserve exact values and units. Routes show translated placeholders only.
+Shared components include PageHeader with actions, EmptyState with a description and action, ErrorState with a localized ApiError and pending-aware retry, and ListSkeleton with an accessible loading label and reduced-motion support. MoneyText displays two decimal places and a currency code. WeightText and PurityText preserve exact values and units. Routes show translated placeholders only.
 
 Rebranding: the logo lives only in apps/web/src/shared/ui/BrandMark.tsx (plain Mizan wordmark); the accent color lives only in the --primary token in apps/web/src/index.css.

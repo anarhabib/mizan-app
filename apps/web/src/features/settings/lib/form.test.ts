@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/shared/lib/api";
-import { resolvePurityForm, resolveRateForm, settingsErrorKey } from "./form";
+import { resolvePurityForm, settingsErrorKey } from "./form";
 
 describe("settings form parsing", () => {
   it.each(["1", " 585 ", "999"])("maps %s to integer fineness", (value) => {
@@ -18,41 +18,6 @@ describe("settings form parsing", () => {
       });
     },
   );
-
-  const rate = {
-    purity: "585",
-    currency: " usd ",
-    amountPerGram: "12345678901234,1234",
-  };
-  it("preserves the exact rate and normalizes the currency and decimal separator", () => {
-    expect(resolveRateForm(rate)).toEqual({
-      values: {
-        purity: 585,
-        currency: "USD",
-        amountPerGram: "12345678901234.1234",
-      },
-      errors: {},
-    });
-  });
-
-  it("maps invalid rate data to the corresponding form field", () => {
-    expect(resolveRateForm({ ...rate, purity: "" }).errors).toMatchObject({
-      purity: { type: "invalidPurity" },
-    });
-    expect(resolveRateForm({ ...rate, currency: "ZZZ" }).errors).toMatchObject({
-      currency: { type: "invalidCurrency" },
-    });
-    for (const amountPerGram of [
-      "0",
-      "1.00001",
-      "123456789012345",
-      "1,000.25",
-    ]) {
-      expect(resolveRateForm({ ...rate, amountPerGram }).errors).toMatchObject({
-        amountPerGram: { type: "invalidRate" },
-      });
-    }
-  });
 });
 
 describe("settings error mapping", () => {
