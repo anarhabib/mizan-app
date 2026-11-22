@@ -15,6 +15,10 @@ import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
 import { registerCustomerRoutes } from "../modules/customers/customer.routes.js";
 import type { SalesDatabase } from "../modules/sales/sale.service.js";
 import {
+  createExchangeRateService,
+  type ExchangeRateCache,
+} from "../modules/exchange-rates/exchange-rates.service.js";
+import {
   registerMembershipRoutes,
   type MembershipOptions,
 } from "../modules/memberships/membership.routes.js";
@@ -45,9 +49,18 @@ export const requestContextRoutes: FastifyPluginAsync<{
   settingsDb?: OrganizationDatabase;
   products?: ProductOptions;
   salesDb?: SalesDatabase;
+  exchangeRatesDb?: ExchangeRateCache;
 }> = async (
   app,
-  { access, onboardingDb, memberships, settingsDb, products, salesDb },
+  {
+    access,
+    onboardingDb,
+    memberships,
+    settingsDb,
+    products,
+    salesDb,
+    exchangeRatesDb,
+  },
 ) => {
   app.decorateRequest("identity", null);
   app.decorateRequest("access", null);
@@ -89,6 +102,19 @@ export const requestContextRoutes: FastifyPluginAsync<{
         throw new AccessError("AUTH_UNAVAILABLE");
       };
   const store = "/organizations/:organizationId/stores/:storeId";
+  const getExchangeRates =
+    exchangeRatesDb &&
+    createExchangeRateService(exchangeRatesDb, (error) =>
+      app.log.warn({ err: error }, "CBAR exchange rate refresh failed"),
+    );
+  app.get<{ Params: ScopeParams }>(
+    `${store}/exchange-rates`,
+    { preHandler },
+    async () => {
+      if (!getExchangeRates) throw new AccessError("AUTH_UNAVAILABLE");
+      return getExchangeRates();
+    },
+  );
   app.get<{ Params: ScopeParams }>(
     `${store}/access`,
     { preHandler },

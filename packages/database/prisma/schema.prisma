@@ -153,6 +153,18 @@ model PurityGrade {
   @@schema("mizan")
 }
 
+model OfficialExchangeRateSnapshot {
+  source        String    @id
+  effectiveDate DateTime? @db.Date
+  retrievedAt   DateTime?
+  attemptedAt   DateTime
+  usd           Decimal?  @db.Decimal(20, 8)
+  eur           Decimal?  @db.Decimal(20, 8)
+  try           Decimal?  @db.Decimal(20, 8)
+
+  @@schema("mizan")
+}
+
 model OldGoldRate {
   organizationId String                 @db.Uuid
   purity         Int

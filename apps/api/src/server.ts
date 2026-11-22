@@ -43,6 +43,7 @@ const app = await buildApp({
   memberships,
   settingsDb: db,
   salesDb: db,
+  exchangeRatesDb: db?.officialExchangeRateSnapshot,
   products: db
     ? {
         db,

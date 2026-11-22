@@ -12,6 +12,10 @@ import { Plus, RotateCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  exchangeRatesQuery,
+  suggestedExchangeRate,
+} from "@/features/exchange-rates";
 import { ProductSelect } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { formatMoney } from "@/shared/lib/format";
@@ -77,6 +81,14 @@ export function SaleForm({
       NonNullable<Awaited<ReturnType<Submission["submit"]>>>["message"]
     >();
   const { currency, rates } = options;
+  const officialRates = useQuery({
+    ...exchangeRatesQuery(scope),
+    enabled: currency !== "AZN",
+  });
+  const reportingSuggestion = suggestedExchangeRate(
+    officialRates.data,
+    currency,
+  );
   const form = useForm<SaleFormValues, unknown, SaleCreateInput>({
     defaultValues: {
       customerId: "",
@@ -114,6 +126,29 @@ export function SaleForm({
     control: form.control,
     name: "customerReportingRate",
   });
+  const [reportingRateEdited, setReportingRateEdited] = useState(false);
+  const showReportingRate =
+    currency !== "AZN" &&
+    (Boolean(customer) || !noPayment || payments.fields.length > 0);
+  const { setValue } = form;
+  useEffect(() => {
+    if (
+      showReportingRate &&
+      !disabled &&
+      reportingSuggestion &&
+      !customerReportingRate &&
+      !reportingRateEdited
+    ) {
+      setValue("customerReportingRate", reportingSuggestion);
+    }
+  }, [
+    customerReportingRate,
+    disabled,
+    reportingRateEdited,
+    reportingSuggestion,
+    setValue,
+    showReportingRate,
+  ]);
   const { errors } = form.formState;
   const previewInput = buildSalePreviewInput(
     {
@@ -497,6 +532,7 @@ export function SaleForm({
                   setCustomer(undefined);
                   form.setValue("customerId", "");
                   form.setValue("customerReportingRate", "");
+                  setReportingRateEdited(false);
                   form.clearErrors(["customerId", "customerReportingRate"]);
                   customerButton.current?.focus();
                 }}
@@ -518,15 +554,25 @@ export function SaleForm({
               )}
             </p>
           )}
-          {(customer || !noPayment || payments.fields.length > 0) &&
-            currency !== "AZN" && (
-              <DecimalInput
-                name={form.register("customerReportingRate")}
-                id="sale-customer-reporting-rate"
-                label={customerText("reportingRate", { currency })}
-                error={errors.customerReportingRate}
-              />
-            )}
+          {showReportingRate && (
+            <DecimalInput
+              name={form.register("customerReportingRate", {
+                onChange: () => {
+                  setReportingRateEdited(true);
+                },
+              })}
+              id="sale-customer-reporting-rate"
+              label={customerText("reportingRate", { currency })}
+              error={errors.customerReportingRate}
+              hint={
+                reportingSuggestion &&
+                customerReportingRate === reportingSuggestion &&
+                (officialRates.data?.stale || officialRates.isError)
+                  ? t("cachedExchangeRate")
+                  : undefined
+              }
+            />
+          )}
         </section>
         <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("payment")}</h3>
@@ -557,8 +603,12 @@ export function SaleForm({
               className="grid gap-3 rounded-lg border border-border bg-card p-3"
             >
               <PaymentFields
-                currency={paymentValues[index]?.currency ?? row.currency}
-                method={paymentValues[index]?.method ?? row.method}
+                scope={scope}
+                values={paymentValues[index] ?? row}
+                setExchangeRate={(rate) => {
+                  form.setValue(`payments.${index}.exchangeRate`, rate);
+                  form.clearErrors(`payments.${index}.exchangeRate`);
+                }}
                 selectMethod={(method) => {
                   const value = salePaymentMethods.find(
                     (option) => option === method,
@@ -573,17 +623,21 @@ export function SaleForm({
                   exchangeRate: form.register(`payments.${index}.exchangeRate`),
                 }}
               />
-              {preview?.payments?.[index] && (
-                <div className="text-sm text-muted-foreground">
-                  {t("fields.convertedAmount")}{" "}
-                  <MoneyText
-                    value={{
-                      amount: preview.payments[index].convertedAmount,
-                      currency,
-                    }}
-                  />
-                </div>
-              )}
+              {(currency !== "AZN" ||
+                (paymentValues[index]?.currency ?? row.currency)
+                  .trim()
+                  .toUpperCase() === "AZN") &&
+                preview?.payments?.[index] && (
+                  <div className="text-sm text-muted-foreground">
+                    {t("fields.convertedAmount")}{" "}
+                    <MoneyText
+                      value={{
+                        amount: preview.payments[index].convertedAmount,
+                        currency,
+                      }}
+                    />
+                  </div>
+                )}
               <Button
                 type="button"
                 variant="ghost"

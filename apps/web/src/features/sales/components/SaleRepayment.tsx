@@ -44,8 +44,10 @@ export function SaleRepayment({
       exchangeRate: "",
     },
   });
-  const currency = useWatch({ control: form.control, name: "currency" });
-  const method = useWatch({ control: form.control, name: "method" });
+  const [currency, method, amount, exchangeRate] = useWatch({
+    control: form.control,
+    name: ["currency", "method", "amount", "exchangeRate"],
+  });
   const detailKey = saleKeys.detail(scope, saleId);
   const mutation = useMutation({
     mutationKey: [...detailKey, "payments"],
@@ -159,8 +161,12 @@ export function SaleRepayment({
       </p>
       <fieldset disabled={pending || uncertain} className="min-w-0">
         <PaymentFields
-          currency={currency}
-          method={method}
+          scope={scope}
+          values={{ currency, method, amount, exchangeRate }}
+          setExchangeRate={(rate) => {
+            form.setValue("exchangeRate", rate);
+            form.clearErrors("exchangeRate");
+          }}
           selectMethod={(value) => {
             const option = salePaymentMethods.find((item) => item === value);
             if (option) form.setValue("method", option);

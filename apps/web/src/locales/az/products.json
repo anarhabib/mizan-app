@@ -1,4 +1,12 @@
 {
+  "exchangeRates": {
+    "title": "Rəsmi məzənnələr",
+    "effectiveDate": "Qüvvəyə minmə tarixi {{date}}",
+    "stale": "Yenilənmə gözlənilir",
+    "loading": "Məzənnələr yüklənir…",
+    "unavailable": "Məzənnələr hazırda əlçatan deyil.",
+    "retry": "Yenidən cəhd et"
+  },
   "title": "Məhsullar",
   "empty": "Bu mağazada məhsul yoxdur",
   "description": "Stokun uçotuna başlamaq üçün məhsul əlavə edin.",

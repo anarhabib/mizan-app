@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-query";
 import type {
   SaleList,
+  MoneyInput,
+  SalePaymentInput,
   SalePreview,
   SalePreviewInput,
   SaleResult,
@@ -34,6 +36,8 @@ export const saleKeys = {
   options: (scope: SaleScope) => [...scopeKey(scope), "options"] as const,
   preview: (scope: SaleScope, input?: string) =>
     [...scopeKey(scope), "preview", input] as const,
+  paymentPreview: (scope: SaleScope, input?: string) =>
+    [...scopeKey(scope), "payment-preview", input] as const,
   create: (scope: SaleScope) => [...scopeKey(scope), "create"] as const,
 };
 
@@ -47,6 +51,21 @@ export function salePath(
     if (value !== undefined) query.set(key, value);
   }
   return `/sales${suffix}?${query}`;
+}
+
+export function paymentPreviewQuery(scope: SaleScope, serialized?: string) {
+  return queryOptions<MoneyInput, ApiError>({
+    queryKey: saleKeys.paymentPreview(scope, serialized),
+    queryFn: ({ signal }) =>
+      apiRequest<MoneyInput>(salePath(scope, "/payment-preview"), {
+        method: "POST",
+        body: JSON.parse(serialized!) as SalePaymentInput,
+        signal,
+      }),
+    enabled: serialized !== undefined,
+    retry: false,
+    staleTime: Infinity,
+  });
 }
 
 export function saleListQuery(scope: SaleScope, filters: SaleFilters) {

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { ExchangeRateWidget } from "@/features/exchange-rates";
 import { useWorkspace } from "@/features/workspace";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import type { ProductScope } from "../api/queries";
@@ -56,6 +57,7 @@ function ScopedProducts({
           </Button>
         }
       />
+      <ExchangeRateWidget scope={scope} />
       <ProductList
         scope={scope}
         inspect={(id, opener) => setPanel({ kind: "detail", id, opener })}

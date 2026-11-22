@@ -75,10 +75,12 @@ All paths below are relative to `/api/v1`. `Auth` = authenticated identity; `Sto
 | Products | POST `/products/:id/photo-confirm` | Confirm uploaded photo | Store | `uploadId` UUID only | Service result; no route response schema |
 | Sales | POST `/sales` | Sell products, with optional old gold and payment | Store | `SaleCreateInput`, required `Idempotency-Key`, conditional `Sale-Confirmation` | 201 `SaleResult` or 409 confirmation challenge |
 | Sales | POST `/sales/preview` | Preview trade-ins, payments and outstanding debt | Store | `SalePreviewInput` | `SalePreview` |
+| Sales | POST `/sales/payment-preview` | Calculate one payment's AZN equivalent | Store | `SalePaymentInput` | `MoneyInput` in AZN |
 | Sales | GET `/sales` | Sale history | Store | — | `SaleList` |
 | Sales | GET `/sales/options` | Trading/payment options | Store | — | Service result; no exported options contract or route response schema |
 | Sales | GET `/sales/:id` | Persisted sale | Store | — | Service result; public `SaleResult` |
 | Sales | POST `/sales/:id/payments` | Apply one repayment to an outstanding sale | Store | `SalePaymentInput`, required `Idempotency-Key` | 201 with the updated `SaleResult` |
+| Exchange rates | GET `O/stores/:storeId/exchange-rates` | Latest official USD, EUR and TRY rates | Store | — | `ExchangeRatesResponse` |
 | Customers | GET `O/stores/:storeId/customers` | Customer directory | Store | — | `CustomerList` |
 | Customers | POST `O/stores/:storeId/customers` | Create contact | Store | `name,phone,note?` | 201 `CustomerContact` |
 | Customers | GET `O/stores/:storeId/customers/:id` | Customer, notes and AZN totals | Store | — | `CustomerDetail` |
@@ -91,6 +93,14 @@ Product acquisition accepts a positive weight with up to 3 fractional digits and
 Acquisition edits and deletions require an active owner with access to the store. Edits are limited to in-stock products with no sale or movement beyond initial intake. Deletion returns `PRODUCT_DELETE_CONFLICT` for sold products or any sale or inventory dependency, including `PRODUCT_ADDED`. Every API-created product has an intake movement. The schema has no product archive.
 
 Movements are nested in product detail, and old-gold trade-ins and payment history are nested in sales. The sales API has no cancellation or void workflow.
+
+### Official exchange rates
+
+- The [Central Bank of Azerbaijan rates page](https://www.cbar.az/currency/rates?language=en) publishes the current bulletin link for application imports. The dated feed is at `https://cbar.az/currencies/DD.MM.YYYY.xml`. The public requests need no API key. The provider page specifies no request quota and says the most recently published bulletin remains effective on weekends and public holidays.
+- The backend follows the published date and validates the XML's `ValCurs Date` and the USD, EUR and TRY `Valute` entries. It divides each `Value` by `Nominal` using decimal arithmetic and stores AZN per unit at up to eight decimal places, rounding half up if required by that precision.
+- Apply migration `202611220003_official_exchange_rates` before starting this API version. On the first authorized rate request after six hours, the API checks the provider and atomically saves the full snapshot. The PostgreSQL cache shares the last attempt and snapshot across stores, API instances and restarts. Each document request has a three-second timeout and at most one retry. A failed or invalid refresh preserves the saved snapshot and marks it stale. A successfully verified bulletin may remain current across non-publication days.
+- `ExchangeRatesResponse` is `{snapshot,stale}`. A snapshot includes `source:"CBAR"`, `effectiveDate` (ISO calendar date), `retrievedAt` (ISO timestamp), and `rates:{USD,EUR,TRY}` as decimal strings. Before the first successful retrieval, `snapshot` is null and `stale` is true. Inventory and payment forms share the store-scoped browser cache.
+- Checkout and repayment forms suggest the latest available official rate and allow manual overrides. The payment-preview endpoint validates the submitted tender and returns its AZN equivalent rounded half up to two places. The existing sale and repayment endpoints persist the submitted rate and amount with the payment. Refreshing official rates only updates the rate cache.
 
 ### Public response/request field reference
 
