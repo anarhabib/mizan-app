@@ -1,5 +1,10 @@
 # Mizan project state
 
+## Development migration checks (November 22, 2026)
+
+- Migration 202611200003_sale_items was initially pending on the hosted development database used by the local API. At follow-up Prisma found all eight migrations applied. Product details, sales history, and sale details returned HTTP 200 in Fastify injection checks using existing hosted development records and a test verifier.
+- AGENTS.md now calls for checking migration status against the database used by the development API when a branch adds a migration. docs/LOCAL_SETUP.md records the PowerShell commands.
+
 ## Task 9 — sale confirmation and profit (November 20, 2026)
 
 - Sales accept multiple products with individual final prices. The API checks each price against its acquisition cost before changing stock and issues an attempt-bound confirmation for losses. Active Owner mode sees the loss breakdown and receipt profit. Salesperson sessions receive a generic confirmation and receipts without profit data.
