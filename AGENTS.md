@@ -35,6 +35,8 @@ You assist the sole developer of Mizan, a jewelry-store inventory and sales mana
 6. For each task create a branch from current `main` (`task/<number>-<short-description>` for planned tasks). When verified, commit, push and open a PR to `main`. Do not merge, deploy or modify production data without explicit approval.
 7. Report briefly: changed files/behavior, checks run, risks/unverified states, PR URL.
 
+When a branch adds a Prisma migration, check migration status against the database used by the running development API before declaring the task ready for local testing. Use the API's effective environment, as shown in [Local setup](docs/LOCAL_SETUP.md#check-the-schema-used-by-the-running-api). After applying a pending migration to a confirmed development database, verify an affected API request there. The health endpoint and disposable database tests validate different environments.
+
 ## Architecture
 
 - Keep business logic out of presentation components and database access out of unrelated layers.
