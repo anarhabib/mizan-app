@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,14 @@ type Panel =
   | { kind: "create"; opener: HTMLElement }
   | { kind: "detail"; id: string; opener: HTMLElement };
 
-export function ProductsPage() {
+type Props = {
+  product?: string;
+  intent?: "create" | "sale";
+  closeLinkedProduct: () => void;
+  startSale: (id: string) => void;
+};
+
+export function ProductsPage(props: Props) {
   const { organizationId, storeId, settings } = useWorkspace();
   const scope = { organizationId, storeId };
 
@@ -24,6 +31,7 @@ export function ProductsPage() {
       key={`${organizationId}/${storeId}`}
       scope={scope}
       currency={settings.defaultCurrency}
+      {...props}
     />
   );
 }
@@ -31,23 +39,41 @@ export function ProductsPage() {
 function ScopedProducts({
   scope,
   currency,
+  product,
+  intent,
+  closeLinkedProduct,
+  startSale,
 }: {
   scope: ProductScope;
   currency: string;
-}) {
+} & Props) {
   const { t } = useTranslation("products");
+  const { t: dashboard } = useTranslation("dashboard");
   const [panel, setPanel] = useState<Panel>();
-  const createButton = useRef<HTMLButtonElement>(null);
-  const close = () => setPanel(undefined);
+  const [createButton, setCreateButton] = useState<HTMLButtonElement | null>(
+    null,
+  );
+  const current =
+    panel ??
+    (createButton &&
+      (product
+        ? { kind: "detail" as const, id: product, opener: createButton }
+        : intent === "create"
+          ? { kind: "create" as const, opener: createButton }
+          : undefined));
+  const close = () => {
+    setPanel(undefined);
+    if (product || intent === "create") closeLinkedProduct();
+  };
 
   return (
     <>
       <PageHeader
-        title={t("title")}
+        title={intent === "sale" ? dashboard("recordSale") : t("title")}
         actions={
           <Button
             type="button"
-            ref={createButton}
+            ref={setCreateButton}
             className="min-h-11 lg:min-h-9"
             onClick={(event) =>
               setPanel({ kind: "create", opener: event.currentTarget })
@@ -58,29 +84,42 @@ function ScopedProducts({
           </Button>
         }
       />
-      <ExchangeRateWidget scope={scope} />
-      <GoldMarketWidget scope={scope} />
+      {intent === "sale" ? (
+        <p className="mb-4 text-sm text-muted-foreground">
+          {dashboard("selectForSale")}
+        </p>
+      ) : (
+        <>
+          <ExchangeRateWidget scope={scope} />
+          <GoldMarketWidget scope={scope} />
+        </>
+      )}
       <ProductList
         scope={scope}
-        inspect={(id, opener) => setPanel({ kind: "detail", id, opener })}
+        onlyInStock={intent === "sale"}
+        inspect={(id, opener) =>
+          intent === "sale"
+            ? startSale(id)
+            : setPanel({ kind: "detail", id, opener })
+        }
       />
-      {panel?.kind === "create" && (
+      {current?.kind === "create" && (
         <ProductCreate
           scope={scope}
           currency={currency}
-          opener={panel.opener}
+          opener={current.opener}
           close={close}
           created={(product) =>
-            setPanel({ kind: "detail", id: product.id, opener: panel.opener })
+            setPanel({ kind: "detail", id: product.id, opener: current.opener })
           }
         />
       )}
-      {panel?.kind === "detail" && (
+      {current?.kind === "detail" && (
         <ProductDetail
           scope={scope}
-          id={panel.id}
-          restoreFallbackFocus={() => createButton.current?.focus()}
-          opener={panel.opener}
+          id={current.id}
+          restoreFallbackFocus={() => createButton?.focus()}
+          opener={current.opener}
           close={close}
         />
       )}

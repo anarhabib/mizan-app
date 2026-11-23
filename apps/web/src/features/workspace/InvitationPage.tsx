@@ -62,7 +62,7 @@ export function InvitationPage({ userId }: { userId: string }) {
         </PendingButton>
       )}
       <Link
-        to="/products"
+        to="/"
         className="self-start underline"
         onClick={clearInvitationToken}
       >

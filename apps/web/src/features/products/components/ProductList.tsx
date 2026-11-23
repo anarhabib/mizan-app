@@ -40,9 +40,11 @@ export function ProductStatusBadge({
 export function ProductList({
   scope,
   inspect,
+  onlyInStock = false,
 }: {
   scope: ProductScope;
   inspect: (id: string, opener: HTMLElement) => void;
+  onlyInStock?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Omit<Filters, "q">>({
@@ -53,17 +55,23 @@ export function ProductList({
     <div className="space-y-4">
       <div className="flex items-end gap-2 rounded-lg border border-border bg-card p-3 lg:block">
         <ProductSearch onSearch={setSearch} />
-        <div className="lg:mt-4">
-          <ProductFilters
-            scope={scope}
-            filters={filters}
-            setFilters={setFilters}
-          />
-        </div>
+        {!onlyInStock && (
+          <div className="lg:mt-4">
+            <ProductFilters
+              scope={scope}
+              filters={filters}
+              setFilters={setFilters}
+            />
+          </div>
+        )}
       </div>
       <ProductResults
         scope={scope}
-        filters={{ ...filters, q: search || undefined }}
+        filters={{
+          ...filters,
+          ...(onlyInStock && { status: "IN_STOCK" }),
+          q: search || undefined,
+        }}
         inspect={inspect}
       />
     </div>
@@ -73,6 +81,13 @@ export function ProductList({
 function ProductSearch({ onSearch }: { onSearch: (value: string) => void }) {
   const { t } = useTranslation("products");
   const [value, setValue] = useState("");
+  useEffect(() => {
+    if (window.location.hash !== "#product-search") return;
+    const frame = requestAnimationFrame(() =>
+      document.getElementById("product-search")?.focus(),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, []);
   useEffect(() => {
     const timer = window.setTimeout(
       () => onSearch(value.trim().replaceAll("\0", "")),
@@ -146,10 +161,10 @@ function ProductResults({
                 className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_6rem_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
               >
                 <span className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
-                  <span className="break-words text-xs text-muted-foreground">
+                  <span className="wrap-break-word text-xs text-muted-foreground">
                     {product.code}
                   </span>
-                  <span className="break-words font-medium">
+                  <span className="wrap-break-word font-medium">
                     {product.name}
                   </span>
                 </span>

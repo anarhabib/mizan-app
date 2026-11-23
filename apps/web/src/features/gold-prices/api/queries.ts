@@ -7,6 +7,9 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import type {
+  DashboardGoldHistory,
+  DashboardGoldRates,
+  GoldPriceKind,
   GoldMarketPrices,
   GoldPriceRuleHistory,
   GoldPricingChange,
@@ -15,6 +18,8 @@ import type {
   GoldPricingSettings,
   StoreGoldPriceRule,
   StoreContext,
+  MarketPeriod,
+  MarketSeries,
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
 
@@ -40,6 +45,50 @@ export function goldPricingQuery(scope: Scope) {
     queryFn: ({ signal }) => apiRequest(`${path(scope)}/settings`, { signal }),
     staleTime: 60_000,
     retry: false,
+  });
+}
+
+export function goldMarketChartQuery(
+  scope: Scope,
+  period: MarketPeriod,
+  purity: number | undefined,
+  quoteId?: string | null,
+) {
+  return queryOptions({
+    queryKey: [...baseKey(scope), "chart", period, purity, quoteId] as const,
+    queryFn: ({ signal }) =>
+      apiRequest<DashboardGoldHistory>(
+        `${path(scope)}/chart?period=${period}${purity === undefined ? "" : `&purity=${purity}`}`,
+        { signal },
+      ),
+    staleTime: 60_000,
+  });
+}
+
+export function goldCurrentRatesQuery(scope: Scope) {
+  return queryOptions({
+    queryKey: [...baseKey(scope), "rates"] as const,
+    queryFn: ({ signal }) =>
+      apiRequest<DashboardGoldRates>(`${path(scope)}/rates`, { signal }),
+    staleTime: 60_000,
+  });
+}
+
+export function goldStoreChartQuery(
+  scope: Scope,
+  period: MarketPeriod,
+  purity: number | undefined,
+  kind: GoldPriceKind,
+) {
+  return queryOptions({
+    queryKey: [...baseKey(scope), "rates-chart", period, purity, kind] as const,
+    queryFn: ({ signal }) =>
+      apiRequest<MarketSeries>(
+        `${path(scope)}/rates/chart?period=${period}&purity=${purity}&kind=${kind}`,
+        { signal },
+      ),
+    enabled: purity !== undefined,
+    staleTime: 60_000,
   });
 }
 
@@ -89,7 +138,12 @@ export function useChangeGoldPrice(
     Promise.all(
       [
         goldPricingQuery(scope).queryKey,
+        goldCurrentRatesQuery(scope).queryKey,
         historyKey(scope),
+        ...client
+          .getQueryCache()
+          .findAll({ queryKey: [...baseKey(scope), "rates-chart"] })
+          .map(({ queryKey }) => queryKey),
         ...client
           .getQueriesData({ queryKey: [...baseKey(scope), "preview"] })
           .map(([key]) => key),

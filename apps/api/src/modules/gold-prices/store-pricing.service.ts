@@ -106,12 +106,16 @@ export function currentGoldRules(
   scope: Scope,
   kinds: readonly GoldPriceKind[],
   purities: readonly number[],
+  before?: Date,
 ) {
   const kindFilter = Prisma.join(
     kinds.map((kind) => Prisma.sql`${kind}::"mizan"."GoldPriceKind"`),
   );
   const purityFilter = purities.length
     ? Prisma.sql`OR "purity" IN (${Prisma.join(purities)})`
+    : Prisma.empty;
+  const timeFilter = before
+    ? Prisma.sql`AND "effectiveAt" < ${before}`
     : Prisma.empty;
   return db.$queryRaw<Rule[]>`
     SELECT DISTINCT ON ("kind", "purity") "id", "kind", "mode", "value", "purity", "effectiveAt", "actorId"
@@ -120,6 +124,7 @@ export function currentGoldRules(
       AND "storeId" = ${scope.storeId}::uuid
       AND "kind" IN (${kindFilter})
       AND ("purity" IS NULL ${purityFilter})
+      ${timeFilter}
     ORDER BY "kind", "purity", "effectiveAt" DESC, "id" DESC
   `;
 }

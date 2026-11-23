@@ -30,6 +30,9 @@ import rucustomers from "@/locales/ru/customers.json";
 import azgoldPrices from "@/locales/az/gold-prices.json";
 import engoldPrices from "@/locales/en/gold-prices.json";
 import rugoldPrices from "@/locales/ru/gold-prices.json";
+import azDashboard from "@/locales/az/dashboard.json";
+import enDashboard from "@/locales/en/dashboard.json";
+import ruDashboard from "@/locales/ru/dashboard.json";
 
 export const resources = {
   az: {
@@ -43,6 +46,7 @@ export const resources = {
     errors: azerrors,
     auth: azauth,
     workspace: azworkspace,
+    dashboard: azDashboard,
   },
   en: {
     shell: enshell,
@@ -55,6 +59,7 @@ export const resources = {
     errors: enerrors,
     auth: enauth,
     workspace: enworkspace,
+    dashboard: enDashboard,
   },
   ru: {
     shell: rushell,
@@ -67,6 +72,7 @@ export const resources = {
     errors: ruerrors,
     auth: ruauth,
     workspace: rworkspace,
+    dashboard: ruDashboard,
   },
 } as const;
 

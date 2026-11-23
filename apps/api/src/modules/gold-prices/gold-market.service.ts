@@ -19,11 +19,11 @@ import {
 const where = { source };
 const include = { quote: true } as const;
 export const goldRefreshMs = 15 * 60 * 1000;
-const maxQuoteAgeMs = 24 * 60 * 60 * 1000;
+export const maxQuoteAgeMs = 24 * 60 * 60 * 1000;
 const bakuDate = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Baku" });
 type MarketState = Pick<GoldMarketPrices, "quote" | "stale">;
 
-function presentQuote(
+export function presentQuote(
   quote: Prisma.GoldMarketQuoteGetPayload<object>,
 ): Omit<GoldMarketPrice, "retrievedAt"> {
   const normalizedAznPerGram = quote.aznPerGram.toFixed();

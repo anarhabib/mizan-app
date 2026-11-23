@@ -184,6 +184,17 @@ model OfficialExchangeRateSnapshot {
   @@schema("mizan")
 }
 
+model OfficialExchangeRateObservation {
+  source        String
+  effectiveDate DateTime @db.Date
+  usd           Decimal  @db.Decimal(20, 8)
+  eur           Decimal  @db.Decimal(20, 8)
+  try           Decimal  @db.Decimal(20, 8)
+
+  @@id([source, effectiveDate])
+  @@schema("mizan")
+}
+
 model GoldMarketCache {
   source      String    @id
   attemptedAt DateTime
@@ -328,6 +339,7 @@ model Sale {
   @@unique([organizationId, storeId, productId])
   @@unique([organizationId, storeId, actorId, idempotencyKey])
   @@index([organizationId, storeId, customerId, createdAt, id], map: "Sale_customer_history_idx")
+  @@index([organizationId, storeId, createdAt, id], map: "Sale_dashboard_date_idx")
   @@schema("mizan")
 }
 
@@ -353,6 +365,7 @@ model SalePayment {
   @@id([organizationId, storeId, id])
   @@unique([organizationId, storeId, saleId, position])
   @@unique([organizationId, storeId, saleId, actorId, idempotencyKey])
+  @@index([organizationId, storeId, createdAt, id], map: "SalePayment_dashboard_date_idx")
   @@schema("mizan")
 }
 
@@ -413,6 +426,7 @@ model ReceivedOldGold {
   tradeIn        TradeIn  @relation(fields: [organizationId, storeId, tradeInId], references: [organizationId, storeId, id], onDelete: Restrict)
 
   @@id([organizationId, storeId, tradeInId])
+  @@index([organizationId, storeId, receivedAt, tradeInId], map: "ReceivedOldGold_dashboard_date_idx")
   @@schema("mizan")
 }
 
@@ -433,5 +447,6 @@ model InventoryMovement {
 
   @@id([organizationId, storeId, id])
   @@index([organizationId, storeId, productId])
+  @@index([organizationId, storeId, kind, createdAt, id], map: "InventoryMovement_dashboard_date_idx")
   @@schema("mizan")
 }

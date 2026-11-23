@@ -1,6 +1,14 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { ContactRound, Package, Receipt, Settings, Users } from "lucide-react";
+import {
+  ContactRound,
+  Ellipsis,
+  LayoutDashboard,
+  Package,
+  Receipt,
+  Settings,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -14,6 +22,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { LanguageButton } from "@/shared/ui/LanguageButton";
 import { ThemeButton } from "@/shared/ui/ThemeButton";
@@ -21,6 +35,7 @@ import { SignOutButton } from "@/features/auth";
 import { DisplayModeControl } from "@/features/settings";
 import { StoreSwitcher, useWorkspace } from "@/features/workspace";
 const items = [
+  { to: "/", namespace: "dashboard", icon: LayoutDashboard },
   { to: "/products", namespace: "products", icon: Package },
   { to: "/sales", namespace: "sales", icon: Receipt },
   { to: "/customers", namespace: "customers", icon: ContactRound },
@@ -47,6 +62,7 @@ function ShellContent() {
   const [concealed, setConcealed] = useState(false);
   const { t } = useTranslation([
     "shell",
+    "dashboard",
     "products",
     "sales",
     "customers",
@@ -57,7 +73,7 @@ function ShellContent() {
     select: (state) => state.location.pathname,
   });
   useEffect(() => {
-    document.getElementById("main-content")?.focus();
+    document.getElementById("main-content")?.focus({ preventScroll: true });
   }, [pathname]);
   const navigation = !concealed && (
     <nav
@@ -74,14 +90,17 @@ function ShellContent() {
           isMobile
             ? owner
               ? "grid grid-cols-5 gap-1"
-              : "grid grid-cols-3 gap-2"
+              : "grid grid-cols-4 gap-1"
             : "gap-2"
         }
       >
         {items
-          .filter((item) => owner || !("ownerOnly" in item))
+          .filter((item) => !("ownerOnly" in item) || (owner && !isMobile))
           .map(({ to, namespace, icon: Icon }) => {
-            const label = t("title", { ns: namespace });
+            const label =
+              namespace === "dashboard"
+                ? t("nav", { ns: "dashboard" })
+                : t("title", { ns: namespace });
             return (
               <SidebarMenuItem key={to}>
                 <SidebarMenuButton
@@ -96,6 +115,7 @@ function ShellContent() {
                 >
                   <Link
                     to={to}
+                    activeOptions={{ exact: to === "/" }}
                     aria-label={label}
                     activeProps={{ "aria-current": "page" }}
                   >
@@ -108,6 +128,33 @@ function ShellContent() {
               </SidebarMenuItem>
             );
           })}
+        {isMobile && owner && (
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  isActive={pathname === "/settings" || pathname === "/team"}
+                  className="h-auto min-h-14 flex-col justify-center gap-1 px-0.5 py-2 text-center text-xs leading-tight text-muted-foreground data-active:inset-shadow-[0_-2px_0_var(--brand-accent)]"
+                >
+                  <Ellipsis aria-hidden="true" />
+                  {t("more")}
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="end">
+                {items
+                  .filter((item) => "ownerOnly" in item)
+                  .map(({ to, namespace, icon: Icon }) => (
+                    <DropdownMenuItem key={to} asChild className="min-h-10">
+                      <Link to={to}>
+                        <Icon aria-hidden="true" />
+                        {t("title", { ns: namespace })}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        )}
       </SidebarMenu>
     </nav>
   );

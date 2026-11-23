@@ -1,4 +1,5 @@
 {
+  "more": "Daha çox",
   "navigation": "Əsas naviqasiya",
   "language": "Dili dəyiş",
   "languageOptions": {
@@ -10,7 +11,7 @@
   "loading": "Yüklənir",
   "retry": "Yenidən cəhd et",
   "notFound": "Səhifə tapılmadı",
-  "home": "Məhsullara keç",
+  "home": "İdarə panelinə keç",
   "theme": {
     "switchToLight": "Açıq rejimə keç",
     "switchToDark": "Qaranlıq rejimə keç"

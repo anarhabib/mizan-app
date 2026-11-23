@@ -13,3 +13,12 @@ export type ExchangeRatesResponse = {
   snapshot: OfficialExchangeRates | null;
   stale: boolean;
 };
+import type { MarketMovement, MarketPoint } from "./dashboard.js";
+
+export type OfficialRateHistory = {
+  effectiveDate: string | null;
+  currencies: Record<
+    OfficialRateCurrency,
+    { points: MarketPoint[]; movement: MarketMovement | null }
+  >;
+};

@@ -10,6 +10,7 @@ import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
 import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useEffect, useId, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import {
   goldPriceKinds,
   goldPriceModes,
@@ -81,6 +82,16 @@ export function GoldPricingSection({
 }) {
   const { t } = useTranslation("gold-prices");
   const heading = useId();
+  const section = useRef<HTMLElement>(null);
+  const hash = useRouterState({ select: (state) => state.location.hash });
+  useEffect(() => {
+    if (hash !== "gold-pricing") return;
+    const frame = requestAnimationFrame(() => {
+      section.current?.focus({ preventScroll: true });
+      section.current?.scrollIntoView();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash]);
   const rulesTab = useRef<HTMLButtonElement>(null);
   const query = useQuery(goldPricingQuery(scope));
   const mutation = useChangeGoldPrice(scope, affectedKeys);
@@ -115,6 +126,9 @@ export function GoldPricingSection({
   }
   return (
     <section
+      id="gold-pricing"
+      ref={section}
+      tabIndex={-1}
       aria-labelledby={heading}
       className="grid min-w-0 gap-4 rounded-lg border bg-card p-4"
     >

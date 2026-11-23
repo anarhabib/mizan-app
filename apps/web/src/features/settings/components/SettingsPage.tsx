@@ -151,7 +151,7 @@ function OwnerSettings({
           )}
           <Switch
             size="default"
-            className="relative shrink-0 after:absolute after:-inset-y-3 after:inset-x-0 motion-reduce:transition-none [&_[data-slot=switch-thumb]]:motion-reduce:transition-none"
+            className="relative shrink-0 after:absolute after:-inset-y-3 after:inset-x-0 motion-reduce:transition-none **:data-[slot=switch-thumb]:motion-reduce:transition-none"
             aria-labelledby="settings-visibility-title"
             aria-describedby="settings-visibility-description"
             checked={settings.salespersonCanViewAcquisitionCost}

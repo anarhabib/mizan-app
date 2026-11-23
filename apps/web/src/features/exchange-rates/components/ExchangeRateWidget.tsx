@@ -50,7 +50,7 @@ export function ExchangeRateWidget({ scope }: { scope: ExchangeRateScope }) {
             {currencies.map((currency) => (
               <div key={currency} className="min-w-0">
                 <dt className="text-xs text-muted-foreground">{currency}</dt>
-                <dd className="break-words font-medium tabular-nums">
+                <dd className="wrap-break-word font-medium tabular-nums">
                   <MoneyText
                     value={{
                       amount: snapshot.rates[currency],

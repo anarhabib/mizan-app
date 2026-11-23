@@ -26,14 +26,24 @@ export function customerPath(
   return id ? `${path}/${encodeURIComponent(id)}` : path;
 }
 
-function pagePath(path: string, after?: string, q?: string) {
+function pagePath(
+  path: string,
+  after?: string,
+  q?: string,
+  outstanding?: boolean,
+) {
   const params = new URLSearchParams();
   if (after) params.set("after", after);
   if (q) params.set("q", q);
+  if (outstanding) params.set("outstanding", "true");
   return params.size ? `${path}?${params}` : path;
 }
 
-export function customerListQuery(scope: CustomerScope, search: string) {
+export function customerListQuery(
+  scope: CustomerScope,
+  search: string,
+  outstanding = false,
+) {
   return infiniteQueryOptions<
     CustomerList,
     ApiError,
@@ -41,11 +51,13 @@ export function customerListQuery(scope: CustomerScope, search: string) {
     readonly unknown[],
     string | undefined
   >({
-    queryKey: [...lists(scope), search],
+    queryKey: outstanding
+      ? [...lists(scope), search, "outstanding"]
+      : [...lists(scope), search],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       apiRequest<CustomerList>(
-        pagePath(customerPath(scope), pageParam, search),
+        pagePath(customerPath(scope), pageParam, search, outstanding),
         { signal },
       ),
     getNextPageParam: (page) => page.nextCursor,

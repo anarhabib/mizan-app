@@ -16,7 +16,9 @@ import {
 
 type Scope = { Params: { organizationId: string; storeId: string } };
 type Contact = { Params: Scope["Params"] & { id: string } };
-type Page = { Querystring: { q?: string; after?: string } };
+type Page = {
+  Querystring: { q?: string; after?: string; outstanding?: string };
+};
 
 export function registerCustomerRoutes(
   app: FastifyInstance,

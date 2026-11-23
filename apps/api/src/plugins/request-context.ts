@@ -14,6 +14,7 @@ import { registerProductRoutes } from "../modules/products/product.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
 import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
 import { registerCustomerRoutes } from "../modules/customers/customer.routes.js";
+import { registerDashboardRoutes } from "../modules/dashboard/dashboard.routes.js";
 import type { SalesDatabase } from "../modules/sales/sale.service.js";
 import {
   createExchangeRateService,
@@ -98,6 +99,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerProductRoutes(app, access, products);
   registerSaleRoutes(app, access, salesDb);
   registerCustomerRoutes(app, access, salesDb);
+  registerDashboardRoutes(app, access, salesDb, goldMarketEnabled);
 
   const preHandler = access
     ? [
@@ -110,8 +112,13 @@ export const requestContextRoutes: FastifyPluginAsync<{
   const store = "/organizations/:organizationId/stores/:storeId";
   const getExchangeRates =
     exchangeRatesDb &&
-    createExchangeRateService(exchangeRatesDb, (error) =>
-      app.log.warn({ err: error }, "CBAR exchange rate refresh failed"),
+    createExchangeRateService(
+      exchangeRatesDb,
+      (error) =>
+        app.log.warn({ err: error }, "CBAR exchange rate refresh failed"),
+      undefined,
+      undefined,
+      settingsDb,
     );
   const refreshGold = registerGoldPriceRoutes(
     app,

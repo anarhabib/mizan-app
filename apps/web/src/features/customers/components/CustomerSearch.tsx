@@ -13,9 +13,11 @@ import { customerListQuery, type CustomerScope } from "../api/queries";
 export function CustomerSearch({
   scope,
   render,
+  outstanding,
 }: {
   scope: CustomerScope;
   render: (customer: CustomerSummary) => ReactNode;
+  outstanding?: boolean;
 }) {
   const { t } = useTranslation("customers");
   const id = useId();
@@ -25,7 +27,7 @@ export function CustomerSearch({
     const timer = window.setTimeout(() => setSearch(input.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [input]);
-  const query = useInfiniteQuery(customerListQuery(scope, search));
+  const query = useInfiniteQuery(customerListQuery(scope, search, outstanding));
   const rows = query.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (

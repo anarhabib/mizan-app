@@ -40,7 +40,12 @@ import {
 import { CustomerForm } from "./CustomerForm";
 import { CustomerSearch } from "./CustomerSearch";
 
-type Props = { id?: string; closeLinkedCustomer: () => void };
+type Props = {
+  id?: string;
+  create?: boolean;
+  outstanding?: boolean;
+  closeLinkedCustomer: () => void;
+};
 type Panel =
   | { kind: "create"; opener: HTMLElement }
   | { kind: "detail"; id: string; opener: HTMLElement };
@@ -98,6 +103,8 @@ function CustomerFacts({ customer }: { customer: CustomerSummary }) {
 
 function ScopedCustomers({
   id,
+  create,
+  outstanding,
   scope,
   closeLinkedCustomer,
   canManageAsOwner,
@@ -106,10 +113,17 @@ function ScopedCustomers({
   canManageAsOwner: boolean;
 }) {
   const { t } = useTranslation("customers");
+  const { t: dashboard } = useTranslation("dashboard");
   const [panel, setPanel] = useState<Panel>();
   const [createButton, setCreateButton] = useState<HTMLButtonElement | null>(
     null,
   );
+  const createPanel =
+    panel?.kind === "create"
+      ? panel
+      : !panel && create && createButton
+        ? { opener: createButton }
+        : undefined;
   const detail =
     panel?.kind === "detail"
       ? panel
@@ -119,13 +133,13 @@ function ScopedCustomers({
   const [saving, setSaving] = useState(false);
   const close = () => {
     setPanel(undefined);
-    if (id) closeLinkedCustomer();
+    if (id || create) closeLinkedCustomer();
   };
 
   return (
     <>
       <PageHeader
-        title={t("title")}
+        title={outstanding ? dashboard("widgets.debtors") : t("title")}
         actions={
           <Button
             type="button"
@@ -140,8 +154,17 @@ function ScopedCustomers({
           </Button>
         }
       />
+      {outstanding && (
+        <Link
+          to="/customers"
+          className="mb-3 inline-flex min-h-10 items-center underline underline-offset-4"
+        >
+          {dashboard("allCustomers")}
+        </Link>
+      )}
       <CustomerSearch
         scope={scope}
+        outstanding={outstanding}
         render={(row) => (
           <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
             <div className="min-w-0">
@@ -167,10 +190,10 @@ function ScopedCustomers({
           </div>
         )}
       />
-      {panel?.kind === "create" ? (
+      {createPanel ? (
         <ProductPanel
           title={t("create")}
-          opener={panel.opener}
+          opener={createPanel.opener}
           close={close}
           busy={saving}
         >
@@ -182,7 +205,7 @@ function ScopedCustomers({
               setPanel({
                 kind: "detail",
                 id: customer.id,
-                opener: panel.opener,
+                opener: createPanel.opener,
               })
             }
           />

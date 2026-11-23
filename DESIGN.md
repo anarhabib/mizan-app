@@ -18,7 +18,7 @@ Status tokens use semantic background, foreground and 25%-opacity border colors:
 
 Density: 14px base text, compact desktop controls, 44px mobile targets, spacing 2/3/4/6, borders over shadows. Tabular numerals for money and weight.
 
-The shell uses the same route configuration for bottom navigation below `lg` and the collapsible 224px shadcn Sidebar on desktop. Destinations are Products, Sales, Customers, Settings, and Team. Settings and Team require Owner mode. The top bar retains store and account controls, and content retains safe-area padding, a skip link, keyboard focus, and the current-page indicator.
+The shell uses the same route configuration for bottom navigation below `lg` and the collapsible 224px shadcn Sidebar on desktop. Dashboard is the default destination, followed by Products, Sales, and Customers. Settings and Team require Owner mode and appear in the mobile More menu. The top bar retains store and account controls, and content retains safe-area padding, a skip link, keyboard focus, and the current-page indicator.
 
 Shared components include PageHeader with actions, EmptyState with a description and action, ErrorState with a localized API error and pending-aware retry, and ListSkeleton with an accessible loading label and reduced-motion support. MoneyText displays two decimal places and a currency code. WeightText and PurityText preserve exact values and units.
 

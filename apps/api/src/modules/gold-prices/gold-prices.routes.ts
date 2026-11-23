@@ -1,8 +1,10 @@
-import type {
-  ExchangeRatesResponse,
-  GoldPricingSettings,
+import {
+  goldPriceKinds,
+  marketPeriods,
+  type ExchangeRatesResponse,
+  type GoldPricingSettings,
 } from "@mizan/contracts";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authenticate } from "../../plugins/auth.js";
 import {
   requireStoreAccess,
@@ -11,6 +13,11 @@ import {
 import { AccessError } from "../access/access.errors.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import type { OrganizationDatabase } from "../access/organization-owner.js";
+import {
+  dashboardGoldHistory,
+  dashboardGoldRates,
+  dashboardStoreRateHistory,
+} from "../dashboard/market-history.js";
 import {
   createGoldMarketService,
   getGoldPriceHistory,
@@ -29,6 +36,9 @@ type Scope = { Params: { organizationId: string; storeId: string } };
 type History = Scope & { Querystring: { after?: string } };
 type MarketHistory = Scope & {
   Querystring: { after?: string; from?: string; through?: string };
+};
+type DashboardHistory = Scope & {
+  Querystring: { period?: string; purity?: string; kind?: string };
 };
 
 export function registerGoldPriceRoutes(
@@ -76,6 +86,58 @@ export function registerGoldPriceRoutes(
   );
   app.get<MarketHistory>(`${path}/history`, { preHandler }, ({ query }) =>
     getGoldPriceHistory(db!, query),
+  );
+  async function chartFilters({
+    params,
+    query,
+  }: FastifyRequest<DashboardHistory>) {
+    const period = marketPeriods.find((value) => value === query.period);
+    const purities = await activeGoldPurities(db!, params.organizationId);
+    const purity = purities.find((value) => String(value) === query.purity);
+    if (!period || purity === undefined)
+      throw new AccessError("INVALID_SETTINGS");
+    return { period, purity };
+  }
+  app.get<DashboardHistory>(
+    `${path}/chart`,
+    { preHandler },
+    async (request) => {
+      if (request.query.purity === undefined) {
+        const period = marketPeriods.find(
+          (value) => value === request.query.period,
+        );
+        if (!period) throw new AccessError("INVALID_SETTINGS");
+        return dashboardGoldHistory(db!, period, undefined);
+      }
+      const { period, purity } = await chartFilters(request);
+      return dashboardGoldHistory(db!, period, purity);
+    },
+  );
+  app.get<Scope>(`${path}/rates`, { preHandler }, async (request) => {
+    const state = await references(request.params.organizationId);
+    return dashboardGoldRates(
+      db!,
+      request.access!,
+      state,
+      state.references.map(({ purity }) => purity),
+    );
+  });
+  app.get<DashboardHistory>(
+    `${path}/rates/chart`,
+    { preHandler },
+    async (request) => {
+      const { period, purity } = await chartFilters(request);
+      const kind = goldPriceKinds.find((value) => value === request.query.kind);
+      if (!kind) throw new AccessError("INVALID_SETTINGS");
+      return dashboardStoreRateHistory(
+        db!,
+        request.access!,
+        period,
+        purity,
+        kind,
+        enabled,
+      );
+    },
   );
   app.get<Scope>(
     `${path}/settings`,

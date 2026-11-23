@@ -5,7 +5,7 @@ import {
   type MoneyInput,
 } from "@mizan/contracts";
 
-function decimal(value: string, locale: string) {
+export function formatDecimal(value: string, locale: string) {
   const negative = value.startsWith("-");
   const magnitude = negative ? value.slice(1) : value;
   const [integer, fraction] = magnitude.split(".");
@@ -19,11 +19,11 @@ function decimal(value: string, locale: string) {
 
 export function formatMoney(money: MoneyInput, locale = "az") {
   currencyMinorUnits(money.currency);
-  return `${decimal(roundMoneyHalfUp(money.amount, 2), locale)} ${money.currency}`;
+  return `${formatDecimal(roundMoneyHalfUp(money.amount, 2), locale)} ${money.currency}`;
 }
 export function formatWeight(value: string, locale = "az") {
   parseDecimal(value.startsWith("-") ? value.slice(1) : value, 3);
-  return `${decimal(value, locale)} ${locale.startsWith("ru") ? "г" : "g"}`;
+  return `${formatDecimal(value, locale)} ${locale.startsWith("ru") ? "г" : "g"}`;
 }
 export function formatPurity(value: number) {
   if (!Number.isInteger(value) || value < 1 || value > 999)

@@ -127,7 +127,7 @@ export function InviteForm({
           pending={isSubmitting}
           type="submit"
           disabled={busy || isSubmitting || stores.length === 0}
-          className="min-h-11 lg:mt-[22px] lg:min-h-8"
+          className="min-h-11 lg:mt-5.5 lg:min-h-8"
         >
           {t("actions.invite")}
         </PendingButton>
