@@ -345,6 +345,21 @@ test.skipIf(!db)(
       expect(
         (await send("GET", `${root}/dashboard/owner`)).json().inventoryCost,
       ).toEqual([{ amount: "60", currency: "AZN" }]);
+      const overviewPath = `/products/overview?${query}`;
+      const overview = await send("GET", overviewPath);
+      expect(overview.statusCode, overview.body).toBe(200);
+      expect(overview.json()).toEqual({
+        available: 2,
+        sold: 2,
+        soldOnCredit: 1,
+        availableWeight: "6",
+        acquisitionValue: [{ amount: "60", currency: "AZN" }],
+      });
+      const staffOverview = await send("GET", overviewPath, undefined, "staff");
+      expect(staffOverview.statusCode).toBe(200);
+      const { acquisitionValue, ...publicOverview } = overview.json();
+      expect(acquisitionValue).toHaveLength(1);
+      expect(staffOverview.json()).toEqual(publicOverview);
       expect(
         (await send("GET", `${root}/dashboard/owner`, undefined, "staff"))
           .statusCode,
@@ -366,6 +381,7 @@ test.skipIf(!db)(
         403,
       );
       const nonOwner = (await send("GET", `${root}/dashboard`)).json();
+      expect((await send("GET", overviewPath)).json()).toEqual(publicOverview);
       expect(nonOwner.comparison).toBeDefined();
       expect(nonOwner.inventory.count).toBe(2);
       expect(JSON.stringify(nonOwner)).not.toMatch(
@@ -392,6 +408,17 @@ test.skipIf(!db)(
       expect(await ids("/products", "status=SOLD&soldOn=2026-11-23")).toEqual([
         first.id,
       ]);
+      expect(
+        await ids("/products", "status=SOLD&credit=true&limit=10"),
+      ).toEqual([first.id]);
+      expect(
+        await ids("/products", "credit=true&q=Yesterday&limit=25"),
+      ).toEqual([]);
+      for (const path of ["/products", "/sales"]) {
+        const invalid = await send("GET", `${path}?${query}&limit=11`);
+        expect(invalid.statusCode).toBe(400);
+        expect(invalid.json().field).toBe("limit");
+      }
       expect(await ids("/products", "receivedOn=2026-11-23")).toEqual([
         first.id,
       ]);
@@ -402,6 +429,16 @@ test.skipIf(!db)(
         organizationId,
         storeId: branch.id,
       });
+      const branchPath = `/products/overview?${branchQuery}`;
+      expect((await send("GET", branchPath)).json()).toEqual({
+        available: 1,
+        sold: 0,
+        soldOnCredit: 0,
+        availableWeight: "3",
+      });
+      expect(
+        (await send("GET", branchPath, undefined, "staff")).statusCode,
+      ).toBe(403);
       expect(await ids("/sales", "date=2026-11-23", branchQuery)).toEqual([]);
       expect(
         (
@@ -468,6 +505,30 @@ test.skipIf(!db)(
           .sort((a, b) => a.code.localeCompare(b.code))
           .map(({ id }) => id),
       );
+      expect(await ids("/products", "credit=true&soldOn=2026-11-22")).toEqual(
+        [...groupedProducts]
+          .sort((a, b) => a.code.localeCompare(b.code))
+          .map(({ id }) => id),
+      );
+      expect((await send("GET", overviewPath)).json()).toMatchObject({
+        sold: 4,
+        soldOnCredit: 3,
+      });
+      const settled = await send(
+        "POST",
+        `/sales/${unpaidId}/payments?${query}`,
+        {
+          method: "CASH",
+          currency: "AZN",
+          amount: "100",
+        },
+      );
+      expect(settled.statusCode, settled.body).toBe(201);
+      expect(await ids("/products", "credit=true")).toEqual([first.id]);
+      expect((await send("GET", overviewPath)).json()).toMatchObject({
+        sold: 4,
+        soldOnCredit: 1,
+      });
       expect(
         (await send("GET", `/sales?${query}&paymentStatus=invalid`)).statusCode,
       ).toBe(400);

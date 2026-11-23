@@ -2,14 +2,13 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { ExchangeRateWidget } from "@/features/exchange-rates";
-import { GoldMarketWidget } from "@/features/gold-prices";
 import { useWorkspace } from "@/features/workspace";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import type { ProductFilters, ProductScope } from "../api/queries";
 import { ProductCreate } from "./ProductCreate";
 import { ProductDetail } from "./ProductDetail";
 import { ProductList } from "./ProductList";
+import { InventoryOverview } from "./InventoryOverview";
 
 type Panel =
   | { kind: "create"; opener: HTMLElement }
@@ -20,7 +19,7 @@ type Props = {
   intent?: "create" | "sale";
   filters?: Pick<
     ProductFilters,
-    "status" | "soldOn" | "receivedOn" | "agedDays"
+    "status" | "soldOn" | "receivedOn" | "agedDays" | "credit"
   >;
   clearDashboardFilters?: () => void;
   closeLinkedProduct: () => void;
@@ -28,7 +27,8 @@ type Props = {
 };
 
 export function ProductsPage(props: Props) {
-  const { organizationId, storeId, settings } = useWorkspace();
+  const { organizationId, storeId, settings, canManageAsOwner } =
+    useWorkspace();
   const scope = { organizationId, storeId };
 
   return (
@@ -36,6 +36,7 @@ export function ProductsPage(props: Props) {
       key={`${organizationId}/${storeId}`}
       scope={scope}
       currency={settings.defaultCurrency}
+      owner={canManageAsOwner}
       {...props}
     />
   );
@@ -44,6 +45,7 @@ export function ProductsPage(props: Props) {
 function ScopedProducts({
   scope,
   currency,
+  owner,
   product,
   intent,
   filters,
@@ -53,10 +55,12 @@ function ScopedProducts({
 }: {
   scope: ProductScope;
   currency: string;
+  owner: boolean;
 } & Props) {
   const { t } = useTranslation("products");
   const { t: dashboard } = useTranslation("dashboard");
   const [panel, setPanel] = useState<Panel>();
+  const [overviewSelection, setOverviewSelection] = useState(0);
   const [createButton, setCreateButton] = useState<HTMLButtonElement | null>(
     null,
   );
@@ -96,16 +100,25 @@ function ScopedProducts({
           {dashboard("selectForSale")}
         </p>
       ) : (
-        <>
-          <ExchangeRateWidget scope={scope} />
-          <GoldMarketWidget scope={scope} />
-        </>
+        <InventoryOverview
+          scope={scope}
+          owner={owner}
+          onSelect={() => setOverviewSelection((current) => current + 1)}
+        />
       )}
       <ProductList
         scope={scope}
-        key={filters?.status ?? (filters?.receivedOn ? "intake" : "default")}
+        key={JSON.stringify([
+          intent,
+          filters?.status,
+          filters?.credit,
+          Boolean(filters?.receivedOn),
+          overviewSelection,
+        ])}
         initialStatus={
-          filters?.status ?? (filters?.receivedOn ? "all" : "IN_STOCK")
+          filters?.credit
+            ? "SOLD_ON_CREDIT"
+            : (filters?.status ?? (filters?.receivedOn ? "all" : "IN_STOCK"))
         }
         dashboardFilters={filters}
         clearDashboardFilters={clearDashboardFilters}

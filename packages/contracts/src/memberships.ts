@@ -23,6 +23,8 @@ export interface MembershipDirectory {
   stores: StoreOption[];
   invitations: InvitationSummary[];
   members: SalespersonSummary[];
+  nextMemberCursor?: string;
+  nextInvitationCursor?: string;
 }
 
 export const invitationTokenPattern = /^[a-zA-Z0-9_-]{43}$/;

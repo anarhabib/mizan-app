@@ -3,13 +3,6 @@
   "receivedOn": "Qəbul tarixi: {{date}} (Bakı)",
   "agedDays": "Ən azı {{count}} gündür stokda",
   "clearDashboardFilters": "İdarə panelinin filtrlərini təmizlə",
-  "exchangeRates": {
-    "title": "Rəsmi məzənnələr",
-    "effectiveDate": "Qüvvəyə minmə tarixi {{date}}",
-    "stale": "Yenilənmə gözlənilir",
-    "unavailable": "Məzənnələr hazırda əlçatan deyil.",
-    "retry": "Yenidən cəhd et"
-  },
   "title": "Məhsullar",
   "empty": "Bu mağazada məhsul yoxdur",
   "description": "Stokun uçotuna başlamaq üçün məhsul əlavə edin.",
@@ -19,9 +12,6 @@
   "searchHint": "Məhsulun kodu və ya adı",
   "filters": "Filtrlər",
   "all": "Hamısı",
-  "showResults": "Nəticələrə bax",
-  "loadMore": "Daha çox göstər",
-  "loadingMore": "Yüklənir…",
   "detail": "Məhsul məlumatları",
   "create": "Məhsul əlavə et",
   "close": "Bağla",
@@ -109,5 +99,14 @@
   },
   "created": "Məhsul yaradıldı.",
   "updated": "Məhsul yeniləndi.",
-  "deleted": "Məhsul silindi."
+  "deleted": "Məhsul silindi.",
+  "clearFilters": "Filtrləri təmizlə",
+  "overview": {
+    "title": "Məhsul ehtiyatının icmalı",
+    "available": "Mövcud məhsullar",
+    "sold": "Satılmış məhsullar",
+    "soldOnCredit": "Nisyə satılan məhsullar",
+    "availableWeight": "Mövcud məhsulların çəkisi",
+    "acquisitionValue": "Ehtiyatın alış dəyəri"
+  }
 }

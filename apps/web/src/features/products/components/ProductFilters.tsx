@@ -1,12 +1,10 @@
 import { OptionSelect } from "@/shared/ui/OptionSelect";
-import { useId, useState } from "react";
+import { useId, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ProductStatus } from "@mizan/contracts";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import {
@@ -14,74 +12,22 @@ import {
   type ProductFilters as Filters,
   type ProductScope,
 } from "../api/queries";
-import { ProductPanel } from "./ProductPanel";
 
 type FacetFilters = Omit<Filters, "q">;
 const all = "all";
 const categoryPrefix = "category:";
-const statuses = ["IN_STOCK", "SOLD"] as const;
+const statuses = ["IN_STOCK", "SOLD", "SOLD_ON_CREDIT"] as const;
 
 export function ProductFilters({
   scope,
   filters,
   setFilters,
+  children,
 }: {
   scope: ProductScope;
   filters: FacetFilters;
   setFilters: (filters: FacetFilters) => void;
-}) {
-  const { t } = useTranslation("products");
-  const mobile = useIsMobile();
-  const [opener, setOpener] = useState<HTMLButtonElement | null>(null);
-  const active = Object.values(filters).some((value) => value !== undefined);
-
-  if (!mobile)
-    return (
-      <FilterFields scope={scope} filters={filters} setFilters={setFilters} />
-    );
-  return (
-    <>
-      <Button
-        type="button"
-        variant={active ? "secondary" : "outline"}
-        className="min-h-11 shrink-0"
-        onClick={(event) => setOpener(event.currentTarget)}
-      >
-        <SlidersHorizontal aria-hidden="true" />
-        {t("filters")}
-      </Button>
-      {opener && (
-        <ProductPanel
-          title={t("filters")}
-          close={() => setOpener(null)}
-          opener={opener}
-        >
-          <FilterFields
-            scope={scope}
-            filters={filters}
-            setFilters={setFilters}
-          />
-          <Button
-            type="button"
-            className="mt-4 min-h-11 w-full"
-            onClick={() => setOpener(null)}
-          >
-            {t("showResults")}
-          </Button>
-        </ProductPanel>
-      )}
-    </>
-  );
-}
-
-function FilterFields({
-  scope,
-  filters,
-  setFilters,
-}: {
-  scope: ProductScope;
-  filters: FacetFilters;
-  setFilters: (filters: FacetFilters) => void;
+  children: ReactNode;
 }) {
   const { t } = useTranslation("products");
   const id = useId();
@@ -93,84 +39,107 @@ function FilterFields({
   const any = { value: all, label: t("all") };
 
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-status`}>{t("fields.status")}</Label>
-        <OptionSelect
-          id={`${id}-status`}
-          value={filters.status ?? all}
-          onChange={(value) =>
-            setFilters({
-              ...filters,
-              status: value === all ? undefined : (value as ProductStatus),
-            })
-          }
-          options={[
-            any,
-            ...statuses.map((value) => ({
-              value,
-              label: t(`status.${value}`),
-            })),
-          ]}
-        />
-      </div>
-      {facets.isPending ? (
-        <div className="lg:col-span-2">
-          <ListSkeleton rows={1} />
+    <>
+      <div
+        className="flex min-w-0 items-end gap-3 overflow-x-auto p-1"
+        role="group"
+        aria-label={t("filters")}
+      >
+        {children}
+        <div className="grid w-40 shrink-0 gap-2">
+          <Label htmlFor={`${id}-status`}>{t("fields.status")}</Label>
+          <OptionSelect
+            id={`${id}-status`}
+            value={filters.credit ? "SOLD_ON_CREDIT" : (filters.status ?? all)}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                status:
+                  value === all
+                    ? undefined
+                    : value === "SOLD_ON_CREDIT"
+                      ? "SOLD"
+                      : (value as ProductStatus),
+                credit: value === "SOLD_ON_CREDIT" ? true : undefined,
+              })
+            }
+            options={[
+              any,
+              ...statuses.map((value) => ({
+                value,
+                label: t(`status.${value}`),
+              })),
+            ]}
+          />
         </div>
-      ) : (
-        <>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-category`}>{t("fields.category")}</Label>
-            <OptionSelect
-              id={`${id}-category`}
-              value={
-                filters.category === undefined
-                  ? all
-                  : categoryPrefix + filters.category
-              }
-              onChange={(value) =>
-                setFilters({
-                  ...filters,
-                  category:
-                    value === all
-                      ? undefined
-                      : value.slice(categoryPrefix.length),
-                })
-              }
-              options={[
-                any,
-                ...Array.from(categories, (category) => ({
-                  value: categoryPrefix + category,
-                  label: category,
-                })),
-              ]}
-            />
+        {facets.isPending ? (
+          <div className="w-72 shrink-0">
+            <ListSkeleton rows={1} />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-purity`}>{t("fields.purity")}</Label>
-            <OptionSelect
-              id={`${id}-purity`}
-              value={filters.purity?.toString() ?? all}
-              onChange={(value) =>
-                setFilters({
-                  ...filters,
-                  purity: value === all ? undefined : Number(value),
-                })
-              }
-              options={[
-                any,
-                ...Array.from(purities, (purity) => ({
-                  value: String(purity),
-                  label: String(purity),
-                })),
-              ]}
-            />
-          </div>
-        </>
-      )}
+        ) : (
+          <>
+            <div className="grid w-36 shrink-0 gap-2 lg:w-44">
+              <Label htmlFor={`${id}-category`}>{t("fields.category")}</Label>
+              <OptionSelect
+                id={`${id}-category`}
+                value={
+                  filters.category === undefined
+                    ? all
+                    : categoryPrefix + filters.category
+                }
+                onChange={(value) =>
+                  setFilters({
+                    ...filters,
+                    category:
+                      value === all
+                        ? undefined
+                        : value.slice(categoryPrefix.length),
+                  })
+                }
+                options={[
+                  any,
+                  ...Array.from(categories, (category) => ({
+                    value: categoryPrefix + category,
+                    label: category,
+                  })),
+                ]}
+              />
+            </div>
+            <div className="grid w-22 shrink-0 gap-2 lg:w-24">
+              <Label htmlFor={`${id}-purity`}>{t("fields.purity")}</Label>
+              <OptionSelect
+                id={`${id}-purity`}
+                value={filters.purity?.toString() ?? all}
+                onChange={(value) =>
+                  setFilters({
+                    ...filters,
+                    purity: value === all ? undefined : Number(value),
+                  })
+                }
+                options={[
+                  any,
+                  ...Array.from(purities, (purity) => ({
+                    value: String(purity),
+                    label: String(purity),
+                  })),
+                ]}
+              />
+            </div>
+          </>
+        )}
+        {Object.values(filters).some((value) => value !== undefined) && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-11 shrink-0 lg:min-h-9"
+            onClick={() => setFilters({})}
+          >
+            {t("clearFilters")}
+          </Button>
+        )}
+      </div>
       {facets.isError && (
-        <div className="lg:col-span-3">
+        <div className="mt-2">
           <ErrorState
             error={facets.error}
             retry={() => void facets.refetch()}
@@ -178,6 +147,6 @@ function FilterFields({
           />
         </div>
       )}
-    </div>
+    </>
   );
 }

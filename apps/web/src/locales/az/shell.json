@@ -19,7 +19,6 @@
   "displayMode": {
     "owner": "Sahib",
     "salesperson": "Satıcı",
-    "trigger": "Görünüş rejimi: {{mode}}",
     "switchTo": "{{mode}} rejiminə keç",
     "restrict": "Bu cihazda alış xərcləri və sahibə aid idarəetmə bölmələri gizlənəcək. Sahib rejiminə qayıtmaq üçün şifrənizi daxil edin.",
     "authenticate": "Sahib rejiminə qayıtmaq üçün hesab şifrənizi daxil edin.",
@@ -29,9 +28,17 @@
     "concealed": "Rejim dəyişdirilərkən iş sahəsi gizlədilir.",
     "invalidPassword": "Şifrə yanlışdır.",
     "unavailable": "Bu sessiyada şifrəni təsdiqləmək mümkün deyil.",
-    "failed": "Rejimi dəyişmək mümkün olmadı. Yenidən cəhd edin."
+    "failed": "Rejimi dəyişmək mümkün olmadı. Yenidən cəhd edin.",
+    "change": "Görünüş rejimini dəyiş"
   },
   "expandNavigation": "Naviqasiyanı genişləndir",
   "collapseNavigation": "Naviqasiyanı yığ",
-  "notifications": "Bildirişlər"
+  "notifications": "Bildirişlər",
+  "account": "Hesab",
+  "pagination": {
+    "pageSize": "Səhifədəki sətirlər",
+    "page": "Səhifə {{page}}",
+    "previous": "Əvvəlki səhifə",
+    "next": "Növbəti səhifə"
+  }
 }

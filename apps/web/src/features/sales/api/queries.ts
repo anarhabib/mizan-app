@@ -1,9 +1,4 @@
-import {
-  infiniteQueryOptions,
-  keepPreviousData,
-  queryOptions,
-  type InfiniteData,
-} from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type {
   SaleList,
   SalePaymentStatus,
@@ -16,6 +11,7 @@ import type {
   StoreContext,
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
+import type { CursorPage } from "@/shared/hooks/useCursorPagination";
 
 export type SaleScope = Pick<StoreContext, "organizationId" | "storeId">;
 export type SaleFilters = {
@@ -45,11 +41,11 @@ export const saleKeys = {
 export function salePath(
   { organizationId, storeId }: SaleScope,
   suffix = "",
-  params: Record<string, string | undefined> = {},
+  params: Record<string, string | number | undefined> = {},
 ) {
   const query = new URLSearchParams({ organizationId, storeId });
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) query.set(key, value);
+    if (value !== undefined) query.set(key, String(value));
   }
   return `/sales${suffix}?${query}`;
 }
@@ -69,22 +65,17 @@ export function paymentPreviewQuery(scope: SaleScope, serialized?: string) {
   });
 }
 
-export function saleListQuery(scope: SaleScope, filters: SaleFilters) {
-  return infiniteQueryOptions<
-    SaleList,
-    ApiError,
-    InfiniteData<SaleList>,
-    ReturnType<typeof saleKeys.list>,
-    string | undefined
-  >({
-    queryKey: saleKeys.list(scope, filters),
-    initialPageParam: undefined,
-    queryFn: ({ pageParam, signal }) =>
-      apiRequest<SaleList>(
-        salePath(scope, "", { ...filters, after: pageParam }),
-        { signal },
-      ),
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+export function saleListQuery(
+  scope: SaleScope,
+  filters: SaleFilters,
+  page: CursorPage,
+) {
+  return queryOptions<SaleList, ApiError>({
+    queryKey: [...saleKeys.list(scope, filters), page] as const,
+    queryFn: ({ signal }) =>
+      apiRequest<SaleList>(salePath(scope, "", { ...filters, ...page }), {
+        signal,
+      }),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   });

@@ -103,6 +103,7 @@ export function registerSaleRoutes(
       paymentDate?: string;
       paymentStatus?: string;
       after?: string;
+      limit?: string;
     };
   }>("/sales", { preHandler }, (request) =>
     listSales(db!, request.access!, request.query),

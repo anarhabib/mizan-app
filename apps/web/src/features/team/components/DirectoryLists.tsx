@@ -1,4 +1,5 @@
 import type { MembershipDirectory } from "@mizan/contracts";
+import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +12,14 @@ export function DirectoryLists({
   directory: { members, invitations, stores },
   busy,
   run,
+  memberPagination,
+  invitationPagination,
 }: {
   directory: MembershipDirectory;
   busy: boolean;
   run: RunTeamAction;
+  memberPagination: ReactNode;
+  invitationPagination: ReactNode;
 }) {
   const { t, i18n } = useTranslation("team");
   const storeNames = new Map(stores.map(({ id, name }) => [id, name]));
@@ -121,6 +126,7 @@ export function DirectoryLists({
             })}
           </ul>
         )}
+        {memberPagination}
       </section>
       <section aria-labelledby="team-invitations" className="grid gap-3">
         <h2
@@ -175,6 +181,7 @@ export function DirectoryLists({
             ))}
           </ul>
         )}
+        {invitationPagination}
       </section>
       <section aria-labelledby="team-stores" className="grid gap-3">
         <h2 id="team-stores" className="font-heading text-base font-semibold">

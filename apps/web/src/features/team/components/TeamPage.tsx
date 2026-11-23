@@ -8,6 +8,8 @@ import { useWorkspace } from "@/features/workspace";
 import { ApiError } from "@/shared/lib/api";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { CursorPagination } from "@/shared/ui/CursorPagination";
+import { useCursorPagination } from "@/shared/hooks/useCursorPagination";
 import { teamDirectoryQuery, useTeamAction, type TeamScope } from "../api/team";
 import { teamErrorKey } from "../lib/errors";
 import { DirectoryLists } from "./DirectoryLists";
@@ -35,7 +37,11 @@ export function TeamPage() {
 
 function OwnerTeam({ scope }: { scope: TeamScope }) {
   const { t } = useTranslation("team");
-  const directory = useQuery(teamDirectoryQuery(scope));
+  const members = useCursorPagination();
+  const invitations = useCursorPagination();
+  const directory = useQuery(
+    teamDirectoryQuery(scope, members.request, invitations.request),
+  );
   const mutation = useTeamAction(scope);
   const running = useRef(false);
   const run: RunTeamAction = async (action, onError) => {
@@ -60,6 +66,24 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
     }
   };
 
+  const pending =
+    directory.isPending || directory.isPlaceholderData || mutation.isPending;
+  const memberPagination = (
+    <CursorPagination
+      pagination={members}
+      nextCursor={directory.data?.nextMemberCursor}
+      pending={pending}
+      label={t("members")}
+    />
+  );
+  const invitationPagination = (
+    <CursorPagination
+      pagination={invitations}
+      nextCursor={directory.data?.nextInvitationCursor}
+      pending={pending}
+      label={t("invitations")}
+    />
+  );
   if (directory.isPending) return <ListSkeleton rows={3} />;
   if (directory.isError) {
     return (
@@ -75,6 +99,8 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
           <RotateCw aria-hidden="true" />
           {t("retry")}
         </Button>
+        {memberPagination}
+        {invitationPagination}
       </div>
     );
   }
@@ -85,15 +111,20 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
         <InviteForm
           stores={directory.data.stores}
           currentStoreId={scope.storeId}
-          busy={mutation.isPending}
+          busy={pending}
           run={run}
         />
       </div>
-      <div className="grid gap-6 [&>section]:rounded-lg [&>section]:border [&>section]:border-border [&>section]:bg-card [&>section]:p-4 lg:col-span-2 lg:grid-cols-subgrid lg:[&>section:first-child]:row-span-2">
+      <div
+        aria-busy={directory.isFetching}
+        className="grid gap-6 [&>section]:min-w-0 [&>section]:rounded-lg [&>section]:border [&>section]:border-border [&>section]:bg-card [&>section]:p-4 lg:col-span-2 lg:grid-cols-subgrid lg:[&>section:first-child]:row-span-2"
+      >
         <DirectoryLists
           directory={directory.data}
-          busy={mutation.isPending}
+          busy={pending}
           run={run}
+          memberPagination={memberPagination}
+          invitationPagination={invitationPagination}
         />
       </div>
       <span role="status" className="sr-only">

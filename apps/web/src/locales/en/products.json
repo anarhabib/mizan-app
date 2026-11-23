@@ -3,13 +3,6 @@
   "receivedOn": "Received on {{date}} (Baku)",
   "agedDays": "In stock for at least {{count}} days",
   "clearDashboardFilters": "Clear dashboard filters",
-  "exchangeRates": {
-    "title": "Official exchange rates",
-    "effectiveDate": "Effective {{date}}",
-    "stale": "Rates may be out of date",
-    "unavailable": "Exchange rates are currently unavailable.",
-    "retry": "Retry"
-  },
   "title": "Products",
   "empty": "No products in this store",
   "description": "Add a product to start tracking inventory.",
@@ -19,9 +12,6 @@
   "searchHint": "Product code or name",
   "filters": "Filters",
   "all": "All",
-  "showResults": "View results",
-  "loadMore": "Load more",
-  "loadingMore": "Loading more…",
   "detail": "Product details",
   "create": "Add product",
   "close": "Close",
@@ -109,5 +99,14 @@
   },
   "created": "Product created.",
   "updated": "Product updated.",
-  "deleted": "Product deleted."
+  "deleted": "Product deleted.",
+  "clearFilters": "Clear filters",
+  "overview": {
+    "title": "Inventory overview",
+    "available": "Available products",
+    "sold": "Sold products",
+    "soldOnCredit": "Sold on credit",
+    "availableWeight": "Available inventory weight",
+    "acquisitionValue": "Inventory acquisition value"
+  }
 }

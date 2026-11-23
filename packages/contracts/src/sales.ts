@@ -42,6 +42,7 @@ export interface SaleTradeInPreview {
 
 export interface SaleOptions {
   currency: string;
+  retailRates?: { purity: number; amountPerGram: string }[];
   rates: {
     id: string | null;
     purity: number;
@@ -152,6 +153,7 @@ export interface SaleList {
 export interface SaleResult {
   id: string;
   customerId?: string;
+  customerName?: string;
   outstandingDebt: string;
   paymentStatus: SalePaymentStatus;
   paidAmount: string;

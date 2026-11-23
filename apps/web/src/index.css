@@ -252,12 +252,41 @@ html {
 }
 .shell-content {
   padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
-  padding-left: max(1rem, env(safe-area-inset-left, 0px));
-  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+.page-container {
+  --page-gutter: 1rem;
+  --page-width: 64rem;
+  --page-left: max(var(--page-gutter), env(safe-area-inset-left, 0px));
+  --page-right: max(var(--page-gutter), env(safe-area-inset-right, 0px));
+  width: 100%;
+  min-width: 0;
+  max-width: calc(var(--page-width) + var(--page-left) + var(--page-right));
+  margin-inline: auto;
+  padding-left: var(--page-left);
+  padding-right: var(--page-right);
+}
+.page-container[data-width="wide"] {
+  --page-width: 1600px;
+}
+.page-container[data-width="narrow"] {
+  --page-width: 28rem;
+}
+@media (min-width: 40rem) {
+  .page-container {
+    --page-gutter: 1.25rem;
+  }
 }
 @media (min-width: 64rem) {
   .shell-content {
     padding-bottom: 1.5rem;
+  }
+  .page-container {
+    --page-gutter: 1.5rem;
+  }
+}
+@media (min-width: 90rem) {
+  .page-container {
+    --page-gutter: 2rem;
   }
 }
 @media (forced-colors: active) {

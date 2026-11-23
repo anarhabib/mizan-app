@@ -15,12 +15,87 @@ import {
   invalidateProductInventory,
   productKeys,
   productListQuery,
+  productOverviewQuery,
+  productPageQuery,
 } from "./queries";
 
 const scope = { organizationId: "org", storeId: "store" };
 afterEach(() => vi.unstubAllGlobals());
 
 describe("product requests", () => {
+  it("requests only the selected page and keeps cursor, credit, and scope in the cache key", async () => {
+    const fetch = vi
+      .fn()
+      .mockImplementation(() => Promise.resolve(Response.json({ items: [] })));
+    vi.stubGlobal("fetch", fetch);
+    const client = new QueryClient();
+    const filters = {
+      credit: true,
+      status: "SOLD",
+      category: "Rings",
+    } as const;
+    const first = productPageQuery(scope, filters, { limit: 10 });
+    const next = productPageQuery(scope, filters, {
+      limit: 10,
+      after: "opaque+/=",
+    });
+    const larger = productPageQuery(scope, filters, { limit: 25 });
+    await client.fetchQuery(first);
+    await client.fetchQuery(next);
+    await client.fetchQuery(larger);
+    const requests = fetch.mock.calls.map(
+      ([path]) => new URL(String(path), "https://mizan.test").searchParams,
+    );
+    expect(requests.map((params) => params.get("limit"))).toEqual([
+      "10",
+      "10",
+      "25",
+    ]);
+    expect(requests.map((params) => params.get("after"))).toEqual([
+      null,
+      "opaque+/=",
+      null,
+    ]);
+    expect(
+      requests.every(
+        (params) =>
+          params.get("credit") === "true" && params.get("category") === "Rings",
+      ),
+    ).toBe(true);
+    expect(
+      productPageQuery({ ...scope, storeId: "another" }, filters, { limit: 10 })
+        .queryKey,
+    ).not.toEqual(first.queryKey);
+  });
+
+  it("separates overview data by workspace and display permissions", async () => {
+    const fetch = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        Response.json({
+          available: 217,
+          sold: 82,
+          soldOnCredit: 12,
+          availableWeight: "503.125",
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const client = new QueryClient();
+    const salesperson = productOverviewQuery(scope, false);
+    const overview = await client.fetchQuery(salesperson);
+    expect(overview.available).toBe(217);
+    expect(overview).not.toHaveProperty("acquisitionValue");
+    expect(productOverviewQuery(scope, true).queryKey).not.toEqual(
+      salesperson.queryKey,
+    );
+    expect(
+      productOverviewQuery({ ...scope, storeId: "another" }, false).queryKey,
+    ).not.toEqual(salesperson.queryKey);
+    const path = new URL(String(fetch.mock.calls[0][0]), "https://mizan.test");
+    expect(path.pathname).toMatch(/\/products\/overview$/);
+    expect(Object.fromEntries(path.searchParams)).toEqual(scope);
+  });
+
   it("sends scoped filters and preserves an opaque cursor across pages", async () => {
     const cursor = "opaque+/=?& é";
     const fetch = vi
@@ -63,11 +138,14 @@ describe("product requests", () => {
       productKeys.facets(scope),
       productKeys.detail(scope, "product"),
       productKeys.list({ ...scope, storeId: "another" }, {}),
+      productKeys.overview(scope, true),
+      productKeys.overview(scope, false),
+      productKeys.overview({ ...scope, storeId: "another" }, true),
     ];
     for (const key of keys) client.setQueryData(key, {});
     await invalidateProductInventory(client, scope);
     expect(keys.map((key) => client.getQueryState(key)?.isInvalidated)).toEqual(
-      [true, true, true, false, false],
+      [true, true, true, false, false, true, true, false],
     );
   });
 

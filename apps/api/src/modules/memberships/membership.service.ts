@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { InvitationSummary, MembershipDirectory } from "@mizan/contracts";
 import type { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
+import { readPageSize } from "../access/page-size.js";
 import { uuidPattern } from "../access/access.service.js";
 import {
   assertOwner,
@@ -12,6 +13,13 @@ import {
 
 type Tx = Prisma.TransactionClient;
 export type MembershipDatabase = OrganizationDatabase;
+export type MembershipPage = {
+  memberLimit?: string;
+  memberAfter?: string;
+  invitationLimit?: string;
+  invitationAfter?: string;
+  pendingInvitations?: string;
+};
 type Invite = Pick<
   Prisma.InvitationGetPayload<object>,
   "id" | "email" | "storeId" | "expiresAt" | "revokedAt" | "acceptedAt"
@@ -50,8 +58,43 @@ export async function listMemberships(
   db: MembershipDatabase,
   organizationId: string,
   ownerId: string,
+  {
+    memberLimit,
+    memberAfter,
+    invitationLimit,
+    invitationAfter,
+    pendingInvitations,
+  }: MembershipPage = {},
 ): Promise<MembershipDirectory> {
   await assertOwner(db, organizationId, ownerId);
+  const memberSize =
+    memberLimit === undefined && memberAfter === undefined
+      ? undefined
+      : readPageSize(memberLimit, "INVALID_MEMBERSHIP", "memberLimit");
+  const invitationSize =
+    invitationLimit === undefined && invitationAfter === undefined
+      ? undefined
+      : readPageSize(invitationLimit, "INVALID_MEMBERSHIP", "invitationLimit");
+  if (
+    memberAfter !== undefined &&
+    (typeof memberAfter !== "string" || !uuidPattern.test(memberAfter))
+  )
+    throw new AccessError("INVALID_MEMBERSHIP", "memberAfter");
+  if (
+    invitationAfter !== undefined &&
+    (typeof invitationAfter !== "string" || !uuidPattern.test(invitationAfter))
+  )
+    throw new AccessError("INVALID_MEMBERSHIP", "invitationAfter");
+  if (pendingInvitations !== undefined && pendingInvitations !== "true")
+    throw new AccessError("INVALID_MEMBERSHIP", "pendingInvitations");
+  const invitationCursor = invitationAfter
+    ? await db.invitation.findFirst({
+        where: { organizationId, id: invitationAfter },
+        select: { id: true, createdAt: true },
+      })
+    : null;
+  if (invitationAfter && !invitationCursor)
+    throw new AccessError("INVALID_MEMBERSHIP", "invitationAfter");
   const [stores, invitations, memberships] = await Promise.all([
     db.store.findMany({
       where: { organizationId },
@@ -59,12 +102,34 @@ export async function listMemberships(
       orderBy: { name: "asc" },
     }),
     db.invitation.findMany({
-      where: { organizationId },
-      orderBy: { createdAt: "desc" },
+      where: {
+        organizationId,
+        ...(pendingInvitations && {
+          acceptedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        }),
+        ...(invitationCursor && {
+          OR: [
+            { createdAt: { lt: invitationCursor.createdAt } },
+            {
+              createdAt: invitationCursor.createdAt,
+              id: { lt: invitationCursor.id },
+            },
+          ],
+        }),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      ...(invitationSize && { take: invitationSize + 1 }),
     }),
     db.organizationMembership.findMany({
-      where: { organizationId, role: "SALESPERSON" },
+      where: {
+        organizationId,
+        role: "SALESPERSON",
+        ...(memberAfter && { userId: { gt: memberAfter } }),
+      },
       orderBy: { userId: "asc" },
+      ...(memberSize && { take: memberSize + 1 }),
       select: {
         userId: true,
         active: true,
@@ -79,13 +144,21 @@ export async function listMemberships(
   ]);
   return {
     stores,
-    invitations: invitations.map(summarize),
-    members: memberships.map((member) => ({
+    invitations: invitations.slice(0, invitationSize).map(summarize),
+    members: memberships.slice(0, memberSize).map((member) => ({
       userId: member.userId,
       status: member.active ? "active" : "inactive",
       email: member.acceptedInvitations[0]?.email ?? null,
       storeIds: member.assignments.map((assignment) => assignment.storeId),
     })),
+    ...(memberSize &&
+      memberships.length > memberSize && {
+        nextMemberCursor: memberships[memberSize - 1].userId,
+      }),
+    ...(invitationSize &&
+      invitations.length > invitationSize && {
+        nextInvitationCursor: invitations[invitationSize - 1].id,
+      }),
   };
 }
 

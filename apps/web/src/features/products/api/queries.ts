@@ -8,10 +8,12 @@ import {
 import type {
   ProductDetail,
   ProductList,
+  ProductOverview,
   ProductStatus,
   StoreContext,
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
+import type { CursorPage } from "@/shared/hooks/useCursorPagination";
 
 export type ProductScope = Pick<StoreContext, "organizationId" | "storeId">;
 
@@ -23,6 +25,7 @@ export type ProductFilters = {
   soldOn?: string;
   receivedOn?: string;
   agedDays?: number;
+  credit?: true;
 };
 
 // GET /products/options in docs/API_NOTES.md.
@@ -36,6 +39,8 @@ export const productKeys = {
   list: (scope: ProductScope, filters: ProductFilters) =>
     [...productKeys.lists(scope), filters] as const,
   facets: (scope: ProductScope) => [...scopeKey(scope), "facets"] as const,
+  overview: (scope: ProductScope, owner: boolean) =>
+    [...scopeKey(scope), "overview", owner] as const,
   details: (scope: ProductScope) => [...scopeKey(scope), "detail"] as const,
   detail: (scope: ProductScope, id: string) =>
     [...productKeys.details(scope), id] as const,
@@ -52,13 +57,38 @@ export const productKeys = {
 export function productPath(
   { organizationId, storeId }: ProductScope,
   suffix = "",
-  params: Record<string, string | number | undefined> = {},
+  params: Record<string, string | number | boolean | undefined> = {},
 ) {
   const query = new URLSearchParams({ organizationId, storeId });
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) query.set(key, String(value));
   }
   return `/products${suffix}?${query}`;
+}
+
+export function productPageQuery(
+  scope: ProductScope,
+  filters: ProductFilters,
+  page: CursorPage,
+) {
+  return queryOptions<ProductList, ApiError>({
+    queryKey: [...productKeys.list(scope, filters), page] as const,
+    queryFn: ({ signal }) =>
+      apiRequest<ProductList>(productPath(scope, "", { ...filters, ...page }), {
+        signal,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
+  });
+}
+
+export function productOverviewQuery(scope: ProductScope, owner: boolean) {
+  return queryOptions<ProductOverview, ApiError>({
+    queryKey: productKeys.overview(scope, owner),
+    queryFn: ({ signal }) =>
+      apiRequest<ProductOverview>(productPath(scope, "/overview"), { signal }),
+    staleTime: 15_000,
+  });
 }
 
 export function productListQuery(scope: ProductScope, filters: ProductFilters) {
@@ -91,9 +121,12 @@ export function productFacetsQuery(scope: ProductScope) {
   >({
     queryKey: productKeys.facets(scope),
     queryFn: ({ signal }) =>
-      apiRequest<ProductList>(productPath(scope, "", { facets: 1 }), {
-        signal,
-      }),
+      apiRequest<ProductList>(
+        productPath(scope, "", { facets: 1, limit: 10 }),
+        {
+          signal,
+        },
+      ),
     select: (data) => data.filters,
     staleTime: 60_000,
   });
@@ -139,9 +172,12 @@ export async function invalidateProductInventory(
     .findAll({ queryKey: productKeys.lists(scope) })
     .map(({ queryKey }) => queryKey);
   await Promise.all(
-    [...listKeys, productKeys.facets(scope)].map((queryKey) =>
-      client.invalidateQueries({ queryKey, exact: true }),
-    ),
+    [
+      ...listKeys,
+      productKeys.facets(scope),
+      productKeys.overview(scope, false),
+      productKeys.overview(scope, true),
+    ].map((queryKey) => client.invalidateQueries({ queryKey, exact: true })),
   );
 }
 
@@ -170,23 +206,27 @@ export async function cacheSoldProduct(
   );
   for (const { queryKey } of lists) {
     const filters = queryKey[4] as ProductFilters;
-    client.setQueryData<InfiniteData<ProductList>>(
-      queryKey,
-      (data) =>
-        data && {
-          ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            items:
-              filters.status === "IN_STOCK"
-                ? page.items.filter((item) => item.id !== id)
-                : page.items.map((item) =>
-                    item.id === id
-                      ? { ...item, status: "SOLD", hasOutstandingDebt }
-                      : item,
-                  ),
-          })),
-        },
-    );
+    const update = (page: ProductList): ProductList => ({
+      ...page,
+      items:
+        filters.status === "IN_STOCK" || (filters.credit && !hasOutstandingDebt)
+          ? page.items.filter((item) => item.id !== id)
+          : page.items.map((item) =>
+              item.id === id
+                ? { ...item, status: "SOLD", hasOutstandingDebt }
+                : item,
+            ),
+    });
+    if (queryKey.length === 5) {
+      client.setQueryData<InfiniteData<ProductList>>(
+        queryKey,
+        (data) => data && { ...data, pages: data.pages.map(update) },
+      );
+    } else {
+      client.setQueryData<ProductList>(
+        queryKey,
+        (data) => data && update(data),
+      );
+    }
   }
 }

@@ -33,7 +33,7 @@ import {
 } from "./store-pricing.service.js";
 
 type Scope = { Params: { organizationId: string; storeId: string } };
-type History = Scope & { Querystring: { after?: string } };
+type History = Scope & { Querystring: { after?: string; limit?: string } };
 type MarketHistory = Scope & {
   Querystring: { after?: string; from?: string; through?: string };
 };
@@ -177,7 +177,12 @@ export function registerGoldPriceRoutes(
     async (request) => {
       if (!canManageAsOwner(request.access!))
         throw new AccessError("ACCESS_DENIED");
-      return getStoreGoldRuleHistory(db!, request.access!, request.query.after);
+      return getStoreGoldRuleHistory(
+        db!,
+        request.access!,
+        request.query.after,
+        request.query.limit,
+      );
     },
   );
   return refresh;

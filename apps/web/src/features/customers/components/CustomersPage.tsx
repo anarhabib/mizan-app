@@ -11,12 +11,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { CustomerSummary, MoneyInput } from "@mizan/contracts";
 import { Button } from "@/components/ui/button";
@@ -26,6 +21,8 @@ import { useWorkspace } from "@/features/workspace";
 import { apiRequest, ApiError } from "@/shared/lib/api";
 import { formatDateTime } from "@/shared/lib/format";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import { CursorPagination } from "@/shared/ui/CursorPagination";
+import { useCursorPagination } from "@/shared/hooks/useCursorPagination";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -163,6 +160,7 @@ function ScopedCustomers({
         </Link>
       )}
       <CustomerSearch
+        paged
         scope={scope}
         outstanding={outstanding}
         render={(row) => (
@@ -420,8 +418,9 @@ function PurchaseHistory({
   onRepaymentSubmittingChange: (submitting: boolean) => void;
 }) {
   const { t } = useTranslation("customers");
-  const history = useInfiniteQuery(customerHistoryQuery(scope, id));
-  const rows = history.data?.pages.flatMap((page) => page.items) ?? [];
+  const pagination = useCursorPagination(id);
+  const history = useQuery(customerHistoryQuery(scope, id, pagination.request));
+  const rows = history.data?.items ?? [];
   return (
     <section className="grid gap-3">
       <h2 className="font-medium">{t("history")}</h2>
@@ -430,11 +429,7 @@ function PurchaseHistory({
         <ErrorState
           error={history.error}
           pending={history.isFetching}
-          retry={() =>
-            void (history.isFetchNextPageError
-              ? history.fetchNextPage()
-              : history.refetch())
-          }
+          retry={() => void history.refetch()}
         />
       )}
       {!history.isPending && !history.isError && !rows.length && (
@@ -478,17 +473,12 @@ function PurchaseHistory({
           ))}
         </ul>
       )}
-      {history.hasNextPage && !history.isFetchNextPageError && (
-        <PendingButton
-          pending={history.isFetchingNextPage}
-          variant="outline"
-          className={`justify-self-start ${buttonHeight}`}
-          disabled={history.isFetching}
-          onClick={() => void history.fetchNextPage()}
-        >
-          {t(history.isFetchingNextPage ? "loading" : "loadMore")}
-        </PendingButton>
-      )}
+      <CursorPagination
+        pagination={pagination}
+        nextCursor={history.data?.nextCursor}
+        pending={history.isPending}
+        label={t("history")}
+      />
     </section>
   );
 }

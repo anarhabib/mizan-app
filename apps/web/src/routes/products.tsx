@@ -12,6 +12,7 @@ export const Route = createFileRoute("/products")({
     soldOn?: string;
     receivedOn?: string;
     agedDays?: number;
+    credit?: true;
   } => ({
     product:
       typeof search.product === "string"
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/products")({
       search.status === "IN_STOCK" || search.status === "SOLD"
         ? search.status
         : undefined,
+    credit:
+      search.credit === true && search.status !== "IN_STOCK" ? true : undefined,
     soldOn: isBusinessDate(search.soldOn) ? search.soldOn : undefined,
     receivedOn: isBusinessDate(search.receivedOn)
       ? search.receivedOn
@@ -50,7 +53,12 @@ function ProductsRoute() {
       filters={filters}
       clearDashboardFilters={() =>
         void navigate({
-          search: { product, intent, status: filters.status },
+          search: {
+            product,
+            intent,
+            status: filters.status,
+            credit: filters.credit,
+          },
           replace: true,
         })
       }

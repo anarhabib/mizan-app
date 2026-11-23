@@ -10,6 +10,7 @@ import {
   createProduct,
   deleteProduct,
   getProduct,
+  getProductOverview,
   listProducts,
   startPhotoUpload,
   updateProductAcquisition,
@@ -28,6 +29,8 @@ type Query = {
   soldOn?: string;
   receivedOn?: string;
   agedDays?: string;
+  credit?: string;
+  limit?: string;
 };
 type ProductQuery = { Querystring: Query };
 type ProductId = ProductQuery & { Params: { id: string } };
@@ -93,6 +96,8 @@ export function registerProductRoutes(
       soldOn,
       receivedOn,
       agedDays,
+      credit,
+      limit,
     } = request.query;
     if (
       agedDays !== undefined &&
@@ -120,6 +125,8 @@ export function registerProductRoutes(
       throw new AccessError("INVALID_PRODUCT", "q");
     if (status !== undefined && status !== "IN_STOCK" && status !== "SOLD")
       throw new AccessError("INVALID_PRODUCT", "status");
+    if (credit !== undefined && (credit !== "true" || status === "IN_STOCK"))
+      throw new AccessError("INVALID_PRODUCT", "credit");
     if (
       after !== undefined &&
       (typeof after !== "string" ||
@@ -138,8 +145,13 @@ export function registerProductRoutes(
       soldOn,
       receivedOn,
       agedDays: agedDays === undefined ? undefined : +agedDays,
+      credit: credit === "true",
+      limit,
     });
   });
+  app.get<ProductQuery>("/products/overview", { preHandler }, (request) =>
+    getProductOverview(options().db, request.access!),
+  );
   app.get<ProductQuery>(
     "/products/options",
     { preHandler },

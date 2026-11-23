@@ -5,10 +5,12 @@ import type {
   ProductAcquisitionInput,
   ProductCreateInput,
   ProductPhotoUpload,
+  ProductOverview,
   ProductStatus,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { businessDateRange } from "../access/business-date.js";
+import { readPageSize } from "../access/page-size.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import {
   resolveAccessContext,
@@ -208,7 +210,61 @@ export async function deleteProduct(
   }
 }
 
-const pageSize = 50;
+const creditSale = { outstandingDebt: { gt: 0 } } as const;
+const soldOnCredit: Prisma.ProductWhereInput = {
+  status: "SOLD",
+  OR: [{ saleItem: { sale: creditSale } }, { sale: creditSale }],
+};
+
+export async function getProductOverview(
+  db: OrganizationDatabase,
+  access: AccessContext,
+): Promise<ProductOverview> {
+  const store = scope(access);
+  const available = { ...store, status: "IN_STOCK" as const };
+  const owner = canManageAsOwner(access);
+  return db.$transaction(
+    async (tx) => {
+      const counts = await tx.product.groupBy({
+        by: ["status"],
+        where: store,
+        _count: { _all: true },
+        _sum: { weight: true },
+      });
+      const credit = await tx.product.count({
+        where: { ...store, ...soldOnCredit },
+      });
+      const costs = owner
+        ? await tx.product.groupBy({
+            by: ["acquisitionCurrency"],
+            where: available,
+            _sum: { acquisitionCost: true },
+            orderBy: { acquisitionCurrency: "asc" },
+          })
+        : undefined;
+      const stock = counts.find(({ status }) => status === "IN_STOCK");
+      return {
+        available: stock?._count._all ?? 0,
+        sold: counts.find(({ status }) => status === "SOLD")?._count._all ?? 0,
+        soldOnCredit: credit,
+        availableWeight: stock?._sum.weight?.toFixed() ?? "0",
+        ...(costs && {
+          acquisitionValue: costs.flatMap(({ acquisitionCurrency, _sum }) =>
+            _sum.acquisitionCost
+              ? [
+                  {
+                    currency: acquisitionCurrency,
+                    amount: _sum.acquisitionCost.toFixed(),
+                  },
+                ]
+              : [],
+          ),
+        }),
+      };
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+  );
+}
 
 export async function listProducts(
   db: OrganizationDatabase,
@@ -223,8 +279,11 @@ export async function listProducts(
     soldOn?: string;
     receivedOn?: string;
     agedDays?: number;
+    credit?: boolean;
+    limit?: string;
   },
 ) {
+  const pageSize = readPageSize(filters.limit, "INVALID_PRODUCT");
   const search = filters.q?.replace(/[\\%_]/g, "\\$&");
   const soldOn = businessDateRange(filters.soldOn, "INVALID_PRODUCT", "soldOn");
   const receivedOn = businessDateRange(
@@ -239,11 +298,12 @@ export async function listProducts(
   const rows = await db.product.findMany({
     where: {
       ...scope(access),
-      status: filters.status,
+      status: filters.credit ? "SOLD" : filters.status,
       category: filters.category,
       purity: filters.purity,
       code: filters.after === undefined ? undefined : { gt: filters.after },
       AND: [
+        ...(filters.credit ? [soldOnCredit] : []),
         ...(soldOn
           ? [
               {

@@ -17,7 +17,12 @@ import {
 type Scope = { Params: { organizationId: string; storeId: string } };
 type Contact = { Params: Scope["Params"] & { id: string } };
 type Page = {
-  Querystring: { q?: string; after?: string; outstanding?: string };
+  Querystring: {
+    q?: string;
+    after?: string;
+    outstanding?: string;
+    limit?: string;
+  };
 };
 
 export function registerCustomerRoutes(
@@ -53,6 +58,7 @@ export function registerCustomerRoutes(
       request.access!,
       request.params.id,
       request.query.after,
+      request.query.limit,
     ),
   );
   app.patch<Contact>(`${path}/:id`, { preHandler }, (request) =>

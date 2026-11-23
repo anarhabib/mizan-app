@@ -1,6 +1,7 @@
-import { PendingButton } from "@/shared/ui/PendingButton";
+import { CursorPagination } from "@/shared/ui/CursorPagination";
+import { useCursorPagination } from "@/shared/hooks/useCursorPagination";
 import { useEffect, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -42,10 +43,12 @@ export function SaleList({
     );
     return () => window.clearTimeout(timer);
   }, [search]);
-  const query = useInfiniteQuery(
-    saleListQuery(scope, { ...active, q: q || undefined }),
+  const requestFilters = { ...active, q: q || undefined };
+  const pagination = useCursorPagination(JSON.stringify(requestFilters));
+  const query = useQuery(
+    saleListQuery(scope, requestFilters, pagination.request),
   );
-  const rows = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const rows = query.data?.items ?? [];
   const filtered = Boolean(
     q || active.date || active.paymentDate || active.paymentStatus,
   );
@@ -158,20 +161,23 @@ export function SaleList({
             />
           )}
         {rows.length > 0 && (
-          <ul className="divide-y overflow-hidden rounded-lg border border-border bg-card">
+          <ul
+            inert={query.isPlaceholderData}
+            className="divide-y overflow-hidden rounded-lg border border-border bg-card"
+          >
             {rows.map((sale) => (
               <li key={sale.id}>
                 <Button
                   variant="ghost"
                   type="button"
                   onClick={(event) => inspect(sale.id, event.currentTarget)}
-                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
+                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,1fr)_10rem_10rem_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
                 >
-                  <span className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
+                  <span className="grid min-w-0 gap-2 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
                     <span className="wrap-anywhere text-xs text-muted-foreground">
                       {sale.product.code}
                     </span>
-                    <span className="font-medium wrap-anywhere">
+                    <span className="max-w-prose font-medium wrap-anywhere">
                       {sale.product.name}
                       {sale.itemCount > 1 && (
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -209,24 +215,15 @@ export function SaleList({
           <ErrorState
             error={query.error}
             pending={query.isFetching}
-            retry={() =>
-              void (query.isFetchNextPageError
-                ? query.fetchNextPage()
-                : query.refetch())
-            }
+            retry={() => void query.refetch()}
           />
         )}
-        {query.hasNextPage && !query.isFetchNextPageError && (
-          <PendingButton
-            pending={query.isFetchingNextPage}
-            variant="outline"
-            disabled={query.isFetching || query.isPlaceholderData}
-            className="min-h-11 lg:min-h-9"
-            onClick={() => void query.fetchNextPage()}
-          >
-            {t(query.isFetchingNextPage ? "loadingMore" : "loadMore")}
-          </PendingButton>
-        )}
+        <CursorPagination
+          pagination={pagination}
+          nextCursor={query.data?.nextCursor}
+          pending={query.isPending || query.isPlaceholderData}
+          label={t("title")}
+        />
       </section>
     </div>
   );

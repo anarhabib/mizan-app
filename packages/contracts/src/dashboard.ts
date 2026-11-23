@@ -1,5 +1,5 @@
 import type { MoneyInput as Money } from "./money.js";
-import type { GoldPriceKind } from "./gold-prices.js";
+import type { GoldEffectiveRate, GoldPriceKind } from "./gold-prices.js";
 
 import type { SalePaymentStatus } from "./sales.js";
 
@@ -124,5 +124,6 @@ export type DashboardGoldRates = {
     purity: number;
     reference: Money | null;
     commercial: Record<GoldPriceKind, Money | null>;
+    retailStatus: GoldEffectiveRate["status"];
   }[];
 };
