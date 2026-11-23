@@ -25,6 +25,7 @@ type Query = {
   after?: string;
   category?: string;
   purity?: string;
+  gemstones?: string;
   facets?: string;
   photos?: string;
   soldOn?: string;
@@ -93,6 +94,7 @@ export function registerProductRoutes(
       after,
       category,
       purity,
+      gemstones,
       facets,
       soldOn,
       receivedOn,
@@ -120,6 +122,12 @@ export function registerProductRoutes(
     )
       throw new AccessError("INVALID_PRODUCT", "purity");
     if (
+      gemstones !== undefined &&
+      gemstones !== "recorded" &&
+      gemstones !== "none"
+    )
+      throw new AccessError("INVALID_PRODUCT", "gemstones");
+    if (
       q !== undefined &&
       (typeof q !== "string" || q.length > 160 || q.includes("\0"))
     )
@@ -143,6 +151,7 @@ export function registerProductRoutes(
       after,
       category,
       purity: purity === undefined ? undefined : Number(purity),
+      gemstones,
       facets: facets === "1",
       soldOn,
       receivedOn,

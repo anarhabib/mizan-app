@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import type {
   ProductDetail,
+  ProductGemstoneFilter,
   ProductList,
   ProductOverview,
   ProductStatus,
@@ -22,6 +23,7 @@ export type ProductFilters = {
   status?: ProductStatus;
   category?: string;
   purity?: number;
+  gemstones?: ProductGemstoneFilter;
   soldOn?: string;
   receivedOn?: string;
   agedDays?: number;

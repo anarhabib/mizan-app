@@ -78,4 +78,37 @@ describe("product creation validation", () => {
       productErrorField(new ApiError(500, "INTERNAL_ERROR", "", "weight")),
     ).toBeUndefined();
   });
+
+  it("uses the supplier total for jewelry with stones and maps nested validation", () => {
+    const values: ProductFormValues = {
+      ...valid,
+      acquisitionCost: { amount: "100.125", currency: " azn " },
+      acquisitionBreakdown: { metal: "20.125", gemstones: "80", other: "" },
+      gemstones: [
+        { gemstoneType: "Diamond", stoneCount: "2", totalCarats: "0.50123" },
+      ],
+    };
+    const result = resolveProductForm(values);
+    expect(result).toMatchObject({
+      errors: {},
+      values: {
+        acquisitionCost: { amount: "100.125", currency: "AZN" },
+        acquisitionBreakdown: { metal: "20.125", gemstones: "80" },
+        gemstones: [
+          { gemstoneType: "Diamond", stoneCount: 2, totalCarats: "0.50123" },
+        ],
+      },
+    });
+    expect(result.values).not.toHaveProperty("acquisitionCostPerGram");
+    expect(
+      resolveProductForm({
+        ...values,
+        gemstones: [{ gemstoneType: "Diamond", stoneCount: "1.5" }],
+      }).errors,
+    ).toEqual({ gemstones: [{ stoneCount: { type: "validate" } }] });
+    expect(
+      resolveProductForm({ ...values, acquisitionBreakdown: { metal: "1" } })
+        .errors,
+    ).toEqual({ acquisitionBreakdown: { type: "validate" } });
+  });
 });

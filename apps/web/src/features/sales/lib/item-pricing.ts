@@ -2,7 +2,34 @@ import {
   currencyMinorUnits,
   parseDecimal,
   roundMoneyHalfUp,
+  type ProductDetail,
 } from "@mizan/contracts";
+
+type ProductPricing = Pick<
+  ProductDetail,
+  "weight" | "netGoldWeight" | "gemstones" | "fixedSellingPrice"
+>;
+
+export function isMetalOnlySuggestion(product: ProductPricing | undefined) {
+  if (!product) return false;
+  return Boolean(
+    product.gemstones?.length ||
+    product.fixedSellingPrice ||
+    (product.netGoldWeight &&
+      roundMoneyHalfUp(product.netGoldWeight, 3) !==
+        roundMoneyHalfUp(product.weight, 3)),
+  );
+}
+
+export function initialProductSaleAmount(
+  product: ProductPricing | undefined,
+  currency: string,
+  metalAmount: string | undefined,
+) {
+  if (product?.fixedSellingPrice?.currency === currency)
+    return product.fixedSellingPrice.amount;
+  return isMetalOnlySuggestion(product) ? undefined : metalAmount;
+}
 
 export function validGramRate(value: string) {
   try {

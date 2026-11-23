@@ -49,12 +49,22 @@ export function useEditProductAcquisition(scope: ProductScope, id: string) {
       weight,
       netGoldWeight,
       acquisitionCostPerGram,
+      acquisitionCost,
+      acquisitionBreakdown,
+      fixedSellingPrice,
     }: ProductAcquisitionInput) =>
       apiRequest<void>(
         productPath(scope, `/${encodeURIComponent(id)}/acquisition`),
         {
           method: "PATCH",
-          body: { weight, netGoldWeight, acquisitionCostPerGram },
+          body: {
+            weight,
+            netGoldWeight,
+            acquisitionCostPerGram,
+            acquisitionCost,
+            acquisitionBreakdown,
+            fixedSellingPrice,
+          },
         },
       ),
     onSuccess: refresh,

@@ -63,6 +63,7 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 
 - `Money` is `{amount: string, currency: string}`. Never assume AZN; always show the currency code.
 - Weights are grams as strings (up to 3 decimals). Purity is an integer fineness 1–999 shown as "585", not a percentage.
+- Show gross jewelry weight and net gold alloy weight separately. Fine gold content can have up to six decimals. Gemstone carat weights are distinct decimal strings with up to five places.
 - Validate, parse and round only through `@mizan/contracts` helpers (`parseDecimal`, `parseMoney`, `currencyMinorUnits`, `roundMoneyHalfUp`). No `parseFloat`, `Number()` or float arithmetic on money or weight. Do not compute money in the UI: show server-calculated values.
 - Displayed money rounds half up to two decimal places, with localized separators and the currency code. Forms, requests and stored amounts retain their original precision. Weight formatting preserves the exact digits.
 - All user-facing text goes through i18n (Azerbaijani default; English and Russian supported), one namespace per feature. No hard-coded strings in components.

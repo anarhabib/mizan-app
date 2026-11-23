@@ -1,6 +1,5 @@
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
 import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useQuery } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
@@ -14,11 +13,11 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   parseProductAcquisition,
+  acquisitionComponents,
   type ProductCreateInput,
   type ProductDetail,
 } from "@mizan/contracts";
 import { MoneyText } from "@/shared/ui/MoneyText";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/shared/lib/api";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -28,10 +27,17 @@ import { useCreateProduct } from "../api/mutations";
 import { productOptionsQuery, type ProductScope } from "../api/queries";
 import {
   productErrorField,
+  productAcquisitionValues,
   resolveProductForm,
+  usesTotalAcquisition,
   type ProductFormValues,
 } from "../lib/form";
 import { ProductPanel } from "./ProductPanel";
+import {
+  GemstoneFields,
+  ProductDisclosure,
+  ProductTextField,
+} from "./ProductFormFields";
 
 type TextField =
   | "code"
@@ -41,6 +47,10 @@ type TextField =
   | "netGoldWeight"
   | "acquisitionCostPerGram.amount"
   | "acquisitionCostPerGram.currency"
+  | "acquisitionCost.amount"
+  | "acquisitionCost.currency"
+  | "fixedSellingPrice.amount"
+  | "fixedSellingPrice.currency"
   | "note";
 
 export function ProductCreate({
@@ -126,11 +136,31 @@ export function ProductForm({
         amount: "",
         currency: product?.acquisitionCost?.currency ?? currency,
       },
+      acquisitionMode:
+        product && !product.acquisitionCostPerGram ? "TOTAL" : "PER_GRAM",
+      acquisitionCost: product?.acquisitionCost ?? { amount: "", currency },
+      acquisitionBreakdown: product?.acquisitionBreakdown ?? {},
+      fixedSellingPrice: product?.fixedSellingPrice ?? { amount: "", currency },
+      gemstones:
+        product?.gemstones?.map((group) => ({
+          ...group,
+          stoneCount: String(group.stoneCount),
+        })) ?? [],
       note: product?.note ?? "",
     },
   });
-  const { errors, isSubmitting } = form.formState;
+  const { errors, isSubmitting, submitCount } = form.formState;
   const busy = isSubmitting || pending;
+  const acquisitionMode = useWatch({
+    control: form.control,
+    name: "acquisitionMode",
+  });
+  const hasGemstones = useWatch({
+    control: form.control,
+    name: "gemstones",
+    compute: (groups) => Boolean(groups?.length),
+  });
+  const totalAcquisition = usesTotalAcquisition(acquisitionMode, hasGemstones);
   const submitting = useRef(false);
   const submit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -186,69 +216,36 @@ export function ProductForm({
       field === "acquisitionCostPerGram.currency"
     )
       return t("validation.cost");
+    if (
+      field === "acquisitionCost.amount" ||
+      field === "acquisitionCost.currency"
+    )
+      return t("jewelry.validation.total");
+    if (
+      field === "fixedSellingPrice.amount" ||
+      field === "fixedSellingPrice.currency"
+    )
+      return t("jewelry.validation.fixed");
     return t(`validation.${field}`);
   }
 
   function renderText(field: TextField, error?: FieldError) {
-    const id = `create-product-${field}`;
-    const registration = form.register(field, {
-      onChange: () => {
-        if (form.getFieldState(field).invalid) form.clearErrors(field);
-        if (
-          field === "acquisitionCostPerGram.currency" &&
-          form.getFieldState("acquisitionCostPerGram.amount").invalid
-        ) {
-          form.clearErrors("acquisitionCostPerGram.amount");
-        }
-      },
-    });
-    const accessibility = {
-      id,
-      "aria-invalid": Boolean(error),
-      "aria-describedby": error ? `${id}-error` : undefined,
-    };
     return (
-      <div key={field} className="grid min-w-0 gap-2">
-        <Label htmlFor={id}>{t(`formFields.${field}`)}</Label>
-        {field === "note" ? (
-          <Textarea
-            {...registration}
-            {...accessibility}
-            rows={3}
-            readOnly={busy}
-            className="min-h-20 w-full rounded-md border border-control-border bg-control px-3 py-2 text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)] outline-none placeholder:text-muted-foreground hover:border-control-hover-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 aria-invalid:border-destructive dark:hover:border-foreground/40 dark:shadow-none"
-          />
-        ) : (
-          <Input
-            {...registration}
-            {...accessibility}
-            readOnly={busy}
-            inputMode={
-              field === "weight" ||
-              field === "netGoldWeight" ||
-              field === "acquisitionCostPerGram.amount"
-                ? "decimal"
-                : "text"
-            }
-            enterKeyHint="next"
-            autoComplete="off"
-            maxLength={
-              field === "acquisitionCostPerGram.currency" ? 3 : undefined
-            }
-            autoCapitalize={
-              field === "acquisitionCostPerGram.currency"
-                ? "characters"
-                : undefined
-            }
-            className="min-h-11 lg:min-h-9"
-          />
-        )}
-        {error && (
-          <p id={`${id}-error`} className="text-xs text-destructive">
-            {fieldMessage(error, field)}
-          </p>
-        )}
-      </div>
+      <ProductTextField
+        key={field}
+        form={form}
+        name={field}
+        label={t(`formFields.${field}`)}
+        error={error && fieldMessage(error, field)}
+        busy={busy}
+        decimal={
+          field === "weight" ||
+          field === "netGoldWeight" ||
+          field.endsWith(".amount")
+        }
+        currency={field.endsWith(".currency")}
+        multiline={field === "note"}
+      />
     );
   }
 
@@ -265,6 +262,9 @@ export function ProductForm({
           {renderText("code", errors.code)}
           {renderText("name", errors.name)}
           {renderText("category", errors.category)}
+          <p className="text-sm text-muted-foreground">
+            {t("fields.metalType")} · {t("jewelry.gold")}
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <Controller
               control={form.control}
@@ -310,17 +310,117 @@ export function ProductForm({
       )}
       {product && renderText("weight", errors.weight)}
       {renderText("netGoldWeight", errors.netGoldWeight)}
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-        {renderText(
-          "acquisitionCostPerGram.amount",
-          errors.acquisitionCostPerGram?.amount,
+      {!product && <GemstoneFields form={form} busy={busy} />}
+      <section className="grid gap-3" aria-label={t("jewelry.acquisition")}>
+        {hasGemstones ? (
+          <p className="text-sm text-muted-foreground">
+            {t("jewelry.stoneAcquisition")}
+          </p>
+        ) : (
+          <Controller
+            control={form.control}
+            name="acquisitionMode"
+            render={({ field }) => (
+              <div className="grid gap-2">
+                <Label htmlFor="product-acquisition-mode">
+                  {t("jewelry.acquisition")}
+                </Label>
+                <OptionSelect
+                  id="product-acquisition-mode"
+                  ref={field.ref}
+                  value={field.value ?? "PER_GRAM"}
+                  onBlur={field.onBlur}
+                  onChange={(value) => {
+                    field.onChange(value);
+                    form.clearErrors([
+                      "acquisitionCost",
+                      "acquisitionCostPerGram",
+                      "acquisitionBreakdown",
+                    ]);
+                  }}
+                  disabled={busy}
+                  options={[
+                    { value: "PER_GRAM", label: t("jewelry.perGram") },
+                    { value: "TOTAL", label: t("jewelry.supplierTotal") },
+                  ]}
+                />
+              </div>
+            )}
+          />
         )}
-        {renderText(
-          "acquisitionCostPerGram.currency",
-          errors.acquisitionCostPerGram?.currency,
+        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+          {totalAcquisition
+            ? renderText(
+                "acquisitionCost.amount",
+                errors.acquisitionCost?.amount,
+              )
+            : renderText(
+                "acquisitionCostPerGram.amount",
+                errors.acquisitionCostPerGram?.amount,
+              )}
+          {totalAcquisition
+            ? renderText(
+                "acquisitionCost.currency",
+                errors.acquisitionCost?.currency,
+              )
+            : renderText(
+                "acquisitionCostPerGram.currency",
+                errors.acquisitionCostPerGram?.currency,
+              )}
+        </div>
+        {totalAcquisition ? (
+          <ProductDisclosure
+            className="rounded-md border p-3"
+            label={t("jewelry.breakdown")}
+            reveal={Boolean(errors.acquisitionBreakdown)}
+            submitCount={submitCount}
+          >
+            <p className="my-2 text-sm text-muted-foreground">
+              {t("jewelry.breakdownHint")}
+            </p>
+            {errors.acquisitionBreakdown?.type && (
+              <p role="alert" className="my-2 text-xs text-destructive">
+                {t("jewelry.validation.breakdownSum")}
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {acquisitionComponents.map((part) => (
+                <ProductTextField
+                  key={part}
+                  form={form}
+                  name={`acquisitionBreakdown.${part}`}
+                  label={t(`jewelry.components.${part}`)}
+                  error={
+                    errors.acquisitionBreakdown?.[part] &&
+                    t("jewelry.validation.component")
+                  }
+                  busy={busy}
+                  decimal
+                />
+              ))}
+            </div>
+          </ProductDisclosure>
+        ) : (
+          <AcquisitionPreview control={form.control} />
         )}
-      </div>
-      <AcquisitionPreview control={form.control} />
+      </section>
+      <ProductDisclosure
+        className="rounded-md border p-3"
+        label={t("jewelry.fixedOptional")}
+        reveal={Boolean(product?.fixedSellingPrice || errors.fixedSellingPrice)}
+        submitCount={submitCount}
+      >
+        <div className="mt-2 grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+          {renderText(
+            "fixedSellingPrice.amount",
+            errors.fixedSellingPrice?.amount,
+          )}
+          {renderText(
+            "fixedSellingPrice.currency",
+            errors.fixedSellingPrice?.currency,
+          )}
+        </div>
+      </ProductDisclosure>
       {!product && renderText("note", errors.note)}
       {rootError && (
         <p role="alert" className="text-destructive">
@@ -344,17 +444,13 @@ function AcquisitionPreview({
   control: Control<ProductFormValues, unknown, ProductCreateInput>;
 }) {
   const { t } = useTranslation("products");
-  const [weight, rate] = useWatch({
+  const [weight, acquisitionCostPerGram] = useWatch({
     control,
     name: ["weight", "acquisitionCostPerGram"],
   });
-  const preview = parseProductAcquisition({
-    weight,
-    acquisitionCostPerGram: {
-      amount: rate.amount,
-      currency: rate.currency.trim().toUpperCase(),
-    },
-  });
+  const preview = parseProductAcquisition(
+    productAcquisitionValues({ weight, acquisitionCostPerGram }),
+  );
 
   return (
     <div className="grid gap-2 rounded-md border border-border bg-muted p-3">

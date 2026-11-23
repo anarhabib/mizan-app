@@ -13,7 +13,6 @@ import {
 } from "react-hook-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  roundMoneyHalfUp,
   maxSaleItems,
   maxSalePayments,
   salePaymentMethods,
@@ -26,7 +25,12 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WeightText } from "@/shared/ui/WeightText";
-import { suggestedItemAmount, validGramRate } from "../lib/item-pricing";
+import {
+  initialProductSaleAmount,
+  isMetalOnlySuggestion,
+  suggestedItemAmount,
+  validGramRate,
+} from "../lib/item-pricing";
 import { Label } from "@/components/ui/label";
 import {
   exchangeRatesQuery,
@@ -83,10 +87,13 @@ function SalePriceField({
   const eligible = Boolean(
     weight && suggestedItemAmount("0", weight, currency) !== undefined,
   );
-  const metalOnly =
-    eligible && product && weight
-      ? roundMoneyHalfUp(weight, 3) !== roundMoneyHalfUp(product.weight, 3)
-      : false;
+  const metalOnly = isMetalOnlySuggestion(product);
+  const fullPriceIsSeparate = Boolean(
+    product?.gemstones?.length || product?.fixedSellingPrice,
+  );
+  const fixedPrice = product?.fixedSellingPrice;
+  const fixedInCurrency =
+    fixedPrice?.currency === currency ? fixedPrice : undefined;
   const storeRate = eligible
     ? retailRates?.find(({ purity }) => purity === product?.purity)
         ?.amountPerGram
@@ -98,30 +105,27 @@ function SalePriceField({
     eligible && weight
       ? suggestedItemAmount(appliedRate, weight, currency)
       : undefined;
+  const initialAmount = initialProductSaleAmount(product, currency, suggestion);
   const { getValues, setValue } = form;
 
   useEffect(() => {
     if (
       !disabled &&
-      !metalOnly &&
       !finalOverridden &&
-      suggestion !== undefined &&
+      initialAmount !== undefined &&
       !getValues(name)
     )
-      setValue(name, suggestion);
-  }, [
-    disabled,
-    metalOnly,
-    finalOverridden,
-    suggestion,
-    getValues,
-    name,
-    setValue,
-  ]);
+      setValue(name, initialAmount);
+  }, [disabled, finalOverridden, initialAmount, getValues, name, setValue]);
 
   function changeRate(rate: string) {
     setEnteredRate(rate);
-    if (!weight || finalOverridden || (metalOnly && !useMetalSuggestion))
+    if (
+      !weight ||
+      finalOverridden ||
+      fullPriceIsSeparate ||
+      (metalOnly && !useMetalSuggestion)
+    )
       return;
     setValue(name, suggestedItemAmount(rate, weight, currency) ?? "", {
       shouldDirty: true,
@@ -142,13 +146,30 @@ function SalePriceField({
             <WeightText value={product.weight} /> · {t("itemPricing.purity")}{" "}
             {product.purity}
           </p>
+          {weight && (
+            <p className="text-muted-foreground">
+              {t("itemPricing.netWeight")} <WeightText value={weight} />
+            </p>
+          )}
         </div>
       )}
-      {!isPending && (!eligible || storeRate === undefined) && (
-        <p className="text-xs text-muted-foreground">
-          {t(eligible ? "itemPricing.noRate" : "itemPricing.noWeight")}
+      {fixedPrice && (
+        <p className="text-sm">
+          {t("itemPricing.fixedPrice")} <MoneyText value={fixedPrice} />
         </p>
       )}
+      {fixedPrice && !fixedInCurrency && (
+        <p className="text-xs text-muted-foreground">
+          {t("itemPricing.fixedCurrencyMismatch")}
+        </p>
+      )}
+      {!isPending &&
+        !fixedInCurrency &&
+        (!eligible || storeRate === undefined) && (
+          <p className="text-xs text-muted-foreground">
+            {t(eligible ? "itemPricing.noRate" : "itemPricing.noWeight")}
+          </p>
+        )}
       {eligible && (
         <>
           {storeRate !== undefined && (
@@ -189,7 +210,11 @@ function SalePriceField({
           </div>
           {suggestion !== undefined && (
             <p className="text-sm">
-              {t("itemPricing.calculated")}{" "}
+              {t(
+                metalOnly
+                  ? "itemPricing.calculatedMetal"
+                  : "itemPricing.calculated",
+              )}{" "}
               <MoneyText value={{ amount: suggestion, currency }} />
             </p>
           )}
@@ -209,7 +234,8 @@ function SalePriceField({
                 {t("itemPricing.restoreRate")}
               </Button>
             )}
-            {suggestion !== undefined &&
+            {!fullPriceIsSeparate &&
+              suggestion !== undefined &&
               (finalOverridden || (metalOnly && !useMetalSuggestion)) && (
                 <Button
                   type="button"
@@ -226,6 +252,19 @@ function SalePriceField({
               )}
           </div>
         </>
+      )}
+      {fixedInCurrency && finalOverridden && (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 justify-self-start lg:min-h-9"
+          onClick={() => {
+            setFinalOverridden(false);
+            setValue(name, fixedInCurrency.amount, { shouldDirty: true });
+          }}
+        >
+          {t("itemPricing.useFixed")}
+        </Button>
       )}
       <DecimalInput
         id={id}
