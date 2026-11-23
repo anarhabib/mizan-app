@@ -1,0 +1,61 @@
+.dashboard-widget-container {
+  container: dashboard-widgets / inline-size;
+}
+
+.dashboard-widget-grid {
+  --widget-layout: mobile;
+  --widget-columns: 1;
+  grid-template-columns: repeat(var(--widget-columns), minmax(0, 1fr));
+}
+
+.dashboard-widget-grid > * {
+  --widget-span: 1;
+  grid-column: var(--widget-column, auto) / span var(--widget-span);
+  grid-row-start: var(--widget-row, auto);
+  margin-block-start: var(--widget-offset, 0);
+}
+
+@container dashboard-widgets (39rem <= width < 45rem) {
+  .dashboard-widget-grid {
+    --widget-layout: tablet;
+    --widget-columns: 2;
+  }
+  .dashboard-widget-grid > * {
+    --widget-span: var(--tablet-span);
+  }
+  .dashboard-widget-grid[data-packed="tablet"] > * {
+    --widget-column: var(--packed-column);
+    --widget-row: 1;
+    --widget-offset: var(--packed-offset);
+  }
+}
+
+@container dashboard-widgets (45rem <= width < 59rem) {
+  .dashboard-widget-grid {
+    --widget-layout: paired;
+    --widget-columns: 2;
+  }
+  .dashboard-widget-grid > * {
+    --widget-span: var(--paired-span);
+  }
+  .dashboard-widget-grid[data-packed="paired"] > * {
+    --widget-column: var(--packed-column);
+    --widget-row: 1;
+    --widget-offset: var(--packed-offset);
+  }
+}
+
+@container dashboard-widgets (width >= 59rem) {
+  .dashboard-widget-grid {
+    --widget-layout: desktop;
+    --widget-columns: var(--desktop-columns);
+  }
+  .dashboard-widget-grid > * {
+    --widget-span: var(--desktop-span);
+  }
+  .dashboard-widget-grid[data-packed="desktop"] > * {
+    --widget-column: var(--packed-column);
+    --widget-row: 1;
+    --widget-offset: var(--packed-offset);
+  }
+}

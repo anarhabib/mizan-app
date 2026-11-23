@@ -1,4 +1,8 @@
 {
+  "soldOn": "Satış tarixi: {{date}} (Bakı)",
+  "receivedOn": "Qəbul tarixi: {{date}} (Bakı)",
+  "agedDays": "Ən azı {{count}} gündür stokda",
+  "clearDashboardFilters": "İdarə panelinin filtrlərini təmizlə",
   "exchangeRates": {
     "title": "Rəsmi məzənnələr",
     "effectiveDate": "Qüvvəyə minmə tarixi {{date}}",

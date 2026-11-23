@@ -47,7 +47,7 @@ Check `src/components/ui` before building an interactive control. Compose instal
 
 ## Data (TanStack Query)
 
-Dashboard is the authenticated landing page. Its widgets use scoped summary, activity and chart queries. Preferences are stored on the device per user, organization and store. The owner summary is a separate query and is cleared by the existing display-mode switch.
+Dashboard is the authenticated landing page. Its widgets use scoped summary, activity and chart queries. Preferences are stored on the device per user, organization and store. Quick Actions has independent visibility and always renders immediately below the page header when enabled. Customize previews group order and saves it on Apply. Hiding a section preserves its position and individual widget selections. Empty sections take up no space. Each group has a fixed widget priority for visual, reading and keyboard order. Older saved widget orders are ignored and existing visibility settings carry forward. All groups size their columns from the available container width. Roomy two-column layouts can pair a chart with a neighboring card, and complex tables keep their full span. The grid uses observed card heights to pack items, with a single column on mobile. Some gaps remain where a narrower card would hurt readability or filling the gap would change the reading order. The sales chart uses one query and remembers the amount or transaction-count view. Dashboard links seed the destination's server-side filters using the existing workspace scope. The owner summary is a separate query and is cleared by the existing display-mode switch.
 
 - All server state goes through TanStack Query. No fetching in `useEffect`, no server data copied into `useState` or a global store.
 - Define `queryOptions()` and a key factory per feature. Invalidate exact keys, not broad prefixes. List the keys a mutation invalidates in the PR description.
@@ -94,7 +94,7 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 - Touch targets at least 40px on mobile. Visible focus ring. Respect `prefers-reduced-motion`, safe-area insets and OS text scale.
 - Use semantic green, amber, red and blue for success, warning, error and informational feedback across pages. Use the brand accent for small selection indicators. Keep larger surfaces neutral and pair color with a label, icon or accessible state.
 - Send localized operation feedback through the single root Sonner Toaster after server confirmation. Use matching Alert and Badge variants for feedback that stays on the page. Keep field errors inline and consequential errors or confirmations visible until addressed.
-- Use Skeleton for initial data loading and Spinner in disabled pending actions. Keep existing data visible during background refresh. Use Progress only when the operation reports meaningful progress.
+- Use Skeleton for initial data loading and Spinner in disabled pending actions. Workspace initialization uses a centered brand-accent Spinner with a brief visual delay and an immediate accessible status. Keep existing data visible during background refresh. Use Progress only when the operation reports meaningful progress.
 - Photos: downscale on the device before upload (longest side about 1600 px, JPEG, under 5 MiB; allowed types JPEG, PNG, WebP).
 
 ## Branding

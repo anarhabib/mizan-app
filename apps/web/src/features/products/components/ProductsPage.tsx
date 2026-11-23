@@ -6,7 +6,7 @@ import { ExchangeRateWidget } from "@/features/exchange-rates";
 import { GoldMarketWidget } from "@/features/gold-prices";
 import { useWorkspace } from "@/features/workspace";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import type { ProductScope } from "../api/queries";
+import type { ProductFilters, ProductScope } from "../api/queries";
 import { ProductCreate } from "./ProductCreate";
 import { ProductDetail } from "./ProductDetail";
 import { ProductList } from "./ProductList";
@@ -18,6 +18,11 @@ type Panel =
 type Props = {
   product?: string;
   intent?: "create" | "sale";
+  filters?: Pick<
+    ProductFilters,
+    "status" | "soldOn" | "receivedOn" | "agedDays"
+  >;
+  clearDashboardFilters?: () => void;
   closeLinkedProduct: () => void;
   startSale: (id: string) => void;
 };
@@ -41,6 +46,8 @@ function ScopedProducts({
   currency,
   product,
   intent,
+  filters,
+  clearDashboardFilters,
   closeLinkedProduct,
   startSale,
 }: {
@@ -96,6 +103,12 @@ function ScopedProducts({
       )}
       <ProductList
         scope={scope}
+        key={filters?.status ?? (filters?.receivedOn ? "intake" : "default")}
+        initialStatus={
+          filters?.status ?? (filters?.receivedOn ? "all" : "IN_STOCK")
+        }
+        dashboardFilters={filters}
+        clearDashboardFilters={clearDashboardFilters}
         onlyInStock={intent === "sale"}
         inspect={(id, opener) =>
           intent === "sale"

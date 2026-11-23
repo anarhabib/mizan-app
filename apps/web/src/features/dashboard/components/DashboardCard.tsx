@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { ApiError } from "@/shared/lib/api";
@@ -7,16 +9,14 @@ import { ApiError } from "@/shared/lib/api";
 export function DashboardCard({
   title,
   children,
-  wide,
 }: {
   title: string;
   children: ReactNode;
-  wide?: boolean;
 }) {
   return (
-    <Card className={`min-w-0 gap-3 py-4 ${wide ? "sm:col-span-2" : ""}`}>
+    <Card className="min-w-0 gap-3 py-4 shadow-none">
       <CardHeader className="px-4">
-        <CardTitle role="heading" aria-level={2}>
+        <CardTitle role="heading" aria-level={3} className="wrap-anywhere">
           {title}
         </CardTitle>
       </CardHeader>
@@ -28,6 +28,8 @@ export function DashboardCard({
 export function QueryContent<T>({
   query,
   children,
+  rows = 3,
+  chart = false,
 }: {
   query: {
     data: T | undefined;
@@ -37,7 +39,10 @@ export function QueryContent<T>({
     refetch: () => Promise<unknown>;
   };
   children: (data: T) => ReactNode;
+  rows?: number;
+  chart?: boolean;
 }) {
+  const { t } = useTranslation("shell");
   return (
     <>
       {query.data !== undefined && children(query.data)}
@@ -52,7 +57,17 @@ export function QueryContent<T>({
           retry={() => void query.refetch()}
         />
       )}
-      {query.data === undefined && query.isPending && <ListSkeleton rows={3} />}
+      {query.data === undefined &&
+        query.isPending &&
+        (chart ? (
+          <div role="status" className="space-y-2">
+            <span className="sr-only">{t("loading")}</span>
+            <Skeleton className="h-10 w-32 motion-reduce:animate-none" />
+            <Skeleton className="h-44 w-full motion-reduce:animate-none" />
+          </div>
+        ) : (
+          <ListSkeleton rows={rows} className="h-8" />
+        ))}
     </>
   );
 }

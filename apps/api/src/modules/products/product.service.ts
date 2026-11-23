@@ -8,6 +8,7 @@ import type {
   ProductStatus,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { businessDateRange } from "../access/business-date.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import {
   resolveAccessContext,
@@ -219,9 +220,22 @@ export async function listProducts(
     category?: string;
     purity?: number;
     facets?: boolean;
+    soldOn?: string;
+    receivedOn?: string;
+    agedDays?: number;
   },
 ) {
   const search = filters.q?.replace(/[\\%_]/g, "\\$&");
+  const soldOn = businessDateRange(filters.soldOn, "INVALID_PRODUCT", "soldOn");
+  const receivedOn = businessDateRange(
+    filters.receivedOn,
+    "INVALID_PRODUCT",
+    "receivedOn",
+  );
+  const agedBefore =
+    filters.agedDays === undefined
+      ? undefined
+      : new Date(Date.now() - filters.agedDays * 86_400_000);
   const rows = await db.product.findMany({
     where: {
       ...scope(access),
@@ -229,6 +243,50 @@ export async function listProducts(
       category: filters.category,
       purity: filters.purity,
       code: filters.after === undefined ? undefined : { gt: filters.after },
+      AND: [
+        ...(soldOn
+          ? [
+              {
+                OR: [
+                  { saleItem: { sale: { createdAt: soldOn } } },
+                  { sale: { createdAt: soldOn } },
+                ],
+              },
+            ]
+          : []),
+        ...(receivedOn
+          ? [
+              {
+                movements: {
+                  some: {
+                    kind: "PRODUCT_ADDED" as const,
+                    createdAt: receivedOn,
+                  },
+                },
+              },
+              {
+                movements: {
+                  none: {
+                    kind: "PRODUCT_ADDED" as const,
+                    createdAt: { lt: receivedOn.gte },
+                  },
+                },
+              },
+            ]
+          : []),
+        ...(agedBefore
+          ? [
+              {
+                movements: {
+                  some: {
+                    kind: "PRODUCT_ADDED" as const,
+                    createdAt: { lte: agedBefore },
+                  },
+                },
+              },
+            ]
+          : []),
+      ],
       OR: search
         ? [
             { code: { contains: search, mode: "insensitive" } },

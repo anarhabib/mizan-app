@@ -9,6 +9,7 @@ import { Prisma } from "@mizan/database";
 import type { AccessContext } from "../access/access.service.js";
 import { readGoldMarket } from "../gold-prices/gold-market.service.js";
 import { SaleDecimal } from "../sales/settlement.js";
+import { compareDay, compareMoney } from "./comparison.js";
 
 type Scope = Pick<AccessContext, "organizationId" | "storeId">;
 const dayMs = 86_400_000;
@@ -42,7 +43,12 @@ function scopedSales(scope: Scope, start: Date, now: Date) {
     WHERE ${store(scope)} AND "createdAt" >= ${start} AND "createdAt" < ${now}`;
 }
 
-function payments(scope: Scope, start: Date, now: Date) {
+function payments(
+  scope: Scope,
+  start: Date,
+  now: Date,
+  sales = Prisma.sql`sales`,
+) {
   return Prisma.sql`
     SELECT currency, amount, "amountAzn" AS normalized, method, "position" IS NULL AS repayment, "createdAt"
     FROM "mizan"."SalePayment"
@@ -52,7 +58,7 @@ function payments(scope: Scope, start: Date, now: Date) {
       ROUND(net.amount * s."paymentExchangeRate" *
         (CASE WHEN s.currency = 'AZN' THEN 1 ELSE s."customerReportingRate" END), 2),
       'LEGACY', false, s."createdAt"
-    FROM sales s
+    FROM ${sales} s
     CROSS JOIN LATERAL (
       SELECT CASE WHEN COALESCE(s."changeAmount", 0) = 0 THEN s."paymentAmount"
         ELSE GREATEST(s."paymentAmount" - s."changeAmount" / s."paymentExchangeRate", 0)
@@ -104,6 +110,8 @@ export async function dashboardSummary(
         sales: DashboardSummary["sales"];
         previousSales: DashboardSummary["sales"];
         payments: DashboardSummary["payments"];
+        previousReceipts: string | null;
+        previousIntake: number;
         debt: DashboardSummary["debt"];
         intake: DashboardSummary["intake"];
         inventory: Omit<DashboardSummary["inventory"], "marketValue">;
@@ -113,7 +121,9 @@ export async function dashboardSummary(
       WITH sales AS (${scopedSales(scope, start, now)}),
       previous_sales AS (${scopedSales(scope, previousStart, previousThrough)}),
       payments AS (${payments(scope, start, now)}),
-      intake AS (${intake(scope, start, now)}),
+      previous_payments AS (${payments(scope, previousStart, previousThrough, Prisma.sql`previous_sales`)}),
+      recent_intake AS (${intake(scope, previousStart, now)}),
+      intake AS (SELECT "productId" FROM recent_intake WHERE "receivedAt" >= ${start}),
       stock AS (
         SELECT weight, "netGoldWeight", purity FROM "mizan"."Product"
         WHERE ${store(scope)} AND status = 'IN_STOCK'
@@ -143,6 +153,9 @@ export async function dashboardSummary(
       SELECT
         ${saleStats("sales")} AS sales,
         ${saleStats("previous_sales")} AS "previousSales",
+        (SELECT CASE WHEN count(*) = count(normalized)
+          THEN SUM(normalized)::text END FROM previous_payments) AS "previousReceipts",
+        (SELECT COUNT(*)::int FROM recent_intake WHERE "receivedAt" < ${previousThrough}) AS "previousIntake",
         jsonb_build_object(
           'total', ${money(Prisma.sql`${totalPayments} GROUP BY currency`)},
           'normalized', (SELECT CASE WHEN count(*) = count(normalized)
@@ -151,6 +164,8 @@ export async function dashboardSummary(
           'repayments', ${money(Prisma.sql`${totalPayments} WHERE repayment GROUP BY currency`)},
           'tradeInCredit', ${money(Prisma.sql`SELECT currency, SUM("acceptedTradeInTotal") amount
             FROM sales WHERE "acceptedTradeInTotal" <> 0 GROUP BY currency`)},
+          'payouts', ${money(Prisma.sql`SELECT currency, SUM(settlement) amount
+            FROM sales WHERE settlement < 0 GROUP BY currency`)},
           'methods', COALESCE((SELECT jsonb_agg(jsonb_build_object(
             'method', m.method, 'total', ${money(Prisma.sql`${totalPayments} WHERE method = m.method GROUP BY currency`)}
           ) ORDER BY m.method) FROM (SELECT DISTINCT method FROM payments) m), '[]'::jsonb)
@@ -177,7 +192,7 @@ export async function dashboardSummary(
     `,
     readGoldMarket(db, goldEnabled, now),
   ]);
-  const { fineWeight, ...summary } = row;
+  const { fineWeight, previousReceipts, previousIntake, ...summary } = row;
   const marketValue =
     fineWeight === null || market.stale || !market.quote
       ? null
@@ -187,7 +202,23 @@ export async function dashboardSummary(
             .times(market.quote.normalizedAznPerGram)
             .toFixed(2),
         };
-  return { day, ...summary, inventory: { ...summary.inventory, marketValue } };
+  return {
+    day,
+    ...summary,
+    comparison: {
+      sales: compareMoney(summary.sales.total, summary.previousSales.total),
+      saleCount: compareDay(
+        summary.sales.count,
+        summary.previousSales.count || null,
+      ),
+      receipts: compareDay(
+        summary.payments.normalized?.amount ?? null,
+        previousReceipts,
+      ),
+      intake: compareDay(summary.intake.count, previousIntake || null),
+    },
+    inventory: { ...summary.inventory, marketValue },
+  };
 }
 
 export async function dashboardOwnerSummary(
@@ -195,12 +226,24 @@ export async function dashboardOwnerSummary(
   scope: Scope,
   now = new Date(),
 ): Promise<DashboardOwnerSummary> {
-  const { start } = dashboardWindow(now);
-  const [summary] = await db.$queryRaw<DashboardOwnerSummary[]>`
-    WITH sales AS (${scopedSales(scope, start, now)}),
+  const { start, previousStart, previousThrough } = dashboardWindow(now);
+  const profit = (previous: boolean) => Prisma.sql`
+    CASE WHEN EXISTS(SELECT 1 FROM profit WHERE previous = ${previous} AND amount IS NULL)
+      THEN NULL ELSE ${money(Prisma.sql`SELECT currency, SUM(amount) amount FROM profit
+        WHERE previous = ${previous} GROUP BY currency`)} END`;
+  const [{ previousProfit, ...summary }] = await db.$queryRaw<
+    (Omit<DashboardOwnerSummary, "grossProfitComparison"> & {
+      previousProfit: DashboardOwnerSummary["grossProfit"];
+    })[]
+  >`
+    WITH sales AS (
+      SELECT *, false AS previous FROM (${scopedSales(scope, start, now)}) today
+      UNION ALL
+      SELECT *, true AS previous FROM (${scopedSales(scope, previousStart, previousThrough)}) yesterday
+    ),
     intake AS (${intake(scope, start, now)}),
     profit AS (
-      SELECT s.currency, s."saleAmount" - costs.total AS amount
+      SELECT s.currency, s.previous, s."saleAmount" - costs.total AS amount
       FROM sales s CROSS JOIN LATERAL (
         SELECT CASE WHEN COUNT(*) = COUNT(*) FILTER (
           WHERE i."acquisitionCurrency" = s.currency AND i."acquisitionCost" IS NOT NULL
@@ -210,9 +253,8 @@ export async function dashboardOwnerSummary(
       ) costs
     )
     SELECT
-      CASE WHEN EXISTS(SELECT 1 FROM profit WHERE amount IS NULL) THEN NULL ELSE
-        ${money(Prisma.sql`SELECT currency, SUM(amount) amount FROM profit GROUP BY currency`)}
-      END AS "grossProfit",
+      ${profit(false)} AS "grossProfit",
+      ${profit(true)} AS "previousProfit",
       ${money(Prisma.sql`SELECT "acquisitionCurrency" currency, SUM("acquisitionCost") amount
         FROM "mizan"."Product" WHERE ${store(scope)} AND id IN (SELECT "productId" FROM intake)
         GROUP BY "acquisitionCurrency"`)} AS "intakeCost",
@@ -220,7 +262,10 @@ export async function dashboardOwnerSummary(
         FROM "mizan"."Product" WHERE ${store(scope)} AND status = 'IN_STOCK'
         GROUP BY "acquisitionCurrency"`)} AS "inventoryCost"
   `;
-  return summary;
+  return {
+    ...summary,
+    grossProfitComparison: compareMoney(summary.grossProfit, previousProfit),
+  };
 }
 
 function counts(rows: Prisma.Sql) {

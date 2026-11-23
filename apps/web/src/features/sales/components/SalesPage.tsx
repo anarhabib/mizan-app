@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ProductPanel } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import type { SaleScope } from "../api/queries";
+import type { SaleFilters, SaleScope } from "../api/queries";
 import { SaleCreate } from "./SaleCreate";
 import { SaleList } from "./SaleList";
 import { SaleDetail } from "./SaleResult";
@@ -12,6 +12,8 @@ type CreateTarget = {
   productId?: string;
   saleId?: string;
   closeCreate: () => void;
+  filters?: Omit<SaleFilters, "q">;
+  setFilters?: (filters: Omit<SaleFilters, "q">) => void;
 };
 
 export function SalesPage(props: CreateTarget) {
@@ -30,6 +32,8 @@ function ScopedSales({
   productId,
   saleId,
   closeCreate,
+  filters,
+  setFilters,
 }: CreateTarget & { scope: SaleScope }) {
   const { t } = useTranslation("sales");
   const [focusTarget, setFocusTarget] = useState<HTMLDivElement | null>(null);
@@ -45,6 +49,8 @@ function ScopedSales({
       </div>
       <SaleList
         scope={scope}
+        filters={filters}
+        setFilters={setFilters}
         inspect={(id, opener) => setDetail({ id, opener })}
       />
       {productId && focusTarget && (

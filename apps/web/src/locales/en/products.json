@@ -1,4 +1,8 @@
 {
+  "soldOn": "Sold on {{date}} (Baku)",
+  "receivedOn": "Received on {{date}} (Baku)",
+  "agedDays": "In stock for at least {{count}} days",
+  "clearDashboardFilters": "Clear dashboard filters",
   "exchangeRates": {
     "title": "Official exchange rates",
     "effectiveDate": "Effective {{date}}",

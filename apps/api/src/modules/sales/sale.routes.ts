@@ -100,6 +100,8 @@ export function registerSaleRoutes(
     Querystring: Scope["Querystring"] & {
       q?: string;
       date?: string;
+      paymentDate?: string;
+      paymentStatus?: string;
       after?: string;
     };
   }>("/sales", { preHandler }, (request) =>

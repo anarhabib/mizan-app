@@ -10,20 +10,31 @@ import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
-import { saleListQuery, type SaleScope } from "../api/queries";
+import { OptionSelect } from "@/shared/ui/OptionSelect";
+import {
+  saleListQuery,
+  type SaleFilters,
+  type SaleScope,
+} from "../api/queries";
 import { SaleDate } from "./SaleResult";
 
 export function SaleList({
   scope,
   inspect,
+  filters = {},
+  setFilters,
 }: {
   scope: SaleScope;
   inspect: (id: string, opener: HTMLElement) => void;
+  filters?: Omit<SaleFilters, "q">;
+  setFilters?: (filters: Omit<SaleFilters, "q">) => void;
 }) {
   const { t } = useTranslation("sales");
   const [search, setSearch] = useState("");
   const [q, setQuery] = useState("");
-  const [date, setDate] = useState("");
+  const [localFilters, setLocalFilters] = useState<Omit<SaleFilters, "q">>({});
+  const active = setFilters ? filters : localFilters;
+  const changeFilters = setFilters ?? setLocalFilters;
   useEffect(() => {
     const timer = window.setTimeout(
       () => setQuery(search.trim().replaceAll("\0", "")),
@@ -32,16 +43,18 @@ export function SaleList({
     return () => window.clearTimeout(timer);
   }, [search]);
   const query = useInfiniteQuery(
-    saleListQuery(scope, { q: q || undefined, date: date || undefined }),
+    saleListQuery(scope, { ...active, q: q || undefined }),
   );
   const rows = query.data?.pages.flatMap((page) => page.items) ?? [];
-  const filtered = Boolean(q || date);
+  const filtered = Boolean(
+    q || active.date || active.paymentDate || active.paymentStatus,
+  );
 
   return (
     <div className="space-y-4">
       <div
         role="search"
-        className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:flex sm:items-end"
+        className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-end"
       >
         <div className="grid min-w-0 gap-2 sm:w-72">
           <Label htmlFor="sale-search">{t("search")}</Label>
@@ -60,12 +73,61 @@ export function SaleList({
           <Input
             id="sale-date"
             type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
+            value={active.date ?? ""}
+            onChange={(event) =>
+              changeFilters({
+                ...active,
+                date: event.target.value || undefined,
+              })
+            }
             className="min-h-11 lg:min-h-9"
           />
         </div>
-        {(search || date) && (
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor="payment-status">{t("paymentStatusLabel")}</Label>
+          <OptionSelect
+            id="payment-status"
+            value={active.paymentStatus ?? "all"}
+            options={[
+              { value: "all", label: t("allStatuses") },
+              ...(["PAID", "PARTIALLY_PAID", "UNPAID"] as const).map(
+                (value) => ({
+                  value,
+                  label: t(`paymentStatus.${value}`),
+                }),
+              ),
+            ]}
+            onChange={(value) =>
+              changeFilters({
+                ...active,
+                paymentStatus:
+                  value === "PAID" ||
+                  value === "PARTIALLY_PAID" ||
+                  value === "UNPAID"
+                    ? value
+                    : undefined,
+              })
+            }
+          />
+        </div>
+        {active.paymentDate && (
+          <div className="grid min-w-0 gap-2">
+            <Label htmlFor="payment-date">{t("paymentDate")}</Label>
+            <Input
+              id="payment-date"
+              type="date"
+              value={active.paymentDate}
+              onChange={(event) =>
+                changeFilters({
+                  ...active,
+                  paymentDate: event.target.value || undefined,
+                })
+              }
+              className="min-h-11 lg:min-h-9"
+            />
+          </div>
+        )}
+        {(search || filtered) && (
           <Button
             type="button"
             variant="ghost"
@@ -73,7 +135,7 @@ export function SaleList({
             onClick={() => {
               setSearch("");
               setQuery("");
-              setDate("");
+              changeFilters({});
             }}
           >
             {t("clearFilters")}

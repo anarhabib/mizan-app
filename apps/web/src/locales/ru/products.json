@@ -1,4 +1,8 @@
 {
+  "soldOn": "Дата продажи: {{date}} (Баку)",
+  "receivedOn": "Дата поступления: {{date}} (Баку)",
+  "agedDays": "В наличии не менее {{count}} дн.",
+  "clearDashboardFilters": "Сбросить фильтры панели",
   "exchangeRates": {
     "title": "Официальные курсы валют",
     "effectiveDate": "Действуют с {{date}}",

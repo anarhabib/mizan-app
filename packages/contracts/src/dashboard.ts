@@ -1,7 +1,26 @@
 import type { MoneyInput as Money } from "./money.js";
 import type { GoldPriceKind } from "./gold-prices.js";
 
-export type DashboardPaymentStatus = "PAID" | "PARTIALLY_PAID" | "UNPAID";
+import type { SalePaymentStatus } from "./sales.js";
+
+export type DashboardPaymentStatus = SalePaymentStatus;
+
+export function isBusinessDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+    return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(+date) && date.toISOString().slice(0, 10) === value;
+}
+
+export type DashboardComparison = {
+  absolute: string;
+  percent: string | null;
+  direction: "up" | "down" | "flat";
+};
+
+export type DashboardMoneyComparison = DashboardComparison & {
+  currency: string;
+};
 
 export type DashboardSummary = {
   day: string;
@@ -17,6 +36,7 @@ export type DashboardSummary = {
     normalized: Money | null;
     repayments: Money[];
     tradeInCredit: Money[];
+    payouts: Money[];
     methods: { method: string; total: Money[] }[];
   };
   debt: {
@@ -33,12 +53,19 @@ export type DashboardSummary = {
     tradeInValue: Money[];
   };
   inventory: { count: number; weight: string; marketValue: Money | null };
+  comparison: {
+    sales: DashboardMoneyComparison[];
+    saleCount: DashboardComparison | null;
+    receipts: DashboardComparison | null;
+    intake: DashboardComparison | null;
+  };
 };
 
 export type DashboardOwnerSummary = {
   grossProfit: Money[] | null;
   intakeCost: Money[];
   inventoryCost: Money[];
+  grossProfitComparison: DashboardMoneyComparison[];
 };
 
 export type DashboardCount = { label: string; count: number };
