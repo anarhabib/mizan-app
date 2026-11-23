@@ -16,7 +16,7 @@
   "create": "Məhsul əlavə et",
   "close": "Bağla",
   "cancel": "Ləğv et",
-  "editAcquisition": "Alış dəyərini dəyiş",
+  "editAcquisition": "Alış dəyəri və satış qiymətini düzəlt",
   "editUncertain": "Dəyişiklik təsdiqlənmədi. Yenidən cəhd etməzdən əvvəl saxlanmış məbləğləri yoxlayın.",
   "delete": {
     "title": "Məhsulu sil",
@@ -35,26 +35,38 @@
     "status": "Status",
     "category": "Kateqoriya",
     "purity": "Əyar",
-    "weight": "Çəki",
-    "netGoldWeight": "Xalis qızıl çəkisi",
+    "weight": "Ümumi çəki",
+    "netGoldWeight": "Qızıl ərintisinin xalis çəkisi",
     "estimatedMaterialValue": "Qızılın təxmini dəyəri",
     "estimatedSellingValue": "Təxmini satış qiyməti",
     "acquisitionCost": "Ümumi alış dəyəri",
     "acquisitionCostPerGram": "Bir qramın alış dəyəri",
     "createdAt": "Əlavə edilmə tarixi",
-    "note": "Qeyd"
+    "note": "Qeyd",
+    "fineGoldWeight": "Saf qızılın çəkisi",
+    "metalType": "Metal",
+    "estimatedMetalSellingValue": "Yalnız qızılın təxmini satış dəyəri",
+    "fixedSellingPrice": "Sabit satış qiyməti"
   },
   "formFields": {
     "code": "Məhsulun kodu",
     "name": "Məhsulun adı",
     "category": "Kateqoriya",
-    "weight": "Çəki (q)",
-    "netGoldWeight": "Xalis qızıl çəkisi (q, istəyə bağlı)",
+    "weight": "Ümumi çəki (q)",
+    "netGoldWeight": "Qızıl ərintisinin xalis çəkisi (q, istəyə bağlı)",
     "acquisitionCostPerGram": {
       "amount": "Bir qramın alış dəyəri",
       "currency": "Valyuta"
     },
-    "note": "Qeyd (istəyə görə)"
+    "note": "Qeyd (istəyə görə)",
+    "acquisitionCost": {
+      "amount": "Ümumi alış dəyəri",
+      "currency": "Valyuta"
+    },
+    "fixedSellingPrice": {
+      "amount": "Sabit satış qiyməti",
+      "currency": "Valyuta"
+    }
   },
   "validation": {
     "code": "Düzgün məhsul kodu daxil edin.",
@@ -62,7 +74,7 @@
     "category": "Düzgün kateqoriya daxil edin.",
     "purity": "Əyar seçin.",
     "weight": "Çəkini qramla, vergüldən sonra ən çox üç rəqəmlə daxil edin.",
-    "netGoldWeight": "Daş və digər hissələr çıxıldıqdan sonra qızılın çəkisini daxil edin. Bu çəki ümumi çəkidən çox ola bilməz.",
+    "netGoldWeight": "Daşlar və digər materiallar çıxıldıqdan sonra qızıl ərintisinin çəkisini qramla daxil edin. Bu çəki ümumi çəkidən çox ola bilməz.",
     "cost": "Qram üzrə müsbət məbləğ (vergüldən sonra ən çox 16 rəqəm) və düzgün valyuta kodu daxil edin. Yuvarlaqlaşdırılmış yekun ən azı 0.0001 olmalı və tam hissəsi 16 rəqəmi keçməməlidir.",
     "note": "Daha qısa qeyd daxil edin."
   },
@@ -106,7 +118,64 @@
     "available": "Mövcud məhsullar",
     "sold": "Satılmış məhsullar",
     "soldOnCredit": "Nisyə satılan məhsullar",
-    "availableWeight": "Mövcud məhsulların çəkisi",
+    "availableWeight": "Mövcud zinət əşyalarının ümumi çəkisi",
     "acquisitionValue": "Ehtiyatın alış dəyəri"
+  },
+  "jewelry": {
+    "gold": "Qızıl",
+    "acquisition": "Alış dəyərinin hesablanması",
+    "perGram": "Qram üzrə",
+    "supplierTotal": "Təchizatçının ümumi dəyəri",
+    "stoneAcquisition": "Daşlı zinət əşyası üçün təchizatçının ümumi dəyərini daxil edin.",
+    "breakdown": "Alış dəyərinin bölgüsü (istəyə bağlı)",
+    "breakdownHint": "Sənədləşdirilmiş məbləğləri alış valyutasında daxil edin. Onların cəmi təchizatçının ümumi dəyərinə bərabər olmalıdır.",
+    "componentsTitle": "Alış dəyərinin bölgüsü",
+    "components": {
+      "metal": "Metal",
+      "gemstones": "Daşlar",
+      "workmanship": "İşçilik",
+      "other": "Digər xərclər"
+    },
+    "fixedOptional": "Sabit satış qiyməti (istəyə bağlı)",
+    "gemstones": "Daş qrupları",
+    "filterRecorded": "Daş qrupu qeyd edilib",
+    "filterNone": "Daş qrupu qeyd edilməyib",
+    "group": "Daş qrupu {{index}}",
+    "addGroup": "Daş qrupu əlavə et",
+    "removeGroup": "{{index}} nömrəli daş qrupunu sil",
+    "remove": "Qrupu sil",
+    "moreStoneDetails": "Qiymətləndirmə və hesabat məlumatları (istəyə bağlı)",
+    "grams": "{{amount}} q",
+    "carats": "{{amount}} ct",
+    "origins": {
+      "NATURAL": "Təbii",
+      "LAB_GROWN": "Laboratoriyada yetişdirilmiş",
+      "SIMULATED": "İmitasiya",
+      "UNKNOWN": "Naməlum"
+    },
+    "stoneFields": {
+      "gemstoneType": "Daşın növü",
+      "stoneCount": "Daşların sayı",
+      "origin": "Təsnifat",
+      "totalCarats": "Qrupun çəkisi (ct, istəyə bağlı)",
+      "individualCarats": "Bir daşın çəkisi (ct)",
+      "shape": "Forma",
+      "color": "Rəng",
+      "clarity": "Təmizlik",
+      "cutGrade": "Kəsim dərəcəsi",
+      "treatment": "Emal",
+      "laboratory": "Qiymətləndirən laboratoriya",
+      "reportNumber": "Qiymətləndirmə hesabatının nömrəsi",
+      "note": "Daş haqqında qeyd"
+    },
+    "validation": {
+      "total": "Dörd onluq rəqəmə qədər müsbət ümumi məbləğ və düzgün valyuta daxil edin.",
+      "fixed": "Seçilmiş valyutanın dəqiqliyinə uyğun müsbət məbləğ daxil edin.",
+      "component": "Dörd onluq rəqəmə qədər mənfi olmayan məbləğ daxil edin.",
+      "breakdownSum": "Hissələrin cəmi təchizatçının ümumi dəyərinə bərabər olmalıdır.",
+      "count": "Sıfırdan böyük tam ədəd daxil edin.",
+      "carats": "Beş onluq rəqəmə qədər müsbət karat çəkisi daxil edin. Bir daşın çəkisi qrup çəkisindən çox ola bilməz.",
+      "text": "Xananın uzunluq həddinə uyğun məlumat daxil edin."
+    }
   }
 }

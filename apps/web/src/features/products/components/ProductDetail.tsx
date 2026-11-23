@@ -10,13 +10,16 @@ import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import type { ProductDetail as Detail } from "@mizan/contracts";
+import {
+  acquisitionComponents,
+  type ProductDetail as Detail,
+} from "@mizan/contracts";
 import { ShoppingCart } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/features/workspace";
-import { formatDateTime } from "@/shared/lib/format";
+import { formatDateTime, formatDecimal } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -236,6 +239,8 @@ function ProductRecord({
   canViewAcquisition: boolean;
 }) {
   const { t, i18n } = useTranslation("products");
+  const locale = i18n.resolvedLanguage ?? "az";
+  const acquisitionCurrency = product.acquisitionCost?.currency;
   const time = (value: string) => (
     <time dateTime={value}>{formatDateTime(value, i18n.resolvedLanguage)}</time>
   );
@@ -252,6 +257,7 @@ function ProductRecord({
           />
         </Fact>
         <Fact label={t("fields.category")}>{product.category}</Fact>
+        <Fact label={t("fields.metalType")}>{t("jewelry.gold")}</Fact>
         <Fact label={t("fields.purity")}>
           <PurityText value={product.purity} />
         </Fact>
@@ -263,14 +269,39 @@ function ProductRecord({
             <WeightText value={product.netGoldWeight} />
           </Fact>
         )}
+        {product.fineGoldWeight && (
+          <Fact label={t("fields.fineGoldWeight")}>
+            <span className="tabular-nums">
+              {t("jewelry.grams", {
+                amount: formatDecimal(product.fineGoldWeight, locale),
+              })}
+            </span>
+          </Fact>
+        )}
+        {product.fixedSellingPrice && (
+          <Fact label={t("fields.fixedSellingPrice")}>
+            <MoneyText value={product.fixedSellingPrice} />
+          </Fact>
+        )}
         {product.estimatedMaterialValue && (
           <Fact label={t("fields.estimatedMaterialValue")}>
             <MoneyText value={product.estimatedMaterialValue} />
           </Fact>
         )}
         {product.estimatedSellingValue && (
-          <Fact label={t("fields.estimatedSellingValue")}>
+          <Fact
+            label={t(
+              product.netGoldWeight !== product.weight
+                ? "fields.estimatedMetalSellingValue"
+                : "fields.estimatedSellingValue",
+            )}
+          >
             <MoneyText value={product.estimatedSellingValue} />
+          </Fact>
+        )}
+        {product.estimatedMetalSellingValue && (
+          <Fact label={t("fields.estimatedMetalSellingValue")}>
+            <MoneyText value={product.estimatedMetalSellingValue} />
           </Fact>
         )}
         {canViewAcquisition && product.acquisitionCostPerGram && (
@@ -286,6 +317,89 @@ function ProductRecord({
         <Fact label={t("fields.createdAt")}>{time(product.createdAt)}</Fact>
         {product.note && <Fact label={t("fields.note")}>{product.note}</Fact>}
       </dl>
+      {Boolean(product.gemstones?.length) && (
+        <section className="grid gap-3">
+          <h3 className="font-medium">{t("jewelry.gemstones")}</h3>
+          {product.gemstones?.map((group, index) => (
+            <div key={index} className="grid gap-3 rounded-md border p-3">
+              <h4 className="font-medium wrap-anywhere">
+                {group.gemstoneType}
+              </h4>
+              <dl className="grid grid-cols-2 gap-3">
+                <Fact label={t("jewelry.stoneFields.stoneCount")}>
+                  {group.stoneCount}
+                </Fact>
+                <Fact label={t("jewelry.stoneFields.origin")}>
+                  {t(`jewelry.origins.${group.origin ?? "UNKNOWN"}`)}
+                </Fact>
+                {(["totalCarats", "individualCarats"] as const).map((field) => {
+                  const amount = group[field];
+                  return (
+                    amount && (
+                      <Fact
+                        key={field}
+                        label={t(`jewelry.stoneFields.${field}`)}
+                      >
+                        <span className="tabular-nums">
+                          {t("jewelry.carats", {
+                            amount: formatDecimal(amount, locale),
+                          })}
+                        </span>
+                      </Fact>
+                    )
+                  );
+                })}
+                {(
+                  [
+                    "shape",
+                    "color",
+                    "clarity",
+                    "cutGrade",
+                    "treatment",
+                    "laboratory",
+                    "reportNumber",
+                    "note",
+                  ] as const
+                ).map(
+                  (field) =>
+                    group[field] && (
+                      <Fact
+                        key={field}
+                        label={t(`jewelry.stoneFields.${field}`)}
+                      >
+                        {group[field]}
+                      </Fact>
+                    ),
+                )}
+              </dl>
+            </div>
+          ))}
+        </section>
+      )}
+      {canViewAcquisition &&
+        acquisitionCurrency &&
+        product.acquisitionBreakdown && (
+          <section className="grid gap-3 rounded-md border p-3">
+            <h3 className="font-medium">{t("jewelry.componentsTitle")}</h3>
+            <dl className="grid grid-cols-2 gap-3">
+              {acquisitionComponents.map((part) => {
+                const amount = product.acquisitionBreakdown?.[part];
+                return (
+                  amount !== undefined && (
+                    <Fact key={part} label={t(`jewelry.components.${part}`)}>
+                      <MoneyText
+                        value={{
+                          amount,
+                          currency: acquisitionCurrency,
+                        }}
+                      />
+                    </Fact>
+                  )
+                );
+              })}
+            </dl>
+          </section>
+        )}
       {sale && (
         <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("sale.title")}</h3>

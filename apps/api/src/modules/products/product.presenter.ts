@@ -1,5 +1,6 @@
 import {
   currencyMinorUnits,
+  type AcquisitionBreakdown,
   type ProductDetail,
   type ProductListItem,
 } from "@mizan/contracts";
@@ -24,13 +25,39 @@ export const listFields = {
 
 export function detailFields(access: AccessContext) {
   const showCost = canViewAcquisition(access);
+  const owner = canManageAsOwner(access);
   return {
     ...listFields,
+    metalType: true,
     netGoldWeight: true,
     grade: { select: { active: true } },
     acquisitionCost: showCost,
     acquisitionCostPerGram: showCost,
     acquisitionCurrency: showCost,
+    acquisitionMetal: owner,
+    acquisitionGemstones: owner,
+    acquisitionWorkmanship: owner,
+    acquisitionOther: owner,
+    fixedSellingAmount: true,
+    fixedSellingCurrency: true,
+    gemstones: {
+      orderBy: { position: "asc" },
+      select: {
+        gemstoneType: true,
+        stoneCount: true,
+        origin: true,
+        totalCarats: true,
+        individualCarats: true,
+        shape: true,
+        color: true,
+        clarity: true,
+        cutGrade: true,
+        treatment: true,
+        laboratory: true,
+        reportNumber: true,
+        note: true,
+      },
+    },
     note: true,
     createdAt: true,
     photoObjectKey: true,
@@ -125,10 +152,72 @@ export function presentDetail(
   const sale = saleItem
     ? { ...saleItem.sale, saleAmount: saleItem.saleAmount }
     : legacySale;
+  const breakdown: AcquisitionBreakdown = {};
+  const owner = canManageAsOwner(access);
+  if (owner) {
+    if (row.acquisitionMetal) breakdown.metal = row.acquisitionMetal.toFixed();
+    if (row.acquisitionGemstones)
+      breakdown.gemstones = row.acquisitionGemstones.toFixed();
+    if (row.acquisitionWorkmanship)
+      breakdown.workmanship = row.acquisitionWorkmanship.toFixed();
+    if (row.acquisitionOther) breakdown.other = row.acquisitionOther.toFixed();
+  }
   return {
     ...presentListItem(row),
-    ...(row.netGoldWeight && { netGoldWeight: row.netGoldWeight.toFixed(3) }),
-    ...(acquisitionCost &&
+    metalType: row.metalType,
+    ...(row.netGoldWeight && {
+      netGoldWeight: row.netGoldWeight.toFixed(3),
+      ...(row.metalType === "GOLD" && {
+        fineGoldWeight: row.netGoldWeight.times(row.purity).div(1000).toFixed(),
+      }),
+    }),
+    ...(row.gemstones.length > 0 && {
+      gemstones: row.gemstones.map(
+        ({
+          gemstoneType,
+          stoneCount,
+          origin,
+          totalCarats,
+          individualCarats,
+          shape,
+          color,
+          clarity,
+          cutGrade,
+          treatment,
+          laboratory,
+          reportNumber,
+          note,
+        }) => ({
+          gemstoneType,
+          stoneCount,
+          origin,
+          ...(totalCarats && { totalCarats: totalCarats.toFixed() }),
+          ...(individualCarats && {
+            individualCarats: individualCarats.toFixed(),
+          }),
+          ...(shape && { shape }),
+          ...(color && { color }),
+          ...(clarity && { clarity }),
+          ...(cutGrade && { cutGrade }),
+          ...(treatment && { treatment }),
+          ...(laboratory && { laboratory }),
+          ...(reportNumber && { reportNumber }),
+          ...(note && { note }),
+        }),
+      ),
+    }),
+    ...(row.fixedSellingAmount &&
+      row.fixedSellingCurrency && {
+        fixedSellingPrice: presentMoney(
+          row.fixedSellingAmount,
+          row.fixedSellingCurrency,
+        ),
+      }),
+    ...(Object.keys(breakdown).length > 0 && {
+      acquisitionBreakdown: breakdown,
+    }),
+    ...((owner || acquisitionCostPerGram) &&
+      acquisitionCost &&
       acquisitionCurrency && {
         acquisitionCost: presentMoney(acquisitionCost, acquisitionCurrency),
       }),
@@ -139,7 +228,7 @@ export function presentDetail(
           acquisitionCurrency,
         ),
       }),
-    ...(canManageAsOwner(access) && {
+    ...(owner && {
       canEditAcquisition: canEditAcquisition(row),
       canDelete: row.status === "IN_STOCK" && !sale && movements.length === 0,
     }),

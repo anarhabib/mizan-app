@@ -132,6 +132,25 @@ export function ProductFilters({
           </div>
         </>
       )}
+      <div className="grid min-w-0 gap-2 lg:w-44 lg:shrink-0">
+        <Label htmlFor={`${id}-gemstones`}>{t("jewelry.gemstones")}</Label>
+        <OptionSelect
+          id={`${id}-gemstones`}
+          value={filters.gemstones ?? all}
+          onChange={(value) =>
+            setFilters({
+              ...filters,
+              gemstones:
+                value === "recorded" || value === "none" ? value : undefined,
+            })
+          }
+          options={[
+            any,
+            { value: "recorded", label: t("jewelry.filterRecorded") },
+            { value: "none", label: t("jewelry.filterNone") },
+          ]}
+        />
+      </div>
       {Object.values(filters).some((value) => value !== undefined) && (
         <Button
           type="button"

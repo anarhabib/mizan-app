@@ -22,6 +22,21 @@ enum ProductStatus {
   @@schema("mizan")
 }
 
+enum ProductMetal {
+  GOLD
+
+  @@schema("mizan")
+}
+
+enum GemstoneOrigin {
+  NATURAL
+  LAB_GROWN
+  SIMULATED
+  UNKNOWN
+
+  @@schema("mizan")
+}
+
 enum MovementKind {
   PRODUCT_ADDED
   PRODUCT_SOLD
@@ -256,12 +271,19 @@ model Product {
   code                   String
   name                   String
   category               String
+  metalType              ProductMetal        @default(GOLD)
   purity                 Int
   weight                 Decimal             @db.Decimal(15, 3)
   netGoldWeight          Decimal?            @db.Decimal(15, 3)
   acquisitionCost        Decimal             @db.Decimal(20, 4)
   acquisitionCostPerGram Decimal?            @db.Decimal(35, 16)
   acquisitionCurrency    String              @db.Char(3)
+  acquisitionMetal       Decimal?            @db.Decimal(20, 4)
+  acquisitionGemstones   Decimal?            @db.Decimal(20, 4)
+  acquisitionWorkmanship Decimal?            @db.Decimal(20, 4)
+  acquisitionOther       Decimal?            @db.Decimal(20, 4)
+  fixedSellingAmount     Decimal?            @db.Decimal(20, 4)
+  fixedSellingCurrency   String?             @db.Char(3)
   photoObjectKey         String?
   photoContentType       String?
   photoSize              Int?
@@ -273,9 +295,34 @@ model Product {
   sale                   Sale?
   saleItem               SaleItem?
   movements              InventoryMovement[]
+  gemstones              ProductGemstone[]
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, code])
+  @@schema("mizan")
+}
+
+model ProductGemstone {
+  organizationId   String         @db.Uuid
+  storeId          String         @db.Uuid
+  productId        String         @db.Uuid
+  position         Int
+  gemstoneType     String
+  stoneCount       Int
+  totalCarats      Decimal?       @db.Decimal(15, 5)
+  individualCarats Decimal?       @db.Decimal(15, 5)
+  origin           GemstoneOrigin @default(UNKNOWN)
+  shape            String?
+  color            String?
+  clarity          String?
+  cutGrade         String?
+  treatment        String?
+  laboratory       String?
+  reportNumber     String?
+  note             String?
+  product          Product        @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Cascade)
+
+  @@id([organizationId, storeId, productId, position])
   @@schema("mizan")
 }
 

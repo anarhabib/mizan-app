@@ -4,6 +4,7 @@ import type {
   MoneyInput,
   ProductAcquisitionInput,
   ProductCreateInput,
+  ProductGemstoneFilter,
   ProductPhotoUpload,
   ProductOverview,
   ProductStatus,
@@ -72,7 +73,7 @@ export async function createProduct(
   input: ProductCreateInput,
   total: MoneyInput,
 ) {
-  const { acquisitionCostPerGram, ...values } = input;
+  const { code, name, category, purity, metalType, note, gemstones } = input;
   const store = scope(access);
   try {
     return await db.$transaction(async (tx) => {
@@ -88,7 +89,7 @@ export async function createProduct(
         where: {
           organizationId_value: {
             organizationId: store.organizationId,
-            value: values.purity,
+            value: purity,
           },
         },
         select: { active: true },
@@ -97,10 +98,21 @@ export async function createProduct(
       const product = await tx.product.create({
         data: {
           ...store,
-          ...values,
-          acquisitionCost: total.amount,
-          acquisitionCostPerGram: acquisitionCostPerGram.amount,
-          acquisitionCurrency: acquisitionCostPerGram.currency,
+          code,
+          name,
+          category,
+          purity,
+          metalType,
+          note,
+          ...acquisitionData(input, total),
+          ...(gemstones?.length && {
+            gemstones: {
+              create: gemstones.map((group, position) => ({
+                ...group,
+                position,
+              })),
+            },
+          }),
         },
         select: { id: true },
       });
@@ -127,6 +139,26 @@ export async function createProduct(
     }
     throw error;
   }
+}
+
+function acquisitionData(input: ProductAcquisitionInput, total: MoneyInput) {
+  const parts = input.acquisitionBreakdown;
+  const fixed = input.fixedSellingPrice;
+  return {
+    weight: input.weight,
+    netGoldWeight: input.netGoldWeight,
+    acquisitionCost: total.amount,
+    acquisitionCostPerGram: input.acquisitionCostPerGram?.amount ?? null,
+    acquisitionCurrency: total.currency,
+    acquisitionMetal: parts?.metal ?? null,
+    acquisitionGemstones: parts?.gemstones ?? null,
+    acquisitionWorkmanship: parts?.workmanship ?? null,
+    acquisitionOther: parts?.other ?? null,
+    ...(fixed !== undefined && {
+      fixedSellingAmount: fixed?.amount ?? null,
+      fixedSellingCurrency: fixed?.currency ?? null,
+    }),
+  };
 }
 
 async function lockProductOwner(
@@ -157,6 +189,8 @@ export async function updateProductAcquisition(
     const row = await findProduct(tx, currentAccess, id);
     if (!canEditAcquisition(row))
       throw new AccessError("PRODUCT_EDIT_CONFLICT");
+    if (row.gemstones.length && !input.acquisitionCost)
+      throw new AccessError("INVALID_PRODUCT", "acquisitionCost");
     if (
       input.netGoldWeight === undefined &&
       row.netGoldWeight?.gt(input.weight)
@@ -166,13 +200,7 @@ export async function updateProductAcquisition(
       where: {
         organizationId_storeId_id: { ...scope(currentAccess), id: row.id },
       },
-      data: {
-        weight: input.weight,
-        netGoldWeight: input.netGoldWeight,
-        acquisitionCost: total.amount,
-        acquisitionCostPerGram: input.acquisitionCostPerGram.amount,
-        acquisitionCurrency: input.acquisitionCostPerGram.currency,
-      },
+      data: acquisitionData(input, total),
     });
   });
 }
@@ -280,6 +308,7 @@ export async function listProducts(
     after?: string;
     category?: string;
     purity?: number;
+    gemstones?: ProductGemstoneFilter;
     facets?: boolean;
     soldOn?: string;
     receivedOn?: string;
@@ -307,6 +336,12 @@ export async function listProducts(
       status: filters.credit ? "SOLD" : filters.status,
       category: filters.category,
       purity: filters.purity,
+      gemstones:
+        filters.gemstones === "recorded"
+          ? { some: {} }
+          : filters.gemstones === "none"
+            ? { none: {} }
+            : undefined,
       code: filters.after === undefined ? undefined : { gt: filters.after },
       AND: [
         ...(filters.credit ? [soldOnCredit] : []),
@@ -426,7 +461,12 @@ export async function getProduct(
     }
   }
   const detail = presentDetail(row, photoUrl, access);
-  if (row.status !== "IN_STOCK" || !row.netGoldWeight) return detail;
+  if (
+    row.status !== "IN_STOCK" ||
+    row.metalType !== "GOLD" ||
+    !row.netGoldWeight
+  )
+    return detail;
   const [market, rules] = await Promise.all([
     readGoldMarket(options.db),
     row.grade.active
@@ -447,10 +487,15 @@ export async function getProduct(
   const selling =
     aznPerUnit &&
     goldValue(sellingRate, row.netGoldWeight, currency, aznPerUnit);
+  const metalOnly =
+    row.gemstones.length > 0 || Boolean(detail.fixedSellingPrice);
   return {
     ...detail,
     ...(material && { estimatedMaterialValue: material }),
-    ...(selling && { estimatedSellingValue: selling }),
+    ...(selling &&
+      (metalOnly
+        ? { estimatedMetalSellingValue: selling }
+        : { estimatedSellingValue: selling })),
   };
 }
 

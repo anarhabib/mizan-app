@@ -125,7 +125,7 @@ export async function dashboardSummary(
       recent_intake AS (${intake(scope, previousStart, now)}),
       intake AS (SELECT "productId" FROM recent_intake WHERE "receivedAt" >= ${start}),
       stock AS (
-        SELECT weight, "netGoldWeight", purity FROM "mizan"."Product"
+        SELECT weight, "netGoldWeight", purity, "metalType" FROM "mizan"."Product"
         WHERE ${store(scope)} AND status = 'IN_STOCK'
       ),
       trade_ins AS (
@@ -188,7 +188,8 @@ export async function dashboardSummary(
         (SELECT jsonb_build_object('count', COUNT(*), 'weight', trim_scale(COALESCE(SUM(weight), 0))::text)
           FROM stock) AS inventory,
         (SELECT CASE WHEN COUNT(*) = COUNT("netGoldWeight")
-          THEN COALESCE(SUM("netGoldWeight" * purity / 1000.0), 0)::text END FROM stock) AS "fineWeight"
+          THEN COALESCE(SUM("netGoldWeight" * purity / 1000.0), 0)::text END
+          FROM stock WHERE "metalType" = 'GOLD') AS "fineWeight"
     `,
     readGoldMarket(db, goldEnabled, now),
   ]);

@@ -1,16 +1,21 @@
 {
   "itemPricing": {
-    "recordedWeight": "Recorded weight",
+    "recordedWeight": "Gross weight",
+    "netWeight": "Net gold alloy weight",
     "purity": "Purity",
     "storeRate": "Store selling rate",
     "gramRate": "Selling price per gram",
     "calculated": "Calculated amount",
     "finalAmount": "Final agreed selling amount",
     "noRate": "The store rate is unavailable. Enter an agreed amount or your own gram rate.",
-    "noWeight": "A recorded net gold weight is unavailable. Enter the final amount manually.",
-    "metalOnly": "Calculated from net gold weight. This excludes stones and workmanship.",
+    "noWeight": "Enter the final amount manually if the net gold alloy weight is unavailable.",
+    "metalOnly": "Calculated from the net gold alloy weight, excluding gemstones and workmanship.",
     "restoreRate": "Restore store rate",
-    "useSuggestion": "Use calculated amount"
+    "useSuggestion": "Use calculated amount",
+    "calculatedMetal": "Gold-only estimate",
+    "fixedPrice": "Fixed product price",
+    "fixedCurrencyMismatch": "Enter the agreed amount in the sale currency.",
+    "useFixed": "Use fixed product price"
   },
   "paymentDate": "Payment received on (Baku)",
   "paymentStatusLabel": "Payment status",

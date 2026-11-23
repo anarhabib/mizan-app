@@ -16,7 +16,7 @@
   "create": "Add product",
   "close": "Close",
   "cancel": "Cancel",
-  "editAcquisition": "Edit acquisition cost",
+  "editAcquisition": "Edit acquisition and pricing",
   "editUncertain": "The update could not be confirmed. Check the saved amounts before trying again.",
   "delete": {
     "title": "Delete product",
@@ -35,26 +35,38 @@
     "status": "Status",
     "category": "Category",
     "purity": "Purity",
-    "weight": "Weight",
-    "netGoldWeight": "Net gold weight",
+    "weight": "Gross weight",
+    "netGoldWeight": "Net gold alloy weight",
     "estimatedMaterialValue": "Estimated gold material value",
     "estimatedSellingValue": "Estimated selling price",
     "acquisitionCost": "Total acquisition cost",
     "acquisitionCostPerGram": "Acquisition cost per gram",
     "createdAt": "Added",
-    "note": "Note"
+    "note": "Note",
+    "fineGoldWeight": "Fine gold content",
+    "metalType": "Metal",
+    "estimatedMetalSellingValue": "Estimated selling value of gold only",
+    "fixedSellingPrice": "Fixed selling price"
   },
   "formFields": {
     "code": "Product code",
     "name": "Product name",
     "category": "Category",
-    "weight": "Weight (g)",
-    "netGoldWeight": "Net gold weight (g, optional)",
+    "weight": "Gross weight (g)",
+    "netGoldWeight": "Net gold alloy weight (g, optional)",
     "acquisitionCostPerGram": {
       "amount": "Acquisition cost per gram",
       "currency": "Currency"
     },
-    "note": "Note (optional)"
+    "note": "Note (optional)",
+    "acquisitionCost": {
+      "amount": "Total acquisition cost",
+      "currency": "Currency"
+    },
+    "fixedSellingPrice": {
+      "amount": "Fixed selling price",
+      "currency": "Currency"
+    }
   },
   "validation": {
     "code": "Enter a valid product code.",
@@ -62,7 +74,7 @@
     "category": "Enter a valid category.",
     "purity": "Select a purity grade.",
     "weight": "Enter a valid weight in grams, with up to three decimal places.",
-    "netGoldWeight": "Enter the gold weight excluding stones and other components. It cannot exceed total weight.",
+    "netGoldWeight": "Enter the gold alloy weight in grams, excluding stones and other materials. It cannot exceed gross weight.",
     "cost": "Enter a positive rate with up to 16 decimal places and a valid currency. The rounded total must be at least 0.0001 and fit in 16 whole digits.",
     "note": "Enter a shorter note."
   },
@@ -106,7 +118,64 @@
     "available": "Available products",
     "sold": "Sold products",
     "soldOnCredit": "Sold on credit",
-    "availableWeight": "Available inventory weight",
+    "availableWeight": "Available gross jewelry weight",
     "acquisitionValue": "Inventory acquisition value"
+  },
+  "jewelry": {
+    "gold": "Gold",
+    "acquisition": "Acquisition pricing",
+    "perGram": "Per gram",
+    "supplierTotal": "Supplier total",
+    "stoneAcquisition": "Enter the supplier’s total cost for jewelry with gemstones.",
+    "breakdown": "Acquisition breakdown (optional)",
+    "breakdownHint": "Enter documented amounts in the acquisition currency. They must add up to the supplier total.",
+    "componentsTitle": "Acquisition breakdown",
+    "components": {
+      "metal": "Metal",
+      "gemstones": "Gemstones",
+      "workmanship": "Workmanship",
+      "other": "Other costs"
+    },
+    "fixedOptional": "Fixed selling price (optional)",
+    "gemstones": "Gemstone groups",
+    "filterRecorded": "With recorded groups",
+    "filterNone": "No groups recorded",
+    "group": "Gemstone group {{index}}",
+    "addGroup": "Add gemstone group",
+    "removeGroup": "Remove gemstone group {{index}}",
+    "remove": "Remove group",
+    "moreStoneDetails": "Grading and report details (optional)",
+    "grams": "{{amount}} g",
+    "carats": "{{amount}} ct",
+    "origins": {
+      "NATURAL": "Natural",
+      "LAB_GROWN": "Laboratory-grown",
+      "SIMULATED": "Simulated",
+      "UNKNOWN": "Unknown"
+    },
+    "stoneFields": {
+      "gemstoneType": "Gemstone type",
+      "stoneCount": "Stone count",
+      "origin": "Classification",
+      "totalCarats": "Group weight (ct, optional)",
+      "individualCarats": "Individual weight (ct)",
+      "shape": "Shape",
+      "color": "Color",
+      "clarity": "Clarity",
+      "cutGrade": "Cut grade",
+      "treatment": "Treatment",
+      "laboratory": "Grading laboratory",
+      "reportNumber": "Grading report number",
+      "note": "Gemstone note"
+    },
+    "validation": {
+      "total": "Enter a positive supplier total with up to four decimal places and a valid currency.",
+      "fixed": "Enter a positive amount using the selected currency’s decimal precision.",
+      "component": "Enter a nonnegative amount with up to four decimal places.",
+      "breakdownSum": "The component amounts must add up to the supplier total.",
+      "count": "Enter a whole number of stones greater than zero.",
+      "carats": "Enter a positive carat weight with up to five decimal places. An individual weight cannot exceed the group weight.",
+      "text": "Enter a valid value within the field’s length limit."
+    }
   }
 }

@@ -1,5 +1,12 @@
 # Misqal project state
 
+## Task 16 — jewelry products and gemstones (November 23, 2026)
+
+- `packages/database/prisma/migrations/202611230004_product_jewelry` extends Product with gold metal type, optional fixed selling price and acquisition components. `ProductGemstone` stores ordered gemstone groups under the existing organization, store and product IDs. Legacy rows retain their gross weight, recorded alloy weight, acquisition costs and inventory and sales history.
+- `packages/contracts/src/products.ts` and `apps/api/src/modules/products` validate per-gram or supplier-total acquisition, exact component sums and decimal carat weights. Supplier totals and component amounts require Owner mode. The legacy staff cost setting still governs per-gram acquisition visibility. Checkout continues to snapshot the full acquisition total for profit and below-cost confirmation.
+- `apps/web/src/features/products` adds gemstone intake and detail in the existing panel, plus an inventory filter for recorded groups. Checkout can prefill a same-currency fixed price and keeps gemstone gold estimates separate from the final sale amount. Gross jewelry weight, net alloy weight and fine gold content have separate labels. Silver and platinum require a separate decision on purity and pricing.
+- Prisma validation and schema parity passed on disposable PostgreSQL. Before-and-after comparisons and Fastify reads verified legacy available and sold products, sale snapshots, and partially paid receipts. Contracts, database, API and web tests passed (26, 3, 74 and 168). Changed-file lint and formatting, TypeScript and the production build passed. Chromium fixtures covered 390px and 1280px in both themes, plus Azerbaijani and Russian labels. Live Storage was skipped. The development migration is pending. Task branch is `task/16-jewelry-products-gemstones`.
+
 ## Task 15 — table, filter and status consistency (November 23, 2026)
 
 - `ProductList.tsx` and `SaleList.tsx` use shadcn tables with localized desktop column headers, right-aligned numeric values and named detail actions. Mobile uses the existing cards, and the Products toolbar scrolls within one row. Sales search enforces the API's 160-character limit.
