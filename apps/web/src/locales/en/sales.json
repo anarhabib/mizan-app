@@ -1,4 +1,17 @@
 {
+  "itemPricing": {
+    "recordedWeight": "Recorded weight",
+    "purity": "Purity",
+    "storeRate": "Store selling rate",
+    "gramRate": "Selling price per gram",
+    "calculated": "Calculated amount",
+    "finalAmount": "Final agreed selling amount",
+    "noRate": "The store rate is unavailable. Enter an agreed amount or your own gram rate.",
+    "noWeight": "A recorded net gold weight is unavailable. Enter the final amount manually.",
+    "metalOnly": "Calculated from net gold weight. This excludes stones and workmanship.",
+    "restoreRate": "Restore store rate",
+    "useSuggestion": "Use calculated amount"
+  },
   "paymentDate": "Payment received on (Baku)",
   "paymentStatusLabel": "Payment status",
   "allStatuses": "All statuses",

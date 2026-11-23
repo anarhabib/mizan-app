@@ -1,6 +1,5 @@
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { useSession } from "@/features/auth";
 import {
@@ -24,20 +22,24 @@ import { auth } from "@/shared/lib/auth";
 
 export function DisplayModeControl({
   concealWorkspace,
+  open,
+  onOpenChange,
+  restoreFocus,
 }: {
   concealWorkspace: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  restoreFocus: () => void;
 }) {
   const { t } = useTranslation(["shell", "auth"]);
   const { email, userId } = useSession();
   const workspace = useWorkspace();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
   const { register, handleSubmit, setError, reset, formState } = useForm<{
     password: string;
   }>();
   const { errors, isSubmitting } = formState;
   const owner = workspace.canManageAsOwner;
-  const mode = t(owner ? "displayMode.owner" : "displayMode.salesperson");
   const target = t(owner ? "displayMode.salesperson" : "displayMode.owner");
 
   async function change({ password }: { password: string }) {
@@ -80,24 +82,17 @@ export function DisplayModeControl({
       onOpenChange={(next) => {
         if (isSubmitting) return;
         if (!next) reset();
-        setOpen(next);
+        onOpenChange(next);
       }}
     >
-      <SheetTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="min-h-11 shrink-0 lg:min-h-9"
-          aria-label={t("displayMode.trigger", { mode })}
-        >
-          {mode}
-        </Button>
-      </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="mx-auto max-w-md rounded-t-lg"
+        className="mx-auto max-h-dvh max-w-md overflow-y-auto rounded-t-lg pb-[env(safe-area-inset-bottom)]"
         showCloseButton={false}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus();
+        }}
       >
         <SheetHeader>
           <SheetTitle>{t("displayMode.switchTo", { mode: target })}</SheetTitle>
@@ -142,7 +137,7 @@ export function DisplayModeControl({
               disabled={isSubmitting}
               onClick={() => {
                 reset();
-                setOpen(false);
+                onOpenChange(false);
               }}
             >
               {t("displayMode.cancel")}

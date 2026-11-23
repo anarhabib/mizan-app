@@ -8,6 +8,7 @@ import {
 } from "@mizan/contracts";
 import { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
+import { readPageSize } from "../access/page-size.js";
 import { uuidPattern, type AccessContext } from "../access/access.service.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import { lockOrganization } from "../access/organization-owner.js";
@@ -20,7 +21,6 @@ type CustomerDatabase = Pick<
 >;
 type Scope = Pick<AccessContext, "organizationId" | "storeId">;
 const contact = { id: true, name: true, phone: true } as const;
-const pageSize = 50;
 const recentFirst = [{ createdAt: "desc" }, { id: "desc" }] as const;
 const azn = (amount: string) => ({ amount, currency: "AZN" });
 
@@ -97,8 +97,10 @@ export async function listCustomers(
     q,
     after,
     outstanding,
-  }: { q?: string; after?: string; outstanding?: string },
+    limit,
+  }: { q?: string; after?: string; outstanding?: string; limit?: string },
 ): Promise<CustomerList> {
+  const pageSize = readPageSize(limit, "INVALID_CUSTOMER");
   const scope = { organizationId, storeId };
   if (outstanding !== undefined && outstanding !== "true")
     throw new AccessError("INVALID_CUSTOMER", "outstanding");
@@ -166,7 +168,9 @@ export async function listCustomerPurchases(
   scope: Scope,
   id: string,
   after?: string,
+  limit?: string,
 ): Promise<CustomerHistory> {
+  const pageSize = readPageSize(limit, "INVALID_CUSTOMER");
   await getContact(db, scope, id);
   if (
     after !== undefined &&

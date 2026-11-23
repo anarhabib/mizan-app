@@ -1,4 +1,17 @@
 {
+  "itemPricing": {
+    "recordedWeight": "Qeyd edilmiş çəki",
+    "purity": "Əyar",
+    "storeRate": "Mağazanın satış qiyməti",
+    "gramRate": "1 qramın satış qiyməti",
+    "calculated": "Hesablanmış məbləğ",
+    "finalAmount": "Razılaşdırılmış yekun satış məbləği",
+    "noRate": "Mağaza qiyməti əlçatan deyil. Razılaşdırılmış məbləği və ya qram qiymətini daxil edin.",
+    "noWeight": "Qeyd edilmiş xalis qızıl çəkisi yoxdur. Yekun məbləği əl ilə daxil edin.",
+    "metalOnly": "Xalis qızıl çəkisinə əsaslanır. Daşlar və işçilik daxil deyil.",
+    "restoreRate": "Mağaza qiymətini bərpa et",
+    "useSuggestion": "Hesablanmış məbləği istifadə et"
+  },
   "paymentDate": "Ödənişin alındığı tarix (Bakı)",
   "paymentStatusLabel": "Ödəniş statusu",
   "allStatuses": "Bütün statuslar",

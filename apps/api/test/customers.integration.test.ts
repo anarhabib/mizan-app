@@ -262,6 +262,7 @@ test.skipIf(!db)(
       const receipt = recorded.json();
       expect(receipt).toMatchObject({
         customerId: customer.id,
+        customerName: updated.json().name,
         outstandingDebt: "70.03",
         balance: "180.05",
         paymentStatus: "PARTIALLY_PAID",
@@ -315,6 +316,10 @@ test.skipIf(!db)(
         payments: [{ amount: "24.71", amountAzn: "42.01" }],
       });
       expect(noCustomer.json()).not.toHaveProperty("customerId");
+      expect(noCustomer.json()).not.toHaveProperty("customerName");
+      expect(
+        (await get(`/api/v1/sales/${noCustomer.json().id}?${query}`)).json(),
+      ).not.toHaveProperty("customerName");
       const confirm = async (key: string, input: object) => {
         const first = await sell(key, input);
         expect(first.statusCode).toBe(409);
@@ -374,9 +379,18 @@ test.skipIf(!db)(
         outstandingDebt: { amount: "70.03", currency: "AZN" },
         payment: null,
       });
-      expect(
-        (await get(`/api/v1/sales/${receipt.id}?${query}`)).json(),
-      ).not.toHaveProperty("profit");
+      for (const role of ["owner", "staff"]) {
+        const detail = await get(`/api/v1/sales/${receipt.id}?${query}`, role);
+        expect(detail.statusCode).toBe(200);
+        expect(detail.json()).toMatchObject({
+          customerId: customer.id,
+          customerName: updated.json().name,
+        });
+        expect(detail.body).not.toContain(customer.phone);
+        expect(detail.body).not.toContain("Preferred contact");
+        if (role === "staff")
+          expect(detail.json()).not.toHaveProperty("profit");
+      }
       const productPath = `/api/v1/products/${partial.id}?${query}`;
       expect((await get(productPath)).json()).toMatchObject({
         status: "SOLD",
@@ -412,6 +426,7 @@ test.skipIf(!db)(
       for (const repayment of repayments) {
         expect(repayment.statusCode).toBe(201);
         expect(repayment.json()).toMatchObject({
+          customerName: updated.json().name,
           outstandingDebt: "53.03",
           paidAmount: "127.02",
           paymentStatus: "PARTIALLY_PAID",

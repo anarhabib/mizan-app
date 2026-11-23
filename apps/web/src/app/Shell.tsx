@@ -2,7 +2,6 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
   ContactRound,
-  Ellipsis,
   LayoutDashboard,
   Package,
   Receipt,
@@ -13,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -22,28 +22,24 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { BrandMark } from "@/shared/ui/BrandMark";
-import { LanguageButton } from "@/shared/ui/LanguageButton";
-import {
-  responsiveMenuItem,
-  responsiveMenuWidth,
-} from "@/shared/ui/responsive-menu";
-import { ThemeButton } from "@/shared/ui/ThemeButton";
-import { SignOutButton } from "@/features/auth";
-import { DisplayModeControl } from "@/features/settings";
+import { PageContainer } from "@/shared/ui/PageContainer";
+import { responsiveMenuItem } from "@/shared/ui/responsive-menu";
+import { AccountMenu } from "./AccountMenu";
 import { StoreSwitcher, useWorkspace } from "@/features/workspace";
+const settingsItem = {
+  to: "/settings",
+  namespace: "settings",
+  icon: Settings,
+  ownerOnly: true,
+} as const;
 const items = [
   { to: "/", namespace: "dashboard", icon: LayoutDashboard },
   { to: "/products", namespace: "products", icon: Package },
   { to: "/sales", namespace: "sales", icon: Receipt },
   { to: "/customers", namespace: "customers", icon: ContactRound },
-  { to: "/settings", namespace: "settings", icon: Settings, ownerOnly: true },
+  settingsItem,
   { to: "/team", namespace: "team", icon: Users, ownerOnly: true },
 ] as const;
 export function Shell() {
@@ -79,7 +75,46 @@ function ShellContent() {
   useEffect(() => {
     document.getElementById("main-content")?.focus({ preventScroll: true });
   }, [pathname]);
-  const navigation = !concealed && (
+  const width =
+    pathname === "/settings" || pathname === "/team" ? "standard" : "wide";
+  const concealWorkspace = () => setConcealed(true);
+  function navigationItem({
+    to,
+    namespace,
+    icon: Icon,
+  }: (typeof items)[number]) {
+    const label =
+      namespace === "dashboard"
+        ? t("nav", { ns: "dashboard" })
+        : t("title", { ns: namespace });
+    return (
+      <SidebarMenuItem key={to}>
+        <SidebarMenuButton
+          asChild
+          isActive={pathname === to || pathname.startsWith(`${to}/`)}
+          tooltip={isMobile ? undefined : label}
+          className={
+            isMobile
+              ? "h-auto min-h-14 flex-col justify-center gap-1 px-0.5 py-2 text-center text-xs leading-tight text-muted-foreground data-active:inset-shadow-[0_-2px_0_var(--brand-accent)] [&>span:last-child]:overflow-visible [&>span:last-child]:wrap-anywhere [&>span:last-child]:whitespace-normal"
+              : "min-h-9 data-active:inset-shadow-[2px_0_0_var(--brand-accent)] group-data-[collapsible=icon]:min-h-0"
+          }
+        >
+          <Link
+            to={to}
+            activeOptions={{ exact: to === "/" }}
+            aria-label={label}
+            activeProps={{ "aria-current": "page" }}
+          >
+            <Icon aria-hidden="true" />
+            <span className="group-data-[collapsible=icon]:hidden">
+              {label}
+            </span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+  const navigation = (
     <nav
       id="main-navigation"
       aria-label={t("navigation")}
@@ -89,68 +124,25 @@ function ShellContent() {
           : undefined
       }
     >
-      <SidebarMenu
-        className={
-          isMobile
-            ? owner
-              ? "grid grid-cols-5 gap-1"
-              : "grid grid-cols-4 gap-1"
-            : "gap-2"
-        }
-      >
-        {items
-          .filter((item) => !("ownerOnly" in item) || (owner && !isMobile))
-          .map(({ to, namespace, icon: Icon }) => {
-            const label =
-              namespace === "dashboard"
-                ? t("nav", { ns: "dashboard" })
-                : t("title", { ns: namespace });
-            return (
-              <SidebarMenuItem key={to}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === to || pathname.startsWith(`${to}/`)}
-                  tooltip={isMobile ? undefined : label}
-                  className={
-                    isMobile
-                      ? "h-auto min-h-14 flex-col justify-center gap-1 px-0.5 py-2 text-center text-xs leading-tight text-muted-foreground data-active:inset-shadow-[0_-2px_0_var(--brand-accent)] [&>span:last-child]:overflow-visible [&>span:last-child]:wrap-anywhere [&>span:last-child]:whitespace-normal"
-                      : "min-h-9 data-active:inset-shadow-[2px_0_0_var(--brand-accent)] group-data-[collapsible=icon]:min-h-0"
-                  }
-                >
-                  <Link
-                    to={to}
-                    activeOptions={{ exact: to === "/" }}
-                    aria-label={label}
-                    activeProps={{ "aria-current": "page" }}
-                  >
-                    <Icon aria-hidden="true" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      {label}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        {isMobile && owner && (
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  isActive={pathname === "/settings" || pathname === "/team"}
-                  className="h-auto min-h-14 flex-col justify-center gap-1 px-0.5 py-2 text-center text-xs leading-tight text-muted-foreground data-active:inset-shadow-[0_-2px_0_var(--brand-accent)]"
-                >
-                  <Ellipsis aria-hidden="true" />
-                  {t("more")}
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                align="end"
-                className={responsiveMenuWidth}
-                collisionPadding={8}
-              >
-                {items
+      <SidebarMenu className={isMobile ? "grid grid-cols-5 gap-1" : "gap-2"}>
+        {!concealed &&
+          items
+            .filter(
+              (item) =>
+                !("ownerOnly" in item) ||
+                (owner && !isMobile && item !== settingsItem),
+            )
+            .map(navigationItem)}
+        {isMobile && (
+          <SidebarMenuItem className="col-start-5">
+            <AccountMenu
+              mobile
+              active={pathname === "/settings" || pathname === "/team"}
+              concealWorkspace={concealWorkspace}
+            >
+              {owner &&
+                !concealed &&
+                items
                   .filter((item) => "ownerOnly" in item)
                   .map(({ to, namespace, icon: Icon }) => (
                     <DropdownMenuItem
@@ -158,7 +150,7 @@ function ShellContent() {
                       asChild
                       className={responsiveMenuItem}
                     >
-                      <Link to={to}>
+                      <Link to={to} activeProps={{ "aria-current": "page" }}>
                         <Icon aria-hidden="true" />
                         <span className="min-w-0 wrap-anywhere">
                           {t("title", { ns: namespace })}
@@ -166,8 +158,7 @@ function ShellContent() {
                       </Link>
                     </DropdownMenuItem>
                   ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            </AccountMenu>
           </SidebarMenuItem>
         )}
       </SidebarMenu>
@@ -183,27 +174,36 @@ function ShellContent() {
       </a>
       {!isMobile && (
         <Sidebar collapsible="icon" className="motion-reduce:transition-none">
-          <SidebarHeader className="min-h-14 justify-center px-4 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
+          <SidebarHeader className="min-h-14 flex-row items-center justify-between px-3 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <BrandMark compact={!open} />
+            <SidebarTrigger
+              className="shrink-0"
+              aria-label={t(open ? "collapseNavigation" : "expandNavigation")}
+              aria-controls={concealed ? undefined : "main-navigation"}
+              aria-expanded={open}
+              title={t(open ? "collapseNavigation" : "expandNavigation")}
+            />
           </SidebarHeader>
           <SidebarContent className="px-3 py-4 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
-            {navigation}
+            {!concealed && navigation}
           </SidebarContent>
+          <SidebarFooter className="border-t group-data-[collapsible=icon]:items-center">
+            <SidebarMenu className="gap-1">
+              {owner && !concealed && navigationItem(settingsItem)}
+              <SidebarMenuItem>
+                <AccountMenu concealWorkspace={concealWorkspace} />
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
         </Sidebar>
       )}
       <div className="min-w-0 flex-1">
         <header className="shell-top border-b border-border bg-card">
-          <div className="mx-auto flex min-h-14 max-w-5xl items-center gap-2 px-4">
-            {isMobile ? (
-              <BrandMark compact />
-            ) : (
-              <SidebarTrigger
-                aria-label={t(open ? "collapseNavigation" : "expandNavigation")}
-                aria-controls={concealed ? undefined : "main-navigation"}
-                aria-expanded={open}
-                title={t(open ? "collapseNavigation" : "expandNavigation")}
-              />
-            )}
+          <PageContainer
+            width={width}
+            className="flex min-h-14 items-center gap-2"
+          >
+            {isMobile && <BrandMark compact />}
             <div className="min-w-0 flex-1" data-slot="store-switcher">
               {!concealed && (
                 <StoreSwitcher
@@ -213,23 +213,21 @@ function ShellContent() {
                 />
               )}
             </div>
-            <DisplayModeControl concealWorkspace={() => setConcealed(true)} />
-            <ThemeButton />
-            <LanguageButton />
-            <SignOutButton compact />
-          </div>
+          </PageContainer>
         </header>
         {isMobile && navigation}
         <main
           id="main-content"
           tabIndex={-1}
-          className="shell-content mx-auto max-w-5xl px-4 py-6 focus:outline-none"
+          className="shell-content py-6 focus:outline-none"
         >
-          {concealed ? (
-            <p role="status">{t("displayMode.concealed")}</p>
-          ) : (
-            <Outlet />
-          )}
+          <PageContainer width={width}>
+            {concealed ? (
+              <p role="status">{t("displayMode.concealed")}</p>
+            ) : (
+              <Outlet />
+            )}
+          </PageContainer>
         </main>
       </div>
     </>

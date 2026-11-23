@@ -49,6 +49,14 @@ export interface ProductDetail extends ProductListItem {
   sale: { id: string; total: MoneyInput; createdAt: string } | null;
 }
 
+export interface ProductOverview {
+  available: number;
+  sold: number;
+  soldOnCredit: number;
+  availableWeight: string;
+  acquisitionValue?: MoneyInput[];
+}
+
 export interface ProductList {
   items: ProductListItem[];
   nextCursor?: string;

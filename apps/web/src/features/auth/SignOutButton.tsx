@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { auth } from "@/shared/lib/auth";
 
-export function SignOutButton({ compact = false }: { compact?: boolean }) {
+export function useSignOut() {
   const { t } = useTranslation("auth");
   const [pending, setPending] = useState(false);
 
   async function signOut() {
-    if (!auth) return;
+    if (!auth || pending) return;
     setPending(true);
     try {
       const { error } = await auth.signOut({ scope: "local" });
@@ -21,6 +21,12 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
       setPending(false);
     }
   }
+  return { signOut, pending };
+}
+
+export function SignOutButton() {
+  const { t } = useTranslation("auth");
+  const { signOut, pending } = useSignOut();
 
   return (
     <PendingButton
@@ -28,12 +34,11 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
       variant="outline"
       pending={pending}
       aria-label={t("signOut")}
-      title={compact ? t("signOut") : undefined}
       onClick={() => void signOut()}
       className="min-h-11 min-w-11 lg:min-h-9"
     >
       {!pending && <LogOut aria-hidden="true" />}
-      {!compact && t("signOut")}
+      {t("signOut")}
     </PendingButton>
   );
 }

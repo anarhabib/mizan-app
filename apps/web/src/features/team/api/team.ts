@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   queryOptions,
   useMutation,
   useQueryClient,
@@ -10,6 +11,7 @@ import type {
   StoreContext,
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
+import type { CursorPage } from "@/shared/hooks/useCursorPagination";
 
 export type TeamScope = Pick<StoreContext, "organizationId" | "storeId">;
 
@@ -27,17 +29,34 @@ export const teamKeys = {
     ["team", organizationId, storeId, "directory"] as const,
 };
 
-export function teamDirectoryQuery(scope: TeamScope) {
+export function teamDirectoryQuery(
+  scope: TeamScope,
+  members?: CursorPage,
+  invitations?: CursorPage,
+) {
+  const params = new URLSearchParams();
+  if (members) {
+    params.set("memberLimit", String(members.limit));
+    if (members.after) params.set("memberAfter", members.after);
+  }
+  if (invitations) {
+    params.set("pendingInvitations", "true");
+    params.set("invitationLimit", String(invitations.limit));
+    if (invitations.after) params.set("invitationAfter", invitations.after);
+  }
   return queryOptions<MembershipDirectory, ApiError>({
-    queryKey: teamKeys.directory(scope),
+    queryKey: params.size
+      ? [...teamKeys.directory(scope), members, invitations]
+      : teamKeys.directory(scope),
     queryFn: ({ signal }) =>
       apiRequest<MembershipDirectory>(
-        `${organizationPath(scope)}/memberships`,
+        `${organizationPath(scope)}/memberships${params.size ? `?${params}` : ""}`,
         {
           signal,
         },
       ),
     refetchOnMount: "always",
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -90,9 +109,13 @@ export function useTeamAction(scope: TeamScope) {
     retry: false,
     mutationFn: (action) => applyTeamAction(scope, action),
     onSettled: () =>
-      client.invalidateQueries({
-        queryKey: teamKeys.directory(scope),
-        exact: true,
-      }),
+      Promise.all(
+        client
+          .getQueryCache()
+          .findAll({ queryKey: ["team", scope.organizationId] })
+          .map(({ queryKey }) =>
+            client.invalidateQueries({ queryKey, exact: true }),
+          ),
+      ),
   });
 }

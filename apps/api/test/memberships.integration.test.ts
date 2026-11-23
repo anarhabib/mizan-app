@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { MembershipDirectory } from "@mizan/contracts";
 import { afterAll, expect, test } from "vitest";
 import { buildApp } from "../src/app.js";
 
@@ -193,6 +194,51 @@ test.skipIf(!db)(
       expect(
         (await request("GET", `${base}/memberships`, "seller")).statusCode,
       ).toBe(403);
+      const extraMembers = Array.from({ length: 11 }, () => randomUUID());
+      await db.user.createMany({ data: extraMembers.map((id) => ({ id })) });
+      await db.organizationMembership.createMany({
+        data: extraMembers.map((userId) => ({
+          organizationId: org.id,
+          userId,
+          role: "SALESPERSON",
+        })),
+      });
+      await db.invitation.createMany({
+        data: Array.from({ length: 12 }, (_, index) => ({
+          organizationId: org.id,
+          storeId: store.id,
+          invitedById: owner,
+          email: `page-${index}@example.com`,
+          tokenDigest: randomUUID(),
+          createdAt: new Date("2026-01-01T00:00:00Z"),
+          expiresAt: new Date("2099-01-01T00:00:00Z"),
+        })),
+      });
+      const pagePath = `${base}/memberships?memberLimit=10&invitationLimit=10&pendingInvitations=true`;
+      const firstPage = await request("GET", pagePath, "owner");
+      expect(firstPage.statusCode, firstPage.body).toBe(200);
+      const first = firstPage.json<MembershipDirectory>();
+      expect(first.members).toHaveLength(10);
+      expect(first.invitations).toHaveLength(10);
+      const nextPage = await request(
+        "GET",
+        `${pagePath}&memberAfter=${first.nextMemberCursor}&invitationAfter=${first.nextInvitationCursor}`,
+        "owner",
+      );
+      expect(nextPage.statusCode, nextPage.body).toBe(200);
+      const next = nextPage.json<MembershipDirectory>();
+      expect(next.members).toHaveLength(2);
+      expect(next.invitations).toHaveLength(2);
+      expect(
+        new Set([...first.members, ...next.members].map(({ userId }) => userId))
+          .size,
+      ).toBe(12);
+      expect(
+        new Set([...first.invitations, ...next.invitations].map(({ id }) => id))
+          .size,
+      ).toBe(12);
+      expect(next).not.toHaveProperty("nextMemberCursor");
+      expect(next).not.toHaveProperty("nextInvitationCursor");
     } finally {
       await app.close();
     }

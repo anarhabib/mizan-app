@@ -19,7 +19,6 @@
   "displayMode": {
     "owner": "Owner",
     "salesperson": "Salesperson",
-    "trigger": "Display mode: {{mode}}",
     "switchTo": "Switch to {{mode}} mode",
     "restrict": "This hides acquisition costs and owner controls on this device. Enter your password to return to Owner mode.",
     "authenticate": "Enter your account password to return to Owner mode.",
@@ -29,9 +28,17 @@
     "concealed": "Workspace hidden while switching display modes.",
     "invalidPassword": "The password is incorrect.",
     "unavailable": "Password confirmation is unavailable for this session.",
-    "failed": "Could not switch display modes. Try again."
+    "failed": "Could not switch display modes. Try again.",
+    "change": "Change display mode"
   },
   "expandNavigation": "Expand navigation",
   "collapseNavigation": "Collapse navigation",
-  "notifications": "Notifications"
+  "notifications": "Notifications",
+  "account": "Account",
+  "pagination": {
+    "pageSize": "Rows per page",
+    "page": "Page {{page}}",
+    "previous": "Previous page",
+    "next": "Next page"
+  }
 }

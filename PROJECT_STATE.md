@@ -1,5 +1,23 @@
 # Misqal project state
 
+## Task 20 — products overview, navigation and pagination (November 23, 2026)
+
+- `apps/web/src/shared/ui/PageContainer.tsx` and `apps/web/src/index.css` provide fluid wide (1600px), standard and narrow layouts. `apps/web/src/app/Shell.tsx` keeps the store selector in the header, places the collapse control and Settings in the desktop sidebar, and exposes account actions through `AccountMenu.tsx` in the desktop footer and mobile More.
+- `apps/web/src/features/products` reuses the market queries and adds a linked inventory overview and one scrolling filter row. `apps/api/src/modules/products` aggregates counts, exact available weight and Owner-mode acquisition values in the selected store. The credit count and filter both follow current outstanding balances, including multi-item sales and subsequent repayments.
+- `CursorPagination.tsx` provides 10, 25, 50 and 100 rows and cursor history for Products, Sales, Customers, customer purchase history, Team members and pending invitations, and gold-rule history. The API retains the previous defaults for existing callers. No database migration is required.
+- Contracts and API builds, web TypeScript and production build, changed-file lint, 23 contracts tests, 164 web tests and 71 API tests passed. The API suite used a disposable PostgreSQL database. Chromium fixtures checked 360, 390, 768, 1280, 1440, 1920 and 2560px in both themes, plus simulated safe areas, localization, account controls, cursor navigation and store switching. Physical devices, other browsers and real Storage remain unverified. Vite reported its existing chunk-size warning. Task branch is `task/20-products-navigation-pagination`.
+
+### Follow-up — retail prices, filters and receipt customer
+
+- Products shows the inventory overview. Its selling-price widget and widget-only translations were removed. Dashboard and checkout use the existing rate services.
+- `ProductList.tsx` and `ProductFilters.tsx` align search and filters in one internally scrolling row. `SaleResult.tsx` links the current customer name beside the receipt date and payment status. The existing sale API includes the name for linked receipts and leaves anonymous receipts unchanged. No migration is required.
+- Contracts and API builds, web typecheck and production build, changed-file lint and formatting, 15 targeted web tests and four API integration tests passed. Chromium fixtures checked Products and receipts at 360, 390, 768, 1280 and 1920px in both themes, with AZ and RU filter checks. Physical devices and other browsers remain unverified. Vite reported its existing chunk-size warning.
+
+### Follow-up — automatic checkout pricing
+
+- Sales options resolve active-purity retail rates in the sale currency. `SaleForm.tsx` and `item-pricing.ts` calculate an editable per-item suggestion from recorded net gold weight. An explicitly agreed final amount survives gram-rate changes and refetches. Where net and gross weights differ, checkout requires an explicit action to apply the metal-only suggestion.
+- The existing sale request and receipt snapshot still store final agreed amounts. No schema migration was required. Contracts, API and web builds, changed-file lint, 27 targeted web tests and five PostgreSQL integration tests passed. Chromium fixtures covered 390px and 1280px in light and dark, independent sale items, refetches, resets and missing net weight.
+
 ## Task 19 — dashboard UX refinement (November 23, 2026)
 
 - `apps/web/src/features/dashboard` now uses ordered, adaptive grid spans, compact financial rows and a quick-action toolbar. The unified sales chart remembers the selected metric per workspace and migrates saved amount/count widget preferences. Dashboard links open scoped Sales, Customers and Products filters or existing record details.

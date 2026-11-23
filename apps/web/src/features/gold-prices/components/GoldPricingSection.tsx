@@ -23,7 +23,9 @@ import {
   type GoldRuleConfiguration,
   type StoreGoldPriceRule,
 } from "@mizan/contracts";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { CursorPagination } from "@/shared/ui/CursorPagination";
+import { useCursorPagination } from "@/shared/hooks/useCursorPagination";
 import { Pencil } from "lucide-react";
 import {
   AlertDialog,
@@ -694,8 +696,11 @@ function RuleEditor({
 
 function PricingHistory({ scope }: { scope: Scope }) {
   const { t, i18n } = useTranslation("gold-prices");
-  const query = useInfiniteQuery(goldRuleHistoryQuery(scope));
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const pagination = useCursorPagination(
+    JSON.stringify([scope.organizationId, scope.storeId]),
+  );
+  const query = useQuery(goldRuleHistoryQuery(scope, pagination.request));
+  const items = query.data?.items ?? [];
   return (
     <div className="grid gap-3">
       {query.isPending && <ListSkeleton rows={3} />}
@@ -749,16 +754,12 @@ function PricingHistory({ scope }: { scope: Scope }) {
           </li>
         ))}
       </ul>
-      {query.hasNextPage && (
-        <Button
-          variant="outline"
-          className="min-h-11 justify-self-start lg:min-h-9"
-          disabled={query.isFetchingNextPage}
-          onClick={() => void query.fetchNextPage()}
-        >
-          {t("more")}
-        </Button>
-      )}
+      <CursorPagination
+        pagination={pagination}
+        nextCursor={query.data?.nextCursor}
+        pending={query.isPending}
+        label={t("history")}
+      />
     </div>
   );
 }

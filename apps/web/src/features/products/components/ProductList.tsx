@@ -1,6 +1,5 @@
-import { PendingButton } from "@/shared/ui/PendingButton";
 import { useEffect, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import type { ProductStatus } from "@mizan/contracts";
 import { useTranslation } from "react-i18next";
@@ -13,8 +12,10 @@ import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { PurityText } from "@/shared/ui/PurityText";
 import { WeightText } from "@/shared/ui/WeightText";
+import { useCursorPagination } from "@/shared/hooks/useCursorPagination";
+import { CursorPagination } from "@/shared/ui/CursorPagination";
 import {
-  productListQuery,
+  productPageQuery,
   type ProductFilters as Filters,
   type ProductScope,
 } from "../api/queries";
@@ -48,31 +49,32 @@ export function ProductList({
   scope: ProductScope;
   inspect: (id: string, opener: HTMLElement) => void;
   onlyInStock?: boolean;
-  initialStatus?: ProductStatus | "all";
+  initialStatus?: ProductStatus | "all" | "SOLD_ON_CREDIT";
   dashboardFilters?: Pick<Filters, "soldOn" | "receivedOn" | "agedDays">;
   clearDashboardFilters?: () => void;
 }) {
   const { t } = useTranslation("products");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Omit<Filters, "q">>({
-    status: initialStatus === "all" ? undefined : initialStatus,
+    status:
+      initialStatus === "all"
+        ? undefined
+        : initialStatus === "SOLD_ON_CREDIT"
+          ? "SOLD"
+          : initialStatus,
+    credit: initialStatus === "SOLD_ON_CREDIT" ? true : undefined,
   });
   const { soldOn, receivedOn, agedDays } = dashboardFilters ?? {};
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-end gap-2 rounded-lg border border-border bg-card p-3 lg:block">
+    <div id="product-inventory" className="min-w-0 space-y-4">
+      {onlyInStock ? (
         <ProductSearch onSearch={setSearch} />
-        {!onlyInStock && (
-          <div className="lg:mt-4">
-            <ProductFilters
-              scope={scope}
-              filters={filters}
-              setFilters={setFilters}
-            />
-          </div>
-        )}
-      </div>
+      ) : (
+        <ProductFilters scope={scope} filters={filters} setFilters={setFilters}>
+          <ProductSearch onSearch={setSearch} />
+        </ProductFilters>
+      )}
       {(soldOn || receivedOn || agedDays) && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
           {soldOn && <span>{t("soldOn", { date: soldOn })}</span>}
@@ -123,7 +125,10 @@ function ProductSearch({ onSearch }: { onSearch: (value: string) => void }) {
   }, [onSearch, value]);
 
   return (
-    <div role="search" className="grid min-w-0 flex-1 gap-2 lg:max-w-sm">
+    <div
+      role="search"
+      className="grid w-full min-w-48 max-w-sm flex-[1_0_12rem] gap-2 md:max-lg:min-w-44 md:max-lg:basis-44"
+    >
       <Label htmlFor="product-search">{t("search")}</Label>
       <Input
         id="product-search"
@@ -149,19 +154,9 @@ function ProductResults({
   inspect: (id: string, opener: HTMLElement) => void;
 }) {
   const { t } = useTranslation("products");
-  const query = useInfiniteQuery(productListQuery(scope, filters));
-
-  if (query.isPending) return <ListSkeleton />;
-  if (query.isError && !query.data) {
-    return (
-      <ErrorState
-        error={query.error}
-        retry={() => void query.refetch()}
-        pending={query.isFetching}
-      />
-    );
-  }
-  const products = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const pagination = useCursorPagination(JSON.stringify(filters));
+  const query = useQuery(productPageQuery(scope, filters, pagination.request));
+  const products = query.data?.items ?? [];
   const filtered = Object.values(filters).some((value) => value !== undefined);
 
   return (
@@ -170,27 +165,34 @@ function ProductResults({
       aria-busy={query.isFetching}
       className="space-y-3"
     >
-      {products.length === 0 && !query.isError && !query.isPlaceholderData && (
-        <EmptyState
-          title={t(filtered ? "noResults" : "empty")}
-          description={t(filtered ? "noResultsHint" : "description")}
-        />
-      )}
+      {query.isPending && <ListSkeleton />}
+      {products.length === 0 &&
+        !query.isError &&
+        !query.isPending &&
+        !query.isPlaceholderData && (
+          <EmptyState
+            title={t(filtered ? "noResults" : "empty")}
+            description={t(filtered ? "noResultsHint" : "description")}
+          />
+        )}
       {products.length > 0 && (
-        <ul className="divide-y overflow-hidden rounded-lg border border-border bg-card">
+        <ul
+          inert={query.isPlaceholderData}
+          className="divide-y overflow-hidden rounded-lg border border-border bg-card"
+        >
           {products.map((product) => (
             <li key={product.id}>
               <Button
                 variant="ghost"
                 type="button"
                 onClick={(event) => inspect(product.id, event.currentTarget)}
-                className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_6rem_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
+                className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,1fr)_10rem_9rem_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
               >
-                <span className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
+                <span className="grid min-w-0 gap-2 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
                   <span className="wrap-break-word text-xs text-muted-foreground">
                     {product.code}
                   </span>
-                  <span className="wrap-break-word font-medium">
+                  <span className="max-w-prose wrap-break-word font-medium">
                     {product.name}
                   </span>
                 </span>
@@ -220,24 +222,15 @@ function ProductResults({
         <ErrorState
           error={query.error}
           pending={query.isFetching}
-          retry={() =>
-            void (query.isFetchNextPageError
-              ? query.fetchNextPage()
-              : query.refetch())
-          }
+          retry={() => void query.refetch()}
         />
       )}
-      {query.hasNextPage && !query.isFetchNextPageError && (
-        <PendingButton
-          pending={query.isFetchingNextPage}
-          variant="outline"
-          disabled={query.isFetching || query.isPlaceholderData}
-          className="min-h-11 lg:min-h-9"
-          onClick={() => void query.fetchNextPage()}
-        >
-          {t(query.isFetchingNextPage ? "loadingMore" : "loadMore")}
-        </PendingButton>
-      )}
+      <CursorPagination
+        pagination={pagination}
+        nextCursor={query.data?.nextCursor}
+        pending={query.isPending || query.isPlaceholderData}
+        label={t("title")}
+      />
     </section>
   );
 }

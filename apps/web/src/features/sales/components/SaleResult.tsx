@@ -60,7 +60,6 @@ function SaleRecord({
   onRepaymentSubmittingChange: (submitting: boolean) => void;
 }) {
   const { t } = useTranslation("sales");
-  const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
   const money = (amount: string, currency = sale.currency) => (
     <MoneyText value={{ amount, currency }} />
@@ -75,16 +74,16 @@ function SaleRecord({
         <Badge variant={sale.paymentStatus === "PAID" ? "success" : "warning"}>
           {t(`paymentStatus.${sale.paymentStatus}`)}
         </Badge>
+        {sale.customerId && sale.customerName && (
+          <Link
+            to="/customers"
+            search={{ customer: sale.customerId }}
+            className="inline-flex min-h-11 min-w-0 items-center text-sm underline underline-offset-4 wrap-anywhere lg:min-h-9"
+          >
+            {sale.customerName}
+          </Link>
+        )}
       </div>
-      {sale.customerId && (
-        <Link
-          to="/customers"
-          search={{ customer: sale.customerId }}
-          className="inline-flex min-h-11 items-center justify-self-start underline underline-offset-4 lg:min-h-9"
-        >
-          {customerText("detail")}
-        </Link>
-      )}
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>

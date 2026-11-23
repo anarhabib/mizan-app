@@ -13,6 +13,7 @@ import {
 } from "react-hook-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  roundMoneyHalfUp,
   maxSaleItems,
   maxSalePayments,
   salePaymentMethods,
@@ -23,6 +24,9 @@ import {
 import { Plus, RotateCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { WeightText } from "@/shared/ui/WeightText";
+import { suggestedItemAmount, validGramRate } from "../lib/item-pricing";
 import { Label } from "@/components/ui/label";
 import {
   exchangeRatesQuery,
@@ -53,6 +57,7 @@ function SalePriceField({
   scope,
   productId,
   currency,
+  retailRates,
   id,
   error,
   disabled,
@@ -62,37 +67,176 @@ function SalePriceField({
   scope: SaleScope;
   productId: string;
   currency: string;
+  retailRates: SaleOptions["retailRates"];
   id: string;
   error?: FieldError;
   disabled: boolean;
 }) {
   const { t } = useTranslation("sales");
-  const [edited, setEdited] = useState(false);
-  const query = useQuery({
-    ...productDetailQuery(scope, productId),
-    select: (product) => product.estimatedSellingValue,
-    retry: false,
-  });
-  const suggested =
-    !query.isFetching && !query.isError && query.data?.currency === currency
-      ? query.data.amount
+  const [enteredRate, setEnteredRate] = useState<string>();
+  const [finalOverridden, setFinalOverridden] = useState(false);
+  const [useMetalSuggestion, setUseMetalSuggestion] = useState(false);
+  const { data: product, isPending } = useQuery(
+    productDetailQuery(scope, productId),
+  );
+  const weight = product?.netGoldWeight;
+  const eligible = Boolean(
+    weight && suggestedItemAmount("0", weight, currency) !== undefined,
+  );
+  const metalOnly =
+    eligible && product && weight
+      ? roundMoneyHalfUp(weight, 3) !== roundMoneyHalfUp(product.weight, 3)
+      : false;
+  const storeRate = eligible
+    ? retailRates?.find(({ purity }) => purity === product?.purity)
+        ?.amountPerGram
+    : undefined;
+  if (!disabled && enteredRate === undefined && storeRate !== undefined)
+    setEnteredRate(storeRate);
+  const appliedRate = enteredRate ?? storeRate ?? "";
+  const suggestion =
+    eligible && weight
+      ? suggestedItemAmount(appliedRate, weight, currency)
       : undefined;
   const { getValues, setValue } = form;
+
   useEffect(() => {
-    if (!disabled && !edited && suggested !== undefined && !getValues(name))
-      setValue(name, suggested);
-  }, [disabled, edited, getValues, name, setValue, suggested]);
+    if (
+      !disabled &&
+      !metalOnly &&
+      !finalOverridden &&
+      suggestion !== undefined &&
+      !getValues(name)
+    )
+      setValue(name, suggestion);
+  }, [
+    disabled,
+    metalOnly,
+    finalOverridden,
+    suggestion,
+    getValues,
+    name,
+    setValue,
+  ]);
+
+  function changeRate(rate: string) {
+    setEnteredRate(rate);
+    if (!weight || finalOverridden || (metalOnly && !useMetalSuggestion))
+      return;
+    setValue(name, suggestedItemAmount(rate, weight, currency) ?? "", {
+      shouldDirty: true,
+    });
+  }
+
   return (
-    <DecimalInput
-      id={id}
-      name={form.register(name, {
-        onChange: () => {
-          setEdited(true);
-        },
-      })}
-      label={t("amountCurrency", { label: t("fields.saleAmount"), currency })}
-      error={error}
-    />
+    <div className="grid min-w-0 gap-3">
+      {product && (
+        <div className="text-sm wrap-anywhere">
+          {name !== "saleAmount" && (
+            <p className="font-medium">
+              {product.code} · {product.name}
+            </p>
+          )}
+          <p className="text-muted-foreground">
+            {t("itemPricing.recordedWeight")}{" "}
+            <WeightText value={product.weight} /> · {t("itemPricing.purity")}{" "}
+            {product.purity}
+          </p>
+        </div>
+      )}
+      {!isPending && (!eligible || storeRate === undefined) && (
+        <p className="text-xs text-muted-foreground">
+          {t(eligible ? "itemPricing.noRate" : "itemPricing.noWeight")}
+        </p>
+      )}
+      {eligible && (
+        <>
+          {storeRate !== undefined && (
+            <p className="text-sm">
+              {t("itemPricing.storeRate")}{" "}
+              <MoneyText value={{ amount: storeRate, currency }} />
+              {t("perGram")}
+            </p>
+          )}
+          <div className="grid gap-2">
+            <Label htmlFor={id + "-gram"}>
+              {t("amountCurrency", {
+                label: t("itemPricing.gramRate"),
+                currency,
+              })}
+            </Label>
+            <Input
+              id={id + "-gram"}
+              inputMode="decimal"
+              value={appliedRate}
+              maxLength={33}
+              aria-invalid={appliedRate !== "" && !validGramRate(appliedRate)}
+              aria-describedby={
+                appliedRate !== "" && !validGramRate(appliedRate)
+                  ? id + "-gram-error"
+                  : undefined
+              }
+              className="min-h-11 tabular-nums lg:min-h-9"
+              onChange={(event) =>
+                changeRate(event.target.value.trim().replace(",", "."))
+              }
+            />
+            {appliedRate !== "" && !validGramRate(appliedRate) && (
+              <p id={id + "-gram-error"} className="text-xs text-destructive">
+                {t("invalidField")}
+              </p>
+            )}
+          </div>
+          {suggestion !== undefined && (
+            <p className="text-sm">
+              {t("itemPricing.calculated")}{" "}
+              <MoneyText value={{ amount: suggestion, currency }} />
+            </p>
+          )}
+          {metalOnly && (
+            <p className="text-xs text-muted-foreground">
+              {t("itemPricing.metalOnly")}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {storeRate !== undefined && storeRate !== appliedRate && (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 lg:min-h-9"
+                onClick={() => changeRate(storeRate)}
+              >
+                {t("itemPricing.restoreRate")}
+              </Button>
+            )}
+            {suggestion !== undefined &&
+              (finalOverridden || (metalOnly && !useMetalSuggestion)) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 lg:min-h-9"
+                  onClick={() => {
+                    setFinalOverridden(false);
+                    setUseMetalSuggestion(true);
+                    setValue(name, suggestion, { shouldDirty: true });
+                  }}
+                >
+                  {t("itemPricing.useSuggestion")}
+                </Button>
+              )}
+          </div>
+        </>
+      )}
+      <DecimalInput
+        id={id}
+        name={form.register(name, { onChange: () => setFinalOverridden(true) })}
+        label={t("amountCurrency", {
+          label: t("itemPricing.finalAmount"),
+          currency,
+        })}
+        error={error}
+      />
+    </div>
   );
 }
 
@@ -387,6 +531,7 @@ export function SaleForm({
           scope={scope}
           productId={productId}
           currency={currency}
+          retailRates={options.retailRates}
           disabled={disabled}
           id="sale-amount"
           error={errors.saleAmount}
@@ -396,13 +541,13 @@ export function SaleForm({
             className="grid gap-3 rounded-lg border border-border bg-card p-3"
             key={item.id}
           >
-            <p className="font-medium wrap-anywhere">{item.label}</p>
             <SalePriceField
               form={form}
               name={`items.${index}.saleAmount`}
               scope={scope}
               productId={item.productId}
               currency={currency}
+              retailRates={options.retailRates}
               disabled={disabled}
               id={`sale-item-amount-${item.id}`}
               error={errors.items?.[index]?.saleAmount}

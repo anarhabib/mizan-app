@@ -9,3 +9,4 @@ export * from "./customers.js";
 export * from "./exchange-rates.js";
 export * from "./gold-prices.js";
 export * from "./dashboard.js";
+export * from "./pagination.js";

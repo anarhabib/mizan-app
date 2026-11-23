@@ -16,6 +16,7 @@ import {
   createInvitation,
   listMemberships,
   type MembershipDatabase,
+  type MembershipPage,
 } from "./membership.service.js";
 
 export interface MembershipOptions {
@@ -62,7 +63,7 @@ export function registerMembershipRoutes(
   const base = "/organizations/:organizationId";
   type Organization = { organizationId: string };
   type Member = Organization & { userId: string };
-  app.get<{ Params: Organization }>(
+  app.get<{ Params: Organization; Querystring: MembershipPage }>(
     `${base}/memberships`,
     { preHandler },
     (request) =>
@@ -70,6 +71,7 @@ export function registerMembershipRoutes(
         configured().db,
         request.params.organizationId,
         request.identity!.userId,
+        request.query,
       ),
   );
   app.post<{

@@ -242,6 +242,7 @@ test.skipIf(!db)(
       });
       expect(options.json()).toEqual({
         currency: "AZN",
+        retailRates: expect.any(Array),
         rates: [
           { id: null, purity: 375, amountPerGram: null },
           { id: rate.id, purity: 585, amountPerGram: "15" },

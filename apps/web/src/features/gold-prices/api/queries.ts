@@ -1,9 +1,7 @@
 import {
-  infiniteQueryOptions,
   queryOptions,
   useMutation,
   useQueryClient,
-  type InfiniteData,
   type QueryClient,
 } from "@tanstack/react-query";
 import type {
@@ -22,6 +20,7 @@ import type {
   MarketSeries,
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
+import type { CursorPage } from "@/shared/hooks/useCursorPagination";
 
 type Scope = Pick<StoreContext, "organizationId" | "storeId">;
 const baseKey = ({ organizationId, storeId }: Scope) =>
@@ -94,22 +93,16 @@ export function goldStoreChartQuery(
 
 const historyKey = (scope: Scope) => [...baseKey(scope), "history"] as const;
 
-export function goldRuleHistoryQuery(scope: Scope) {
-  return infiniteQueryOptions<
-    GoldPriceRuleHistory,
-    ApiError,
-    InfiniteData<GoldPriceRuleHistory>,
-    ReturnType<typeof historyKey>,
-    string | undefined
-  >({
-    queryKey: historyKey(scope),
-    initialPageParam: undefined,
-    queryFn: ({ signal, pageParam }) =>
+export function goldRuleHistoryQuery(scope: Scope, page: CursorPage) {
+  const params = new URLSearchParams({ limit: String(page.limit) });
+  if (page.after) params.set("after", page.after);
+  return queryOptions<GoldPriceRuleHistory, ApiError>({
+    queryKey: [...historyKey(scope), page] as const,
+    queryFn: ({ signal }) =>
       apiRequest<GoldPriceRuleHistory>(
-        `${path(scope)}/settings/history${pageParam ? `?after=${encodeURIComponent(pageParam)}` : ""}`,
+        path(scope) + "/settings/history?" + params,
         { signal },
       ),
-    getNextPageParam: (last) => last.nextCursor,
     staleTime: 60_000,
     retry: false,
   });

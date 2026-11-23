@@ -164,23 +164,25 @@ export async function dashboardGoldRates(
   return {
     stale: market.stale,
     quoteId: market.quote?.id ?? null,
-    rates: purities.map((purity) => ({
-      purity,
-      reference: price(
-        marketPurityRate(market.stale ? null : market.quote, purity),
-      ),
-      commercial: {
-        RETAIL_SELL: price(
-          resolveGoldRate(rules, "RETAIL_SELL", purity, market).rate,
+    rates: purities.map((purity) => {
+      const retail = resolveGoldRate(rules, "RETAIL_SELL", purity, market);
+      return {
+        purity,
+        reference: price(
+          marketPurityRate(market.stale ? null : market.quote, purity),
         ),
-        SCRAP_BUY: price(
-          resolveGoldRate(rules, "SCRAP_BUY", purity, market).rate,
-        ),
-        SCRAP_SELL: price(
-          resolveGoldRate(rules, "SCRAP_SELL", purity, market).rate,
-        ),
-      },
-    })),
+        commercial: {
+          RETAIL_SELL: price(retail.rate),
+          SCRAP_BUY: price(
+            resolveGoldRate(rules, "SCRAP_BUY", purity, market).rate,
+          ),
+          SCRAP_SELL: price(
+            resolveGoldRate(rules, "SCRAP_SELL", purity, market).rate,
+          ),
+        },
+        retailStatus: retail.status,
+      };
+    }),
   };
 }
 

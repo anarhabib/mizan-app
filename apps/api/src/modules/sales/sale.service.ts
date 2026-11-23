@@ -12,6 +12,7 @@ import type {
 } from "@mizan/contracts";
 import { Prisma, type createDatabase } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
+import { readPageSize } from "../access/page-size.js";
 import { businessDateRange } from "../access/business-date.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import {
@@ -49,6 +50,7 @@ import {
 
 export type SalesDatabase = ReturnType<typeof createDatabase>;
 const include = {
+  customer: { select: { name: true } },
   tradeIns: { orderBy: { id: "asc" } },
   items: { orderBy: { position: "asc" } },
   payments: {
@@ -166,8 +168,33 @@ export async function getSaleOptions(
 ): Promise<SaleOptions> {
   const currency = context.settings.defaultCurrency;
   const rates = await currentRates(db, context, currency);
+  const purities = rates.map(({ purity }) => purity);
+  const rules = await currentGoldRules(db, context, ["RETAIL_SELL"], purities);
+  const market = await readGoldMarket(db);
+  const exchangeRate = await goldExchangeRate(db, currency);
   return {
     currency,
+    retailRates: exchangeRate
+      ? purities.flatMap((purity) => {
+          const { rate } = resolveGoldRate(
+            rules,
+            "RETAIL_SELL",
+            purity,
+            market,
+          );
+          return rate === null
+            ? []
+            : [
+                {
+                  purity,
+                  amountPerGram: new SaleDecimal(rate)
+                    .div(exchangeRate)
+                    .toDecimalPlaces(16, SaleDecimal.ROUND_HALF_UP)
+                    .toFixed(),
+                },
+              ];
+        })
+      : [],
     rates: rates.map(({ amountPerGram, ...rate }) => ({
       ...rate,
       amountPerGram: amountPerGram?.toFixed() ?? null,
@@ -336,6 +363,7 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
   return {
     id: sale.id,
     ...(sale.customerId && { customerId: sale.customerId }),
+    ...(sale.customer && { customerName: sale.customer.name }),
     outstandingDebt: sale.outstandingDebt.toFixed(),
     paymentStatus: paymentStatus(sale.defaultSettlement, sale.outstandingDebt),
     paidAmount: paidSaleAmount(sale.defaultSettlement, sale.outstandingDebt),
@@ -402,10 +430,12 @@ export async function listSales(
     q?: string;
     date?: string;
     after?: string;
+    limit?: string;
     paymentDate?: string;
     paymentStatus?: string;
   },
 ): Promise<SaleList> {
+  const pageSize = readPageSize(filters.limit, "INVALID_SALE");
   const scope = { organizationId, storeId };
   const { q, date, after } = filters;
   if (
@@ -542,7 +572,7 @@ export async function listSales(
       ],
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: 51,
+    take: pageSize + 1,
     select: {
       id: true,
       createdAt: true,
@@ -562,7 +592,7 @@ export async function listSales(
     },
   });
   return {
-    items: rows.slice(0, 50).map((sale) => ({
+    items: rows.slice(0, pageSize).map((sale) => ({
       id: sale.id,
       createdAt: sale.createdAt.toISOString(),
       actorId: sale.actorId,
@@ -578,7 +608,7 @@ export async function listSales(
       product: productSnapshot(sale),
       itemCount: sale._count.items || 1,
     })),
-    nextCursor: rows.length > 50 ? rows[49].id : undefined,
+    nextCursor: rows.length > pageSize ? rows[pageSize - 1].id : undefined,
   };
 }
 
@@ -829,7 +859,11 @@ export async function recordSale(
             payments: { createMany: { data: checkoutPayments } },
           }),
         },
-        include: { items: include.items, payments: include.payments },
+        include: {
+          customer: include.customer,
+          items: include.items,
+          payments: include.payments,
+        },
       });
       const movement = { ...scope, actorId, saleId: sale.id };
       await tx.inventoryMovement.createMany({

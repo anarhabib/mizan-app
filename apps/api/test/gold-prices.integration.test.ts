@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { DashboardGoldRates } from "@mizan/contracts";
 import { createDatabase } from "@mizan/database";
 import { afterAll, expect, test, vi } from "vitest";
 import { buildApp } from "../src/app.js";
@@ -158,6 +159,17 @@ test.skipIf(!db)(
           .find((row: { purity: number }) => row.purity === purity)
           ?.prices.find((row: { kind: string }) => row.kind === kind);
       };
+      const publicRates = async (user: string, instance = app) => {
+        const response = await send(
+          "GET",
+          `${market}/rates`,
+          user,
+          undefined,
+          instance,
+        );
+        expect(response.statusCode, response.body).toBe(200);
+        return response.json<DashboardGoldRates>().rates;
+      };
       expect((await send("GET", market, outsider)).statusCode).toBe(403);
       expect((await send("GET", otherSettings, seller)).statusCode).toBe(403);
       for (const user of [seller, restricted]) {
@@ -184,6 +196,25 @@ test.skipIf(!db)(
         pricePerGram: { amount: "140", currency: "AZN" },
         source: "INDIVIDUAL",
       });
+      expect(await publicRates(seller, disabled)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            purity: 585,
+            commercial: expect.objectContaining({
+              RETAIL_SELL: { amount: "140", currency: "AZN" },
+            }),
+            retailStatus: "CURRENT",
+          }),
+          expect.objectContaining({
+            purity: 750,
+            retailStatus: "UNAVAILABLE",
+            commercial: expect.objectContaining({ RETAIL_SELL: null }),
+          }),
+        ]),
+      );
+      expect((await send("GET", `${market}/rates`, outsider)).statusCode).toBe(
+        403,
+      );
       expect(await currentRate(585, "SCRAP_BUY", disabled)).toMatchObject({
         pricePerGram: null,
         status: "UNAVAILABLE",
@@ -354,6 +385,9 @@ test.skipIf(!db)(
       ).toBe("PURITY_CONFLICT");
       expect(await currentRate(610, "SCRAP_BUY")).toBeUndefined();
       expect(
+        (await publicRates(seller)).some(({ purity }) => purity === 610),
+      ).toBe(false);
+      expect(
         (
           await send(
             "POST",
@@ -470,8 +504,52 @@ test.skipIf(!db)(
         ],
       });
 
+      expect(
+        (
+          await saveDraft({
+            ...draft,
+            purity: 375,
+            mode: "PERCENTAGE",
+            value: "10",
+          })
+        ).statusCode,
+      ).toBe(200);
+      expect((await saveDraft({ ...draft, purity: 916 })).statusCode).toBe(200);
+      const retailRates = await publicRates(owner);
+      expect(await publicRates(seller)).toEqual(retailRates);
+      expect(await publicRates(restricted)).toEqual(retailRates);
+      expect(retailRates).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            purity: 375,
+            retailStatus: "CURRENT",
+            commercial: expect.objectContaining({
+              RETAIL_SELL: { amount: "70.125", currency: "AZN" },
+            }),
+          }),
+          expect.objectContaining({
+            purity: 916,
+            retailStatus: "CURRENT",
+            commercial: expect.objectContaining({
+              RETAIL_SELL: { amount: "150.72", currency: "AZN" },
+            }),
+          }),
+        ]),
+      );
+
       const beforeRefresh = (await send("GET", settings + "/history")).json()
         .items;
+      for (const user of [owner, seller, restricted]) {
+        const options = await send("GET", `/sales/options?${query}`, user);
+        expect(options.statusCode).toBe(200);
+        expect(options.json().retailRates).toEqual(
+          expect.arrayContaining([
+            { purity: 585, amountPerGram: "140" },
+            { purity: 375, amountPerGram: "70.125" },
+            { purity: 916, amountPerGram: "150.72" },
+          ]),
+        );
+      }
       await expireClaim();
       price = 6220.69536;
       effectiveAt = new Date(now.getTime() + 1);
@@ -546,6 +624,14 @@ test.skipIf(!db)(
       const foreignRate = (await send("GET", "/sales/options?" + query, seller))
         .json()
         .rates.find(({ purity }: { purity: number }) => purity === 585);
+      expect(
+        (await send("GET", "/sales/options?" + query, seller)).json(),
+      ).toMatchObject({
+        currency: "USD",
+        retailRates: expect.arrayContaining([
+          { purity: 585, amountPerGram: "82.3529411764705882" },
+        ]),
+      });
       expect(foreignRate).toMatchObject({
         amountPerGram: "114.0588",
         rateExchangeRate: "1.7",
@@ -648,6 +734,22 @@ test.skipIf(!db)(
         stale: true,
         quote: refreshed.quote,
       });
+      expect(await publicRates(seller)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            purity: 585,
+            retailStatus: "CURRENT",
+            commercial: expect.objectContaining({
+              RETAIL_SELL: { amount: "140", currency: "AZN" },
+            }),
+          }),
+          expect.objectContaining({
+            purity: 375,
+            retailStatus: "STALE",
+            commercial: expect.objectContaining({ RETAIL_SELL: null }),
+          }),
+        ]),
+      );
       expect(
         (await send("GET", "/sales/options?" + query, seller)).json().rates,
       ).toContainEqual({ purity: 585, id: null, amountPerGram: null });

@@ -1,12 +1,8 @@
 {
-  "marketTitle": "Xalis qızılın bazar qiyməti",
-  "marketSource": "Gold API · {{date}}",
-  "purityReferences": "Əyar üzrə qram qiymətləri",
+  "retry": "Yenidən cəhd et",
   "perGram": "/ q",
   "stale": "Son mövcud qiymət",
   "unavailable": "Bazar qiyməti əlçatan deyil",
-  "retry": "Yenidən cəhd et",
-  "retrieved": "Son yükləmə {{date}}",
   "title": "Qızıl qiymətləri",
   "current": "Cari qiymətlər",
   "rules": "Qiymət qaydaları",

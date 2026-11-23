@@ -14,6 +14,7 @@ import {
 } from "@mizan/contracts";
 import { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
+import { readPageSize } from "../access/page-size.js";
 import {
   resolveAccessContext,
   uuidPattern,
@@ -454,7 +455,9 @@ export async function getStoreGoldRuleHistory(
   db: Prisma.TransactionClient,
   scope: Scope,
   after?: string,
+  limit?: string,
 ) {
+  const pageSize = readPageSize(limit, "INVALID_SETTINGS");
   const where = {
     organizationId: scope.organizationId,
     storeId: scope.storeId,
@@ -471,13 +474,16 @@ export async function getStoreGoldRuleHistory(
   const rows = await db.storeGoldPriceRule.findMany({
     where,
     orderBy: [...orderBy],
-    take: 51,
+    take: pageSize + 1,
     include: { previous: { select: { mode: true, value: true } } },
     ...(after && { cursor: { id: after }, skip: 1 }),
   });
-  const items = rows.slice(0, 50).map((row) => ({
+  const items = rows.slice(0, pageSize).map((row) => ({
     ...ruleFields(row),
     previous: configuration(row.previous),
   }));
-  return { items, ...(rows.length === 51 && { nextCursor: items[49].id }) };
+  return {
+    items,
+    ...(rows.length > pageSize && { nextCursor: items[pageSize - 1].id }),
+  };
 }

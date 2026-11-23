@@ -19,7 +19,7 @@ function DesktopDevtools() {
   if (mobile || !Devtools) return null;
   return (
     <Suspense fallback={null}>
-      <Devtools initialIsOpen={false} />
+      <Devtools initialIsOpen={false} buttonPosition="top-right" />
     </Suspense>
   );
 }

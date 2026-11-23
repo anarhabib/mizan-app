@@ -1,12 +1,8 @@
 {
-  "marketTitle": "Pure gold market price",
-  "marketSource": "Gold API · {{date}}",
-  "purityReferences": "Reference prices per gram by purity",
+  "retry": "Try again",
   "perGram": "/ g",
   "stale": "Last available quote",
   "unavailable": "Market price unavailable",
-  "retry": "Try again",
-  "retrieved": "Last retrieved {{date}}",
   "title": "Gold pricing",
   "current": "Current rates",
   "rules": "Pricing rules",

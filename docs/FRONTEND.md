@@ -53,7 +53,7 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 - Define `queryOptions()` and a key factory per feature. Invalidate exact keys, not broad prefixes. List the keys a mutation invalidates in the PR description.
 - For filtered lists, enumerate cached keys under the affected store's list prefix and invalidate each exact key. Invalidate separately keyed facets when their data changes.
 - Use `select` for derived data. Set `staleTime` per resource (lists short, settings and options long).
-- Lists use `useInfiniteQuery`: pass `nextCursor` unchanged as `after`. Do not invent page size or sort parameters. Debounce search input 300 ms and keep previous data while filters change.
+- Use `CursorPagination` for paginated tables and directories. Request 10 rows by default and offer 10, 25, 50 and 100. Key each page by workspace, filters, size and cursor. Pass the server cursor unchanged and use cursor history for Previous. Reset cursor history when filters, search or page size changes. Show totals only when the API supplies them. Pickers may use `useInfiniteQuery` to append suggestions. Debounce text search by 300 ms.
 - Every query screen has loading (skeleton), empty and error states with a retry.
 - Mutations are never optimistic and never retried automatically. Disable submit while pending.
 - `POST /sales` sends an `Idempotency-Key` (`crypto.randomUUID()`, matches `[A-Za-z0-9._:-]{1,128}`). Create the key once per sale attempt, reuse the same key and payload for retries after timeouts or network errors, and create a new key only after a definitive success or when the user changes the payload.
@@ -87,7 +87,9 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 
 - Mobile-first at 360px. `lg:` changes layout, it does not scale things up.
 - Base text 14px. Controls `h-9` (`h-8` dense on desktop). Spacing scale: 2, 3, 4, 6 only.
-- Desktop content `max-w-5xl`. Bottom navigation on mobile, sidebar on `lg`.
+- Use `PageContainer` for fluid, centered content in the space available beside the sidebar. Dashboard, Products, Sales and Customers use the wide variant with a 1600px content cap. Settings and Team use standard (64rem). Authentication uses narrow (28rem). Gutters are 16px, 20px from 640px, 24px from 1024px and 32px from 1440px, with safe-area support.
+- Bottom navigation on mobile, sidebar on `lg`. The desktop sidebar header holds the collapse control and its footer holds the account menu. Mobile More includes the account menu and owner-only destinations. The top header retains the store selector.
+- Products use scoped API aggregates for the inventory overview. Summary links open the matching inventory status, including products whose sale currently has an outstanding balance. Search and filters share one toolbar that scrolls internally when its controls exceed the available width.
 - Lists are rows on mobile; use tables only on `lg` and only when columns help. Dialogs become drawers on mobile.
 - Preserve the shadcn preset in `components.json`, including typography, radius, icon library, and light and dark themes. Use semantic tokens and favor borders over shadows. Keep neutral surfaces and independent status colors.
 - Tabular numbers for amounts and weights. Real labels and real data, never lorem ipsum.
