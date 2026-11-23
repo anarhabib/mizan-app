@@ -93,9 +93,15 @@ function afterCursor(
 export async function listCustomers(
   db: CustomerDatabase,
   { organizationId, storeId }: Scope,
-  { q, after }: { q?: string; after?: string },
+  {
+    q,
+    after,
+    outstanding,
+  }: { q?: string; after?: string; outstanding?: string },
 ): Promise<CustomerList> {
   const scope = { organizationId, storeId };
+  if (outstanding !== undefined && outstanding !== "true")
+    throw new AccessError("INVALID_CUSTOMER", "outstanding");
   if (
     q !== undefined &&
     (typeof q !== "string" || q.length > 160 || q.includes("\0"))
@@ -120,6 +126,7 @@ export async function listCustomers(
     where: {
       ...scope,
       ...afterCursor(cursor || null),
+      ...(outstanding && { sales: { some: { outstandingDebt: { gt: 0 } } } }),
       ...(search && {
         AND: {
           OR: [

@@ -62,8 +62,7 @@ export function safeReturnPath(value: unknown) {
 export function AuthPage({ returnTo }: { returnTo?: string }) {
   const { userId, ready } = useSession();
   const [mode, setMode] = useState<Mode>("login");
-  if (ready && userId)
-    return <Navigate to="/products" href={returnTo} replace />;
+  if (ready && userId) return <Navigate to="/" href={returnTo} replace />;
   return <AuthForm key={mode} mode={mode} setMode={setMode} />;
 }
 
@@ -148,7 +147,7 @@ function AuthForm({
         <div role="status" className="flex flex-col items-start gap-3">
           <p>{t(notice)}</p>
           {notice === "passwordUpdated" && (
-            <Link to="/products" onClick={finishRecovery} className="underline">
+            <Link to="/" onClick={finishRecovery} className="underline">
               {t("continue")}
             </Link>
           )}

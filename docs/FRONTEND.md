@@ -47,6 +47,8 @@ Check `src/components/ui` before building an interactive control. Compose instal
 
 ## Data (TanStack Query)
 
+Dashboard is the authenticated landing page. Its widgets use scoped summary, activity and chart queries. Preferences are stored on the device per user, organization and store. The owner summary is a separate query and is cleared by the existing display-mode switch.
+
 - All server state goes through TanStack Query. No fetching in `useEffect`, no server data copied into `useState` or a global store.
 - Define `queryOptions()` and a key factory per feature. Invalidate exact keys, not broad prefixes. List the keys a mutation invalidates in the PR description.
 - For filtered lists, enumerate cached keys under the affected store's list prefix and invalidate each exact key. Invalidate separately keyed facets when their data changes.

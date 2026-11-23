@@ -9,6 +9,10 @@ export type ExchangeRateCache = Pick<
   ReturnType<typeof createDatabase>["officialExchangeRateSnapshot"],
   "findUnique" | "createMany" | "updateMany"
 >;
+type ExchangeRateDatabase = Pick<
+  ReturnType<typeof createDatabase>,
+  "$transaction"
+>;
 type Row = NonNullable<Awaited<ReturnType<ExchangeRateCache["findUnique"]>>>;
 
 export function presentExchangeRates(
@@ -46,6 +50,7 @@ export function createExchangeRateService(
   onFailure: (error: unknown) => void,
   retrieve = retrieveCbarRates,
   clock = () => new Date(),
+  db?: ExchangeRateDatabase,
 ) {
   let inFlight: Promise<ExchangeRatesResponse> | undefined;
 
@@ -86,15 +91,36 @@ export function createExchangeRateService(
       );
     }
 
-    const data = {
+    const observation = {
       effectiveDate: new Date(bulletin.effectiveDate),
-      retrievedAt: clock(),
       usd: bulletin.rates.USD,
       eur: bulletin.rates.EUR,
       try: bulletin.rates.TRY,
     };
+    const data = { ...observation, retrievedAt: clock() };
     // Fence the write if this process lost its claim.
-    await cache.updateMany({ where: { source, attemptedAt: now }, data });
+    const claim = { source, attemptedAt: now };
+    if (db) {
+      await db.$transaction(async (tx) => {
+        const { count } = await tx.officialExchangeRateSnapshot.updateMany({
+          where: claim,
+          data,
+        });
+        if (!count) return;
+        await tx.officialExchangeRateObservation.upsert({
+          where: {
+            source_effectiveDate: {
+              source,
+              effectiveDate: observation.effectiveDate,
+            },
+          },
+          create: { source, ...observation },
+          update: observation,
+        });
+      });
+    } else {
+      await cache.updateMany({ where: claim, data });
+    }
     return presentExchangeRates(await cache.findUnique({ where }), clock());
   }
 

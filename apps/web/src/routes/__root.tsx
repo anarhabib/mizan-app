@@ -44,7 +44,7 @@ function NotFound() {
       <DocumentTitle title={t("notFound")} />
       <BrandMark />
       <h1>{t("notFound")}</h1>
-      <Link to="/products" className="underline">
+      <Link to="/" className="underline">
         {t("home")}
       </Link>
     </div>

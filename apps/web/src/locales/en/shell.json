@@ -1,4 +1,5 @@
 {
+  "more": "More",
   "navigation": "Main navigation",
   "language": "Change language",
   "languageOptions": {
@@ -10,7 +11,7 @@
   "loading": "Loading",
   "retry": "Try again",
   "notFound": "Page not found",
-  "home": "Go to products",
+  "home": "Go to dashboard",
   "theme": {
     "switchToLight": "Switch to light mode",
     "switchToDark": "Switch to dark mode"

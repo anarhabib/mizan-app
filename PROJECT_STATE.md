@@ -1,5 +1,13 @@
 # Misqal project state
 
+## Task 14 — operational dashboard (November 23, 2026)
+
+- `apps/web/src/features/dashboard` provides the workspace landing page with configurable sales, payments, customer debt, intake, inventory, activity, quick actions, and market widgets. Products remains a separate route. Preferences are device-local per user, organization, and store. The existing display-mode switch clears sensitive query data.
+- `apps/api/src/modules/dashboard` aggregates stored records on Asia/Baku day boundaries. The separate Owner-mode endpoint supplies gross profit and acquisition values. Gold history uses stored quotes and effective store rule versions. CBAR history accumulates published bulletins, with comparisons against the preceding stored bulletin.
+- Migration `202611230003_dashboard_history` archives the cached CBAR bulletin and adds dashboard indexes. It passed schema parity on disposable PostgreSQL and was applied to the configured development database. Fastify smoke checks returned HTTP 200 for all nine new dashboard and market reads. Development has one archived CBAR bulletin, so multi-date sparklines require subsequent observations.
+- Contracts build and 23 tests, web typecheck and 135 tests, API build and 70 tests, changed-file formatting and lint, and the web production build passed. Chromium fixtures covered 390px and 1280px in both themes, loading and retry, layout persistence, navigation, and display-mode restrictions. Live Storage and real-device checks remain open. Vite reported a chunk-size warning.
+- Fixed a chart tooltip crash in `apps/web/src/components/ui/chart.tsx` and `apps/web/src/features/dashboard/components/DashboardCharts.tsx`. Tooltips preserve numeric timestamps and date formatting handles invalid values. All 137 frontend tests, the production build, and Chromium hover and keyboard checks passed.
+
 ## Color and mutation feedback follow-up (November 23, 2026)
 
 - Shared Sonner and Alert components use semantic feedback colors. Checked controls and selected menu options use the brand accent. AGENTS.md and frontend conventions document color use across Misqal.

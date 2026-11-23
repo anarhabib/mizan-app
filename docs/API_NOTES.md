@@ -108,6 +108,7 @@ Movements are nested in product detail, and old-gold trade-ins and payment histo
 - The backend follows the published date and validates the XML's `ValCurs Date` and the USD, EUR and TRY `Valute` entries. It divides each `Value` by `Nominal` using decimal arithmetic and stores AZN per unit at up to eight decimal places, rounding half up if required by that precision.
 - Apply migration `202611220003_official_exchange_rates` before starting this API version. The synchronized Task 13 API checks the provider once every 24 hours and atomically saves the full snapshot. The PostgreSQL cache shares the last attempt and snapshot across stores, API instances and restarts. Each document request has a three-second timeout and at most one retry. A failed or invalid refresh preserves the saved snapshot and marks it stale. A successfully verified bulletin may remain current across non-publication days.
 - `ExchangeRatesResponse` is `{snapshot,stale}`. A snapshot includes `source:"CBAR"`, `effectiveDate` (ISO calendar date), `retrievedAt` (ISO timestamp), and `rates:{USD,EUR,TRY}` as decimal strings. Before the first successful retrieval, `snapshot` is null and `stale` is true. Inventory and payment forms share the store-scoped browser cache.
+- `GET O/stores/:storeId/exchange-rates/history` returns up to 30 distinct stored CBAR bulletin dates and decimal changes against the preceding stored bulletin. Migration `202611230003_dashboard_history` archives the existing valid cached bulletin. Subsequent successful refreshes update the latest rate and its dated observation in the same transaction. History contains no backfilled rates for dates the app missed.
 - Checkout and repayment forms suggest the latest available official rate and allow manual overrides. The payment-preview endpoint validates the submitted tender and returns its AZN equivalent rounded half up to two places. The existing sale and repayment endpoints persist the submitted rate and amount with the payment. Refreshing official rates only updates the rate cache.
 
 ### Gold prices
@@ -153,9 +154,28 @@ Movements are nested in product detail, and old-gold trade-ins and payment histo
 - `CustomerContact` contains `id,name,phone`. Name is required and limited to 120 characters. Phone is required and accepts 3–15 digits with an optional leading plus and formatting spaces, parentheses, or dashes.
 - `CustomerDetail` adds `note:string|null` to the summary. Notes may be up to 1,000 characters and preserve line breaks. On edit, an omitted note preserves the saved value. A blank or null note clears it.
 - `CustomerSummary` adds `totalPurchases:Money,outstandingDebt:Money,lastPurchaseAt:string|null`. The API sums the original sale totals and current sale balances using each sale's stored reporting rate, then rounds each aggregate to two AZN decimal places. Repayments reduce customer debt without adding purchases.
-- `CustomerList` supports `q` (maximum 160 characters, case-insensitive name or normalized phone substring) and `after`. `CustomerHistory` supports `after`. Both return up to 50 rows ordered by creation time descending with an ID tie-breaker. Pass `nextCursor` unchanged as `after`.
+- `CustomerList` supports `q` (maximum 160 characters, case-insensitive name or normalized phone substring), `outstanding=true` (customers with an unpaid balance), and `after`. `CustomerHistory` supports `after`. Both return up to 50 rows ordered by creation time descending with an ID tie-breaker. Pass `nextCursor` unchanged as `after`.
 - Each purchase contains `id,createdAt,productName,itemCount,total:Money,tradeInCredit:Money,paidAmount:Money,outstandingDebt:Money,payment:Money|null`. Settlement totals use the sale currency. The legacy `payment` field contains single checkout tender when present. The linked receipt shows checkout and repayment history under the existing receipt permissions.
 - Both assigned roles can read, add and edit store contacts. Deletion requires Owner mode. Any linked receipt blocks deletion with `CUSTOMER_DELETE_CONFLICT`. Apply migration `202611220001_customers` before starting the updated API. Existing unlinked receipts remain anonymous.
+
+### Operational dashboard
+
+All dashboard endpoints require an active store assignment. Paths below start with `O/stores/:storeId`. Response types are in `packages/contracts/src/dashboard.ts`.
+
+| GET path | Response and scope |
+| --- | --- |
+| `/dashboard` | `DashboardSummary` for the current Asia/Baku day. Sales compare with the same elapsed portion of yesterday. |
+| `/dashboard/owner` | `DashboardOwnerSummary` for Owner mode only. Gross profit uses sale-time item costs. Intake and inventory cost use recorded product acquisition values. Gross profit is null when an item cost is missing or cannot be compared in the sale currency. |
+| `/dashboard/charts` | `DashboardCharts` for seven calendar days on Baku boundaries and current stock counts by category and purity. Payment method distribution counts monetary transactions. |
+| `/dashboard/activity` | `DashboardActivity` with up to five entries per activity type and five customers ranked by outstanding AZN balance. |
+| `/dashboard/aged-stock?days=90` | `DashboardAgedStock` with an exact count and up to five oldest products. Accepts 1–365 days and measures age from recorded intake. |
+| `/gold-prices/chart?period=7d&purity=585` | `DashboardGoldHistory`. Accepts `24h`, `7d`, `30d`, or `90d`. Supply an active purity for AZN-per-gram history. |
+| `/gold-prices/rates` | `DashboardGoldRates` with market references and effective commercial prices for active purities. Configuration and rule history still require Owner mode. |
+| `/gold-prices/rates/chart?period=7d&purity=585&kind=RETAIL_SELL` | `MarketSeries` reconstructed from stored quotes and store rule versions. Missing quotes can leave gaps in market-based prices. |
+
+- Sales, payments, repayments, debt, acquisition values, and trade-ins keep their saved denominations. Payments report an AZN equivalent when every included payment has a usable saved conversion. Legacy tender with unrecorded methods is grouped separately, net of change, and counted once. Repayments are included in monetary receipts and shown separately.
+- New debt is the amount created at checkout before repayments. Current debt and partially paid or unpaid counts use the remaining balances. Inventory intake comes from `PRODUCT_ADDED` movements. Received old gold uses the trade-in asset and agreed value. Inventory market value estimates the gold content using recorded net weights and a fresh spot reference. It is null when required inputs are missing.
+- Gold chart movement and extrema use observations within the rolling period before chart sampling. Links and axes use actual observation timestamps. Store history uses recorded retrieval and rule effective times where available.
 
 ## OpenAPI, Supabase, shared packages
 
