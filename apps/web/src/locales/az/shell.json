@@ -29,5 +29,8 @@
     "invalidPassword": "Şifrə yanlışdır.",
     "unavailable": "Bu sessiyada şifrəni təsdiqləmək mümkün deyil.",
     "failed": "Rejimi dəyişmək mümkün olmadı. Yenidən cəhd edin."
-  }
+  },
+  "expandNavigation": "Naviqasiyanı genişləndir",
+  "collapseNavigation": "Naviqasiyanı yığ",
+  "notifications": "Bildirişlər"
 }

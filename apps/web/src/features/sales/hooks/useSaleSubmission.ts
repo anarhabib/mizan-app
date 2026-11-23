@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateCustomers } from "@/features/customers";
@@ -25,6 +27,7 @@ import { saleError } from "../lib/form";
 
 export function useSaleSubmission(scope: SaleScope, productId: string) {
   const client = useQueryClient();
+  const { t } = useTranslation("sales");
   const attempt = useRef<SaleAttempt>(undefined);
   const locked = useRef(false);
   const requiresCheck = useRef(false);
@@ -180,6 +183,9 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
       const next = saleAttempt(attempt.current, payload);
       attempt.current = next;
       await mutation.mutateAsync({ ...next, token });
+      toast.success(
+        t(payload.tradeIns?.length ? "completedWithTradeIn" : "completed"),
+      );
     } catch (error) {
       if (
         error instanceof ApiError &&

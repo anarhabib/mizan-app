@@ -1,6 +1,7 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { ApiError } from "@/shared/lib/api";
 import { resources } from "@/shared/lib/i18n";
 export function ErrorState({
@@ -17,19 +18,20 @@ export function ErrorState({
     ? (error.code as keyof typeof resources.az.errors)
     : "generic";
   return (
-    <section
+    <Alert
+      variant="destructive"
       role="alert"
-      className="flex flex-col items-start gap-3 rounded-lg border border-border bg-card p-6"
+      className="flex flex-col items-start gap-3 rounded-lg p-6"
     >
-      <p>{t(key, { ns: "errors" })}</p>
-      <Button
+      <AlertDescription>{t(key, { ns: "errors" })}</AlertDescription>
+      <PendingButton
+        pending={pending}
         onClick={retry}
-        disabled={pending}
         className="min-h-11 lg:min-h-9"
       >
-        <RotateCw aria-hidden="true" />
+        {!pending && <RotateCw aria-hidden="true" />}
         {t("retry", { ns: "shell" })}
-      </Button>
-    </section>
+      </PendingButton>
+    </Alert>
   );
 }

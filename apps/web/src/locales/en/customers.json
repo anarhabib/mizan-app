@@ -46,5 +46,8 @@
   "partialTender": "Any amount still due after this payment becomes customer debt.",
   "unpaid": "The full amount due becomes customer debt.",
   "tradeInCredit": "Trade-in credit",
-  "paidAmount": "Paid amount"
+  "paidAmount": "Paid amount",
+  "created": "Customer added.",
+  "updated": "Customer updated.",
+  "deleted": "Customer deleted."
 }

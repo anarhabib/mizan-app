@@ -1,3 +1,4 @@
+import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal } from "lucide-react";
@@ -5,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { ProductStatus } from "@mizan/contracts";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import {
@@ -12,8 +14,7 @@ import {
   type ProductFilters as Filters,
   type ProductScope,
 } from "../api/queries";
-import { ProductPanel, useProductDesktop } from "./ProductPanel";
-import { ProductSelect } from "./ProductSelect";
+import { ProductPanel } from "./ProductPanel";
 
 type FacetFilters = Omit<Filters, "q">;
 const all = "all";
@@ -30,11 +31,11 @@ export function ProductFilters({
   setFilters: (filters: FacetFilters) => void;
 }) {
   const { t } = useTranslation("products");
-  const desktop = useProductDesktop();
+  const mobile = useIsMobile();
   const [opener, setOpener] = useState<HTMLButtonElement | null>(null);
   const active = Object.values(filters).some((value) => value !== undefined);
 
-  if (desktop)
+  if (!mobile)
     return (
       <FilterFields scope={scope} filters={filters} setFilters={setFilters} />
     );
@@ -95,7 +96,7 @@ function FilterFields({
     <div className="grid gap-3 lg:grid-cols-3">
       <div className="grid gap-2">
         <Label htmlFor={`${id}-status`}>{t("fields.status")}</Label>
-        <ProductSelect
+        <OptionSelect
           id={`${id}-status`}
           value={filters.status ?? all}
           onChange={(value) =>
@@ -121,7 +122,7 @@ function FilterFields({
         <>
           <div className="grid min-w-0 gap-2">
             <Label htmlFor={`${id}-category`}>{t("fields.category")}</Label>
-            <ProductSelect
+            <OptionSelect
               id={`${id}-category`}
               value={
                 filters.category === undefined
@@ -148,7 +149,7 @@ function FilterFields({
           </div>
           <div className="grid gap-2">
             <Label htmlFor={`${id}-purity`}>{t("fields.purity")}</Label>
-            <ProductSelect
+            <OptionSelect
               id={`${id}-purity`}
               value={filters.purity?.toString() ?? all}
               onChange={(value) =>

@@ -6,8 +6,6 @@
     "save": "Save currencies"
   },
   "title": "Settings",
-  "empty": "No settings",
-  "description": "Manage trading settings for this organization.",
   "costVisibility": "Acquisition cost visibility",
   "costVisibilityDescription": "Allow salespeople to view the acquisition cost on product details.",
   "purities": "Purities",
@@ -30,5 +28,6 @@
   "networkError": "Connection lost. Check the current settings before trying again.",
   "genericError": "Something went wrong. Try again.",
   "retry": "Try again",
-  "saving": "Saving…"
+  "saving": "Saving…",
+  "saved": "Settings saved."
 }

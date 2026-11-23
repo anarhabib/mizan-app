@@ -1,9 +1,10 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { parseOnboarding, type OnboardingRequest } from "@mizan/contracts";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { AuthPanel, SignOutButton } from "@/features/auth";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/shared/lib/api";
@@ -43,6 +44,7 @@ export function OnboardingForm({
     }
     try {
       onCreated(await mutation.mutateAsync(parsed));
+      toast.success(t("created"));
       await reloadContexts();
     } catch (error) {
       if (
@@ -101,9 +103,9 @@ export function OnboardingForm({
             {errors.root.message}
           </p>
         )}
-        <Button disabled={isSubmitting} className="min-h-11 lg:min-h-9">
+        <PendingButton pending={isSubmitting} className="min-h-11 lg:min-h-9">
           {t(isSubmitting ? "creating" : "create")}
-        </Button>
+        </PendingButton>
       </form>
       <div className="self-start">
         <SignOutButton />

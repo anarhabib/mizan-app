@@ -1,3 +1,14 @@
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
+import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   goldPriceKinds,
@@ -13,7 +24,14 @@ import {
 } from "@mizan/contracts";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
-import { AlertDialog, Tabs } from "radix-ui";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ConfirmationContent } from "@/shared/ui/ConfirmationContent";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -23,7 +41,6 @@ import type { ApiError } from "@/shared/lib/api";
 import { formatDateTime } from "@/shared/lib/format";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { MoneyText } from "@/shared/ui/MoneyText";
-import { ProductSelect } from "@/features/products/components/ProductSelect";
 import {
   goldPricingPreviewQuery,
   goldPricingQuery,
@@ -90,6 +107,7 @@ export function GoldPricingSection({
   async function save(body: GoldPricingChange) {
     try {
       await mutation.mutateAsync(body);
+      toast.success(t("saved"));
       return true;
     } catch {
       return false;
@@ -103,28 +121,29 @@ export function GoldPricingSection({
       <h2 id={heading} className="font-heading text-base font-semibold">
         {t("title")}
       </h2>
-      <Tabs.Root
-        value={view}
-        onValueChange={setView}
-        className="grid min-w-0 gap-4"
-      >
-        <Tabs.List
+      <Tabs value={view} onValueChange={setView} className="grid min-w-0 gap-4">
+        <TabsList
           aria-label={t("title")}
-          className="grid grid-cols-3 border-b"
+          variant="line"
+          className="grid h-auto w-full grid-cols-3 border-b group-data-horizontal/tabs:h-auto"
         >
           {(["current", "rules", "history"] as const).map((tab) => (
-            <Tabs.Trigger
+            <TabsTrigger
               key={tab}
               value={tab}
               ref={tab === "rules" ? rulesTab : undefined}
-              className="min-h-11 min-w-0 border-b-2 border-transparent px-1 py-2 text-sm wrap-anywhere text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:border-primary data-[state=active]:font-medium data-[state=active]:text-foreground"
+              className="min-h-11 min-w-0 px-1 py-2 text-center wrap-anywhere whitespace-normal after:bg-brand-accent motion-reduce:transition-none motion-reduce:after:transition-none"
             >
               {t(tab)}
-            </Tabs.Trigger>
+            </TabsTrigger>
           ))}
-        </Tabs.List>
+        </TabsList>
         {(["current", "rules"] as const).map((tab) => (
-          <Tabs.Content key={tab} value={tab} className="grid min-w-0 gap-4">
+          <TabsContent
+            key={tab}
+            value={tab}
+            className="grid min-w-0 gap-4 data-inactive:hidden"
+          >
             {query.isPending && <ListSkeleton rows={3} />}
             {query.isError && (
               <PricingError
@@ -165,18 +184,18 @@ export function GoldPricingSection({
                     data.rules.map(({ id }) => id),
                   ])}
                   busy={mutation.isPending || query.isError}
+                  saving={mutation.isPending}
                   error={mutation.error}
                   save={save}
                 />
-                {mutation.isSuccess && <p role="status">{t("saved")}</p>}
               </>
             )}
-          </Tabs.Content>
+          </TabsContent>
         ))}
-        <Tabs.Content value="history">
+        <TabsContent value="history">
           <PricingHistory scope={scope} />
-        </Tabs.Content>
-      </Tabs.Root>
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }
@@ -232,40 +251,40 @@ function CurrentRates({
       {!data.rates.length ? (
         <p className="text-muted-foreground">{t("noPurities")}</p>
       ) : (
-        <table role="table" className="w-full table-fixed text-sm">
-          <thead role="rowgroup" className="sr-only md:not-sr-only">
-            <tr role="row" className="border-b text-left">
+        <Table role="table" className="w-full table-fixed text-sm">
+          <TableHeader role="rowgroup" className="sr-only md:not-sr-only">
+            <TableRow role="row" className="border-b text-left">
               {columns.map((column) => (
-                <th
+                <TableHead
                   key={column}
                   scope="col"
                   role="columnheader"
-                  className="px-2 pb-2 font-medium wrap-anywhere first:w-16"
+                  className="h-auto px-2 pb-2 font-medium wrap-anywhere whitespace-normal first:w-16"
                 >
                   {t(column)}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody role="rowgroup" className="divide-y">
+            </TableRow>
+          </TableHeader>
+          <TableBody role="rowgroup" className="divide-y">
             {data.rates.map(({ purity, prices }, index) => {
               const reference = data.references[index];
               return (
-                <tr
+                <TableRow
                   key={purity}
                   role="row"
-                  className="grid grid-cols-2 gap-2 py-3 md:table-row"
+                  className="grid grid-cols-2 gap-2 border-0 py-3 hover:bg-transparent md:table-row"
                 >
-                  <th
+                  <TableHead
                     scope="row"
                     role="rowheader"
-                    className="col-span-2 text-left font-semibold tabular-nums md:px-2 md:py-3 md:align-top"
+                    className="col-span-2 h-auto px-0 text-left font-semibold tabular-nums md:px-2 md:py-3 md:align-top"
                   >
                     {purity}
-                  </th>
-                  <td
+                  </TableHead>
+                  <TableCell
                     role="cell"
-                    className="min-w-0 wrap-anywhere md:px-2 md:py-3 md:align-top"
+                    className="min-w-0 p-0 wrap-anywhere whitespace-normal md:px-2 md:py-3 md:align-top"
                   >
                     <span className="block text-xs text-muted-foreground md:hidden">
                       {t("reference")}
@@ -275,12 +294,12 @@ function CurrentRates({
                     ) : (
                       t("notSet")
                     )}
-                  </td>
+                  </TableCell>
                   {prices.map((price) => (
-                    <td
+                    <TableCell
                       key={price.kind}
                       role="cell"
-                      className="min-w-0 md:px-2 md:py-1 md:align-top"
+                      className="min-w-0 p-0 whitespace-normal md:px-2 md:py-1 md:align-top"
                     >
                       <Button
                         type="button"
@@ -305,13 +324,13 @@ function CurrentRates({
                         />
                       </Button>
                       <Warnings warnings={price.warnings} />
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
     </>
   );
@@ -366,7 +385,7 @@ function RuleScope({
     <div className="grid gap-3 sm:grid-cols-3">
       <div className="grid min-w-0 gap-2">
         <Label htmlFor={id + "-kind"}>{t("priceType")}</Label>
-        <ProductSelect
+        <OptionSelect
           id={id + "-kind"}
           value={selection.kind}
           disabled={busy}
@@ -381,7 +400,7 @@ function RuleScope({
       </div>
       <div className="grid min-w-0 gap-2">
         <Label htmlFor={id + "-scope"}>{t("scope")}</Label>
-        <ProductSelect
+        <OptionSelect
           id={id + "-scope"}
           value={selection.purity === null ? "default" : "individual"}
           disabled={busy}
@@ -405,7 +424,7 @@ function RuleScope({
       {selection.purity !== null && (
         <div className="grid min-w-0 gap-2">
           <Label htmlFor={id + "-purity"}>{t("purity")}</Label>
-          <ProductSelect
+          <OptionSelect
             id={id + "-purity"}
             value={String(selection.purity)}
             disabled={busy}
@@ -429,6 +448,7 @@ function RuleEditor({
   current,
   settingsRevision,
   busy,
+  saving,
   error,
   save,
 }: {
@@ -437,6 +457,7 @@ function RuleEditor({
   current?: StoreGoldPriceRule;
   settingsRevision: string;
   busy: boolean;
+  saving: boolean;
   error: ApiError | null;
   save: (body: GoldPricingChange) => Promise<boolean>;
 }) {
@@ -550,7 +571,7 @@ function RuleEditor({
               control={form.control}
               name="mode"
               render={({ field }) => (
-                <ProductSelect
+                <OptionSelect
                   id={id + "-method"}
                   value={field.value}
                   onChange={field.onChange}
@@ -584,13 +605,14 @@ function RuleEditor({
         {dialog !== "reset" && previewContent}
         {!dialog && errors}
         <div className="flex flex-wrap gap-2">
-          <Button
+          <PendingButton
+            pending={form.formState.isSubmitting || saving}
             type="submit"
             className="min-h-11 lg:min-h-9"
-            disabled={busy || !result || form.formState.isSubmitting}
+            disabled={busy || !result}
           >
             {t("savePrice")}
-          </Button>
+          </PendingButton>
           {current && selection.purity !== null && (
             <Button
               type="button"
@@ -604,52 +626,54 @@ function RuleEditor({
           )}
         </div>
       </form>
-      <AlertDialog.Root
+      <AlertDialog
         open={dialog !== null}
         onOpenChange={(open) => {
           if (!open && !busy) setDialog(null);
         }}
       >
         {dialog && (
-          <AlertDialog.Portal>
-            <AlertDialog.Overlay className="fixed inset-0 z-50 bg-overlay/50" />
-            <AlertDialog.Content
-              className="fixed inset-x-0 bottom-0 z-50 grid max-h-dvh gap-3 overflow-auto rounded-t-xl border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-104 sm:-translate-1/2 sm:rounded-xl"
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                document.getElementById(id + "-method")?.focus();
-              }}
-              onEscapeKeyDown={(event) => {
-                if (busy) event.preventDefault();
-              }}
-            >
-              <AlertDialog.Title className="font-heading text-base font-semibold">
-                {t(dialog === "reset" ? "resetOverride" : "confirmFixedTitle")}
-              </AlertDialog.Title>
-              <AlertDialog.Description className="text-muted-foreground">
-                {t(dialog === "reset" ? "confirmReset" : "confirmFixed")}
-              </AlertDialog.Description>
-              {dialog === "reset" && previewContent}
-              {errors}
-              <div className="flex flex-wrap justify-end gap-2">
-                <AlertDialog.Cancel asChild>
-                  <Button variant="outline" disabled={busy}>
-                    {t("cancel")}
-                  </Button>
-                </AlertDialog.Cancel>
+          <ConfirmationContent
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              document.getElementById(id + "-method")?.focus();
+            }}
+            onEscapeKeyDown={(event) => {
+              if (busy) event.preventDefault();
+            }}
+          >
+            <AlertDialogTitle className="font-heading text-base font-semibold">
+              {t(dialog === "reset" ? "resetOverride" : "confirmFixedTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              {t(dialog === "reset" ? "confirmReset" : "confirmFixed")}
+            </AlertDialogDescription>
+            {dialog === "reset" && previewContent}
+            {errors}
+            <div className="flex flex-wrap justify-end gap-2">
+              <AlertDialogCancel asChild>
                 <Button
-                  disabled={busy || !result}
-                  onClick={() =>
-                    void submit(dialog === "fixed" ? true : undefined)
-                  }
+                  variant="outline"
+                  disabled={busy}
+                  className="min-h-11 lg:min-h-9"
                 >
-                  {t("confirm")}
+                  {t("cancel")}
                 </Button>
-              </div>
-            </AlertDialog.Content>
-          </AlertDialog.Portal>
+              </AlertDialogCancel>
+              <PendingButton
+                pending={saving}
+                className="min-h-11 lg:min-h-9"
+                disabled={busy || !result}
+                onClick={() =>
+                  void submit(dialog === "fixed" ? true : undefined)
+                }
+              >
+                {t("confirm")}
+              </PendingButton>
+            </div>
+          </ConfirmationContent>
         )}
-      </AlertDialog.Root>
+      </AlertDialog>
     </>
   );
 }

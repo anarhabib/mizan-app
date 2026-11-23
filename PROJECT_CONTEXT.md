@@ -1,8 +1,8 @@
-# Mizan Project Context for Codex
+# Misqal Project Context for Codex
 
 ## Purpose
 
-Mizan is a management app for small jewelry stores. A family-owned jewelry store will pilot it at a single location. The primary user is a salesperson who manages day-to-day operations independently. The app brings product records, inventory status, and sales history together. A salesperson should be able to find a piece of jewelry, check its weight, gold purity, and availability, and then record the sale in a single transaction.
+Misqal is a management app for small jewelry stores. A family-owned jewelry store will pilot it at a single location. The primary user is a salesperson who manages day-to-day operations independently. The app brings product records, inventory status, and sales history together. A salesperson should be able to find a piece of jewelry, check its weight, gold purity, and availability, and then record the sale in a single transaction. The intended public domain is `misqal.az`.
 
 ## Confirmed Decisions
 
@@ -11,9 +11,9 @@ Mizan is a management app for small jewelry stores. A family-owned jewelry store
 | Starting point | Start from scratch in a new repository |
 | First milestone | Add a product → find it in inventory → record its sale, using a real database |
 | Backend | Fastify for the API and Prisma ORM for database access and migrations |
-| Frontend | Next.js App Router with TypeScript |
+| Frontend | Vite, React, TanStack Router, and TypeScript |
 | Local platform | Local Supabase through Docker for PostgreSQL, Auth, Storage, and development email capture |
-| Architecture | pnpm monorepo with separate Next.js web and Fastify API applications; modular monolith |
+| Architecture | pnpm monorepo with separate Vite web and Fastify API applications |
 | Tenancy | Organization and store scoped from the first milestone, with Owner and Salesperson roles |
 | Initial deployment | One family-owned store at one location |
 | Localization | Azerbaijani (default), English, and Russian interface options, organization default ISO currency with optional foreign-currency payment, weight in grams |
@@ -25,10 +25,10 @@ Mizan is a management app for small jewelry stores. A family-owned jewelry store
 
 ## Design References
 
-- [Interactive Mizan demo](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/)
+- [Historical interactive demo](https://qizil-anbar-idareetme.auralchess4.chatgpt.site/)
 - [App screen preview](https://chatgpt.com/library?file_id=libfile_e6773243cbd481918c532f72612ddb2f&account_id=personal)
 
-Prioritize mobile screens and use a left sidebar on desktop. The previous frontend and DESIGN.md have been removed. The previous icon library, color palettes, palette switching, and glass headers are no longer requirements. Establish a new approved visual direction before rebuilding the frontend.
+Use mobile bottom navigation and a left sidebar on desktop. [DESIGN.md](DESIGN.md) describes the current frontend and Misqal assets. The linked demo and screen preview are historical references.
 
 ## First Implementation Task
 
@@ -63,4 +63,4 @@ At the end of the first task, document local setup, required environment variabl
 - **Barcode and camera.** The planned flow is to scan a barcode, find the item in inventory, and offer a button to proceed to the sale. Allow manual code entry when the barcode cannot be read. Photo-based recognition, the web camera menu, and PWA behavior will be specified separately.
 - **Catalog.** A customer-facing browsing screen displays product photos, gold purity, weight, and other relevant attributes. Prices are hidden.
 - **Reporting.** Market observations and store pricing rule history are available through the API. Compare month-end and quarter-end inventory with current stock once the inventory reporting scope is defined. The historical dashboard chart is Task 14.
-- **SaaS plans.** The longer-term goal is to offer Mizan to other stores. A limited free plan is under consideration. Final pricing, limits, and paid-plan features are still open.
+- **SaaS plans.** The longer-term goal is to offer Misqal to other stores. A limited free plan is under consideration. Final pricing, limits, and paid-plan features are still open.

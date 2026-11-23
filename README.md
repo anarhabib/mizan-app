@@ -1,6 +1,6 @@
-# Mizan
+# Misqal
 
-Mizan is an inventory and sales app for jewelry stores, available in Azerbaijani, English, and Russian. The workspace has a Next.js web app, a Fastify API, and separate packages for API contracts and the database.
+Misqal is an inventory and sales app for jewelry stores, available in Azerbaijani, English, and Russian. The workspace has a Vite and React web app, a Fastify API, and separate packages for API contracts and the database. The intended public domain is `misqal.az`.
 
 Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuration, migrations, service addresses, and verification commands. Use [the backup and restore procedure](docs/BACKUP_RESTORE.md) to preserve local data and exercise isolated recovery. See the [roadmap](docs/ROADMAP.md) for upcoming milestones. Current milestone acceptance evidence is in [PROJECT_STATE.md](PROJECT_STATE.md).
 
@@ -14,11 +14,11 @@ Follow [the local setup guide](docs/LOCAL_SETUP.md) for environment configuratio
 
 Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, and `pnpm build` from the workspace root to verify changes.
 
-The previous frontend has been removed. Tailwind CSS remains the frontend styling choice; icons, colors, and header styling will follow the next approved design.
+The frontend uses the existing shadcn/ui preset and Tailwind CSS. See [frontend conventions](docs/FRONTEND.md) for component and brand asset usage.
 
 ## Database changes
 
-With local Supabase running, set `DATABASE_URL` in your shell to the local PostgreSQL connection string reported by the Supabase CLI. Keep this value server-side. Mizan tables use the private `mizan` PostgreSQL schema.
+With local Supabase running, set `DATABASE_URL` in your shell to the local PostgreSQL connection string reported by the Supabase CLI. Keep this value server-side. Application tables use the private `mizan` PostgreSQL schema.
 
 Check the published port bindings with `docker ps` before leaving Supabase running. On this Windows Docker Desktop setup, the local CLI published ports on all interfaces even with a loopback-configured bridge. Stop Supabase after testing until the bindings are restricted to this PC.
 

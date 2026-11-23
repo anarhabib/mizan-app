@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ConfirmationContent } from "@/shared/ui/ConfirmationContent";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
@@ -106,6 +116,7 @@ function ScopedCustomers({
       : id && createButton
         ? { id, opener: createButton }
         : undefined;
+  const [saving, setSaving] = useState(false);
   const close = () => {
     setPanel(undefined);
     if (id) closeLinkedCustomer();
@@ -134,9 +145,10 @@ function ScopedCustomers({
         render={(row) => (
           <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
             <div className="min-w-0">
-              <button
+              <Button
+                variant="ghost"
                 type="button"
-                className="inline-flex min-h-11 cursor-pointer items-center rounded-sm text-left font-medium underline underline-offset-4 wrap-anywhere focus-visible:outline-2 focus-visible:outline-ring lg:min-h-9"
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-sm text-left font-medium underline underline-offset-4 wrap-anywhere focus-visible:outline-2 focus-visible:outline-ring lg:min-h-9 h-auto justify-start px-0 whitespace-normal"
                 onClick={(event) =>
                   setPanel({
                     kind: "detail",
@@ -146,7 +158,7 @@ function ScopedCustomers({
                 }
               >
                 {row.name}
-              </button>
+              </Button>
               <p className="text-muted-foreground wrap-anywhere">{row.phone}</p>
             </div>
             <dl className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -156,9 +168,15 @@ function ScopedCustomers({
         )}
       />
       {panel?.kind === "create" ? (
-        <ProductPanel title={t("create")} opener={panel.opener} close={close}>
+        <ProductPanel
+          title={t("create")}
+          opener={panel.opener}
+          close={close}
+          busy={saving}
+        >
           <CustomerForm
             scope={scope}
+            onSubmittingChange={setSaving}
             close={close}
             saved={(customer) =>
               setPanel({
@@ -202,7 +220,8 @@ function CustomerDetailPanel({
   restoreFallbackFocus: () => void;
 }) {
   const { t } = useTranslation("customers");
-  const [view, setView] = useState<"detail" | "edit" | "delete">("detail");
+  const [view, setView] = useState<"detail" | "edit">("detail");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const detail = useQuery(customerDetailQuery(scope, id));
   const customer = detail.data;
   const client = useQueryClient();
@@ -211,70 +230,32 @@ function CustomerDetailPanel({
     networkMode: "always",
     mutationFn: () => apiRequest(customerPath(scope, id), { method: "DELETE" }),
     onSuccess: () => {
+      toast.success(t("deleted"));
       close();
       void invalidateCustomers(client, scope, id);
     },
     onError: () => void invalidateCustomers(client, scope, id),
   });
+  const [saving, setSaving] = useState(false);
+  const [pendingRepayments, setPendingRepayments] = useState(0);
   const showDetail = () => setView("detail");
 
   return (
     <ProductPanel
-      title={view === "detail" ? (customer?.name ?? t("detail")) : t(view)}
+      title={view === "detail" ? (customer?.name ?? t("detail")) : t("edit")}
       opener={opener}
       close={close}
-      busy={removal.isPending}
+      busy={removal.isPending || saving || pendingRepayments > 0}
       restoreFallbackFocus={restoreFallbackFocus}
-      descriptionId={
-        view === "delete" ? "customer-delete-description" : undefined
-      }
     >
       {view === "edit" && customer ? (
         <CustomerForm
           scope={scope}
+          onSubmittingChange={setSaving}
           customer={customer}
           close={showDetail}
           saved={showDetail}
         />
-      ) : view === "delete" && customer ? (
-        <div className="grid gap-4">
-          <p id="customer-delete-description">
-            {t("confirmDelete", { name: customer.name })}
-          </p>
-          {removal.isError && (
-            <p role="alert" className="text-destructive">
-              {t(
-                removal.error instanceof ApiError &&
-                  removal.error.code === "CUSTOMER_DELETE_CONFLICT"
-                  ? "deleteConflict"
-                  : "deleteFailed",
-              )}
-            </p>
-          )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              autoFocus
-              variant="outline"
-              className={buttonHeight}
-              disabled={removal.isPending}
-              onClick={showDetail}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              variant="destructive"
-              className={buttonHeight}
-              disabled={
-                removal.isPending ||
-                removal.isError ||
-                Boolean(customer.lastPurchaseAt)
-              }
-              onClick={() => removal.mutate()}
-            >
-              {t("delete")}
-            </Button>
-          </div>
-        </div>
       ) : (
         <div className="grid gap-6">
           {detail.isPending && <ListSkeleton rows={3} />}
@@ -315,24 +296,89 @@ function CustomerDetailPanel({
                 <Button
                   variant="outline"
                   className={buttonHeight}
+                  disabled={pendingRepayments > 0}
                   onClick={() => setView("edit")}
                 >
                   {t("edit")}
                 </Button>
-                {canManageAsOwner && !customer.lastPurchaseAt && (
-                  <Button
-                    variant="destructive"
-                    className={buttonHeight}
-                    onClick={() => {
-                      removal.reset();
-                      setView("delete");
-                    }}
-                  >
-                    {t("delete")}
-                  </Button>
-                )}
+                {canManageAsOwner &&
+                  (!customer.lastPurchaseAt || confirmDelete) && (
+                    <AlertDialog
+                      open={confirmDelete}
+                      onOpenChange={(next) => {
+                        if (!removal.isPending) {
+                          if (next) removal.reset();
+                          setConfirmDelete(next);
+                        }
+                      }}
+                    >
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          className={buttonHeight}
+                          disabled={
+                            Boolean(customer.lastPurchaseAt) ||
+                            pendingRepayments > 0
+                          }
+                        >
+                          {t("delete")}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <ConfirmationContent
+                        onEscapeKeyDown={(event) => {
+                          if (removal.isPending) event.preventDefault();
+                        }}
+                      >
+                        <AlertDialogTitle>{t("delete")}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t("confirmDelete", { name: customer.name })}
+                        </AlertDialogDescription>
+                        {removal.isError && (
+                          <p role="alert" className="text-destructive">
+                            {t(
+                              removal.error instanceof ApiError &&
+                                removal.error.code ===
+                                  "CUSTOMER_DELETE_CONFLICT"
+                                ? "deleteConflict"
+                                : "deleteFailed",
+                            )}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <AlertDialogCancel asChild>
+                            <Button
+                              variant="outline"
+                              className={buttonHeight}
+                              disabled={removal.isPending}
+                            >
+                              {t("cancel")}
+                            </Button>
+                          </AlertDialogCancel>
+                          <PendingButton
+                            pending={removal.isPending}
+                            variant="destructive"
+                            className={buttonHeight}
+                            disabled={
+                              removal.isPending ||
+                              removal.isError ||
+                              Boolean(customer.lastPurchaseAt)
+                            }
+                            onClick={() => removal.mutate()}
+                          >
+                            {t("delete")}
+                          </PendingButton>
+                        </div>
+                      </ConfirmationContent>
+                    </AlertDialog>
+                  )}
               </div>
-              <PurchaseHistory scope={scope} id={id} />
+              <PurchaseHistory
+                scope={scope}
+                id={id}
+                onRepaymentSubmittingChange={(submitting) =>
+                  setPendingRepayments((count) => count + (submitting ? 1 : -1))
+                }
+              />
             </>
           )}
         </div>
@@ -341,7 +387,15 @@ function CustomerDetailPanel({
   );
 }
 
-function PurchaseHistory({ scope, id }: { scope: CustomerScope; id: string }) {
+function PurchaseHistory({
+  scope,
+  id,
+  onRepaymentSubmittingChange,
+}: {
+  scope: CustomerScope;
+  id: string;
+  onRepaymentSubmittingChange: (submitting: boolean) => void;
+}) {
   const { t } = useTranslation("customers");
   const history = useInfiniteQuery(customerHistoryQuery(scope, id));
   const rows = history.data?.pages.flatMap((page) => page.items) ?? [];
@@ -394,6 +448,7 @@ function PurchaseHistory({ scope, id }: { scope: CustomerScope; id: string }) {
                   saleId={sale.id}
                   customerId={id}
                   outstanding={sale.outstandingDebt}
+                  onSubmittingChange={onRepaymentSubmittingChange}
                 />
               )}
             </li>
@@ -401,14 +456,15 @@ function PurchaseHistory({ scope, id }: { scope: CustomerScope; id: string }) {
         </ul>
       )}
       {history.hasNextPage && !history.isFetchNextPageError && (
-        <Button
+        <PendingButton
+          pending={history.isFetchingNextPage}
           variant="outline"
           className={`justify-self-start ${buttonHeight}`}
           disabled={history.isFetching}
           onClick={() => void history.fetchNextPage()}
         >
           {t(history.isFetchingNextPage ? "loading" : "loadMore")}
-        </Button>
+        </PendingButton>
       )}
     </section>
   );

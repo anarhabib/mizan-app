@@ -2,7 +2,7 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { auth } from "@/shared/lib/auth";
 
 export function SignOutButton({ compact = false }: { compact?: boolean }) {
@@ -23,17 +23,17 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <Button
+    <PendingButton
       type="button"
       variant="outline"
-      disabled={pending}
+      pending={pending}
       aria-label={t("signOut")}
       title={compact ? t("signOut") : undefined}
       onClick={() => void signOut()}
       className="min-h-11 min-w-11 lg:min-h-9"
     >
-      <LogOut aria-hidden="true" />
+      {!pending && <LogOut aria-hidden="true" />}
       {!compact && t("signOut")}
-    </Button>
+    </PendingButton>
   );
 }

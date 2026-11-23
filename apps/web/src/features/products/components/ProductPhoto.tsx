@@ -1,3 +1,8 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Empty, EmptyHeader, EmptyDescription } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { useRef, useState } from "react";
 import { Camera, ImagePlus, ImageOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -19,10 +24,14 @@ export function ProductPhoto({
   const choose = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
   const [failedUrl, setFailedUrl] = useState<string>();
+  const [source, setSource] = useState<"file" | "camera">("file");
   const error = upload.error?.code;
 
-  function select(file?: File) {
-    if (file && !upload.isPending) upload.mutate(file);
+  function select(source: "file" | "camera", file?: File) {
+    if (file && !upload.isPending) {
+      setSource(source);
+      upload.mutate(file, { onSuccess: () => toast.success(t("photo.saved")) });
+    }
   }
 
   return (
@@ -40,9 +49,13 @@ export function ProductPhoto({
           onError={() => setFailedUrl(product.photo?.url)}
         />
       ) : (
-        <div className="flex min-h-24 flex-wrap items-center justify-center gap-3 rounded-lg border border-dashed p-3 text-muted-foreground">
-          <ImageOff aria-hidden="true" className="size-4" />
-          <span>{t(product.photo ? "photo.loadError" : "photo.empty")}</span>
+        <Empty className="min-h-24 gap-2 rounded-lg border p-3">
+          <EmptyHeader>
+            <ImageOff aria-hidden="true" className="size-4" />
+            <EmptyDescription>
+              {t(product.photo ? "photo.loadError" : "photo.empty")}
+            </EmptyDescription>
+          </EmptyHeader>
           {product.photo && (
             <Button
               variant="outline"
@@ -52,71 +65,78 @@ export function ProductPhoto({
               {t("photo.reload")}
             </Button>
           )}
-        </div>
+        </Empty>
       )}
       <div className="flex flex-wrap gap-2">
-        <input
+        <Input
           hidden
           type="file"
           accept={photoAccept}
           ref={choose}
           onChange={(event) => {
-            select(event.currentTarget.files?.[0]);
+            select("file", event.currentTarget.files?.[0]);
             event.currentTarget.value = "";
           }}
         />
-        <input
+        <Input
           hidden
           type="file"
           accept={photoAccept}
           capture="environment"
           ref={camera}
           onChange={(event) => {
-            select(event.currentTarget.files?.[0]);
+            select("camera", event.currentTarget.files?.[0]);
             event.currentTarget.value = "";
           }}
         />
-        <Button
+        <PendingButton
+          pending={upload.isPending && source === "file"}
           type="button"
           variant="outline"
           className="min-h-11 lg:min-h-9"
           disabled={upload.isPending}
           onClick={() => choose.current?.click()}
         >
-          <ImagePlus aria-hidden="true" />
+          {!(upload.isPending && source === "file") && (
+            <ImagePlus aria-hidden="true" />
+          )}
           {t("photo.choose")}
-        </Button>
-        <Button
+        </PendingButton>
+        <PendingButton
+          pending={upload.isPending && source === "camera"}
           type="button"
           variant="outline"
           className="min-h-11 lg:hidden"
           disabled={upload.isPending}
           onClick={() => camera.current?.click()}
         >
-          <Camera aria-hidden="true" />
+          {!(upload.isPending && source === "camera") && (
+            <Camera aria-hidden="true" />
+          )}
           {t("photo.camera")}
-        </Button>
+        </PendingButton>
       </div>
       {upload.isPending && <p role="status">{t("photo.uploading")}</p>}
-      {upload.isSuccess && <p role="status">{t("photo.saved")}</p>}
       {error && (
-        <p role="alert" className="text-destructive">
-          {error === "PHOTO_TYPE"
-            ? t("photo.invalidType")
-            : error === "PHOTO_PROCESSING"
-              ? t("photo.processingError")
-              : error === "NETWORK_ERROR"
-                ? t("photo.uncertain")
-                : t(
-                    error === "PHOTO_CONFLICT" ||
-                      error === "PHOTO_UNAVAILABLE" ||
-                      error === "ACCESS_DENIED" ||
-                      error === "AUTH_UNAVAILABLE"
-                      ? error
-                      : "generic",
-                    { ns: "errors" },
-                  )}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error === "PHOTO_TYPE"
+              ? t("photo.invalidType")
+              : error === "PHOTO_PROCESSING"
+                ? t("photo.processingError")
+                : error === "NETWORK_ERROR"
+                  ? t("photo.uncertain")
+                  : t(
+                      error === "PHOTO_CONFLICT" ||
+                        error === "PHOTO_UNAVAILABLE" ||
+                        error === "ACCESS_DENIED" ||
+                        error === "AUTH_UNAVAILABLE"
+                        ? error
+                        : "generic",
+                      { ns: "errors" },
+                    )}
+          </AlertDescription>
+        </Alert>
       )}
     </section>
   );

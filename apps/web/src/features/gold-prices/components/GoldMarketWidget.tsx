@@ -1,3 +1,5 @@
+import { ListSkeleton } from "@/shared/ui/ListSkeleton";
+import { Badge } from "@/components/ui/badge";
 import { useId } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -45,12 +47,9 @@ export function GoldMarketWidget({
               })}
             </p>
             {(query.data?.stale || query.isError) && (
-              <span
-                role="status"
-                className="rounded-md bg-warning px-2 py-1 text-warning-foreground"
-              >
+              <Badge role="status" variant="warning">
                 {t("stale")}
-              </span>
+              </Badge>
             )}
           </div>
           {!!query.data?.references.length && (
@@ -74,9 +73,11 @@ export function GoldMarketWidget({
             </dl>
           )}
         </>
+      ) : query.isPending ? (
+        <ListSkeleton rows={1} className="h-8" />
       ) : (
         <p role="status" className="text-muted-foreground">
-          {t(query.isPending ? "loading" : "unavailable")}
+          {t("unavailable")}
         </p>
       )}
       {query.isError && (

@@ -23,6 +23,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-brand-accent: var(--brand-accent);
   --color-input: var(--input);
   --color-overlay: var(--overlay);
   --color-control: var(--control);
@@ -63,6 +64,10 @@
 }
 
 :root {
+  --info: #e5efff;
+  --info-foreground: #234b87;
+  --info-outline: #b8ccef;
+  --brand-accent: color-mix(in srgb, #aee036 54%, #14171b);
   --background: #e5e8ec;
   --foreground: oklch(0.148 0.004 228.8);
   --card: #ffffff;
@@ -124,6 +129,10 @@
 }
 
 .dark {
+  --info: #172843;
+  --info-foreground: #a9caff;
+  --info-outline: #355582;
+  --brand-accent: #aee036;
   --background: #08090b;
   --foreground: oklch(0.987 0.002 197.1);
   --card: #14171b;
@@ -225,5 +234,29 @@ html {
 @media (forced-colors: active) {
   nav a[aria-current="page"] {
     outline: 2px solid Highlight;
+  }
+}
+
+[data-slot="alert-dialog-overlay"] {
+  background: color-mix(in srgb, var(--overlay) 50%, transparent);
+  backdrop-filter: none;
+}
+
+:is([data-slot="checkbox"], [data-slot="switch"])[data-state="checked"] {
+  box-shadow: inset 0 0 0 2px var(--brand-accent);
+}
+
+:is(
+  [data-slot="select-item"],
+  [data-slot="dropdown-menu-radio-item"]
+)[data-state="checked"] {
+  box-shadow: inset 2px 0 var(--brand-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="alert-dialog-overlay"],
+  [data-sonner-toast] {
+    animation: none !important;
+    transition: none !important;
   }
 }

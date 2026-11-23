@@ -1,5 +1,14 @@
+import { useState } from "react";
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { Ban, CircleMinus, RotateCw, Trash2 } from "lucide-react";
-import { AlertDialog } from "radix-ui";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ConfirmationContent } from "@/shared/ui/ConfirmationContent";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
@@ -12,9 +21,11 @@ export function ConfirmAction({
   kind: "deactivate" | "revoke" | "resend" | "remove";
   target: string;
   busy: boolean;
-  onConfirm: () => void;
+  onConfirm: (onError: (message: string) => void) => Promise<boolean>;
 }) {
   const { t } = useTranslation("team");
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string>();
   const action = t(`actions.${kind}`);
   const ActionIcon =
     kind === "resend"
@@ -26,8 +37,16 @@ export function ConfirmAction({
           : CircleMinus;
   const variant = kind === "resend" ? "default" : "destructive";
   return (
-    <AlertDialog.Root>
-      <AlertDialog.Trigger asChild>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!busy) {
+          setOpen(next);
+          setError(undefined);
+        }
+      }}
+    >
+      <AlertDialogTrigger asChild>
         <Button
           variant={variant}
           size="sm"
@@ -37,36 +56,48 @@ export function ConfirmAction({
           <ActionIcon aria-hidden="true" />
           {action}
         </Button>
-      </AlertDialog.Trigger>
-      <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-50 bg-overlay/50" />
-        <AlertDialog.Content className="fixed inset-x-0 bottom-0 z-50 grid max-h-dvh gap-4 overflow-auto rounded-t-xl border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-card-foreground lg:inset-auto lg:top-1/2 lg:left-1/2 lg:w-104 lg:-translate-1/2 lg:rounded-xl">
-          <AlertDialog.Title className="font-heading text-base font-semibold">
+      </AlertDialogTrigger>
+
+      <ConfirmationContent
+        onEscapeKeyDown={(event) => {
+          if (busy) event.preventDefault();
+        }}
+      >
+        <AlertDialogTitle className="font-heading text-base font-semibold">
+          {action}
+        </AlertDialogTitle>
+        <AlertDialogDescription className="text-muted-foreground wrap-anywhere">
+          {t(`confirm.${kind}`, { target })}
+        </AlertDialogDescription>
+        {error && (
+          <p role="alert" className="text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          <AlertDialogCancel asChild>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              className="min-h-11 lg:min-h-8"
+            >
+              {t("cancel")}
+            </Button>
+          </AlertDialogCancel>
+          <PendingButton
+            pending={busy}
+            variant={variant}
+            className="min-h-11 lg:min-h-8"
+            onClick={async () => {
+              setError(undefined);
+              if (await onConfirm(setError)) setOpen(false);
+            }}
+          >
+            {!busy && <ActionIcon aria-hidden="true" />}
             {action}
-          </AlertDialog.Title>
-          <AlertDialog.Description className="text-muted-foreground wrap-anywhere">
-            {t(`confirm.${kind}`, { target })}
-          </AlertDialog.Description>
-          <div className="flex flex-wrap justify-end gap-2">
-            <AlertDialog.Cancel asChild>
-              <Button variant="secondary" className="min-h-11 lg:min-h-8">
-                {t("cancel")}
-              </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action asChild>
-              <Button
-                variant={variant}
-                className="min-h-11 lg:min-h-8"
-                disabled={busy}
-                onClick={onConfirm}
-              >
-                <ActionIcon aria-hidden="true" />
-                {action}
-              </Button>
-            </AlertDialog.Action>
-          </div>
-        </AlertDialog.Content>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
+          </PendingButton>
+        </div>
+      </ConfirmationContent>
+    </AlertDialog>
   );
 }

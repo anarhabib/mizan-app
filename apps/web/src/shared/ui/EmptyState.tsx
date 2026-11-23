@@ -1,3 +1,9 @@
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+} from "@/components/ui/empty";
 import type { ReactNode } from "react";
 export function EmptyState({
   title,
@@ -9,12 +15,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <section className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-card p-6 text-center">
-      <h2 className="font-medium">{title}</h2>
-      {description && (
-        <p className="max-w-sm text-muted-foreground">{description}</p>
-      )}
-      {action}
-    </section>
+    <Empty className="min-h-48 gap-3 rounded-lg border border-dashed bg-card">
+      <EmptyHeader>
+        <h2 className="font-medium">{title}</h2>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+      {action && <EmptyContent>{action}</EmptyContent>}
+    </Empty>
   );
 }

@@ -55,8 +55,8 @@ export function DirectoryLists({
                         kind="deactivate"
                         target={displayName}
                         busy={busy}
-                        onConfirm={() =>
-                          void run({ kind: "deactivate", userId })
+                        onConfirm={(onError) =>
+                          run({ kind: "deactivate", userId }, onError)
                         }
                       />
                     ) : (
@@ -96,8 +96,11 @@ export function DirectoryLists({
                                 store: storeName(storeId),
                               })}
                               busy={busy}
-                              onConfirm={() =>
-                                void run({ kind: "remove", userId, storeId })
+                              onConfirm={(onError) =>
+                                run(
+                                  { kind: "remove", userId, storeId },
+                                  onError,
+                                )
                               }
                             />
                           </li>
@@ -155,16 +158,16 @@ export function DirectoryLists({
                     kind="resend"
                     target={email}
                     busy={busy}
-                    onConfirm={() =>
-                      void run({ kind: "resend", invitationId: id })
+                    onConfirm={(onError) =>
+                      run({ kind: "resend", invitationId: id }, onError)
                     }
                   />
                   <ConfirmAction
                     kind="revoke"
                     target={email}
                     busy={busy}
-                    onConfirm={() =>
-                      void run({ kind: "revoke", invitationId: id })
+                    onConfirm={(onError) =>
+                      run({ kind: "revoke", invitationId: id }, onError)
                     }
                   />
                 </div>

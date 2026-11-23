@@ -34,6 +34,7 @@ function ScopedSales({
   const { t } = useTranslation("sales");
   const [focusTarget, setFocusTarget] = useState<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<{ id: string; opener: HTMLElement }>();
+  const [repaying, setRepaying] = useState(false);
   const receipt =
     saleId && focusTarget ? { id: saleId, opener: focusTarget } : detail;
 
@@ -60,8 +61,13 @@ function ScopedSales({
           title={t("detail")}
           close={saleId ? closeCreate : () => setDetail(undefined)}
           opener={receipt.opener}
+          busy={repaying}
         >
-          <SaleDetail scope={scope} id={receipt.id} />
+          <SaleDetail
+            scope={scope}
+            id={receipt.id}
+            onRepaymentSubmittingChange={setRepaying}
+          />
         </ProductPanel>
       )}
     </>

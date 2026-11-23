@@ -128,5 +128,8 @@
   },
   "unavailableRateOption": "{{purity}} · Rate unavailable",
   "perGram": " / g",
-  "agreedAmount": "Agreed amount"
+  "agreedAmount": "Agreed amount",
+  "completed": "Sale recorded.",
+  "completedWithTradeIn": "Sale and trade-in recorded.",
+  "repaymentSaved": "Payment recorded."
 }

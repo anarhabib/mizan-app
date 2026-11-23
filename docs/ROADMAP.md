@@ -1,6 +1,6 @@
-# Mizan roadmap
+# Misqal roadmap
 
-Mizan helps a jewelry store receive stock, find items, and record sales and trade-ins. The first rollout serves one family-owned store at one location. The sequence after the pilot is proposed and can change based on what the store learns.
+Misqal helps a jewelry store receive stock, find items, and record sales and trade-ins. The first rollout serves one family-owned store at one location. The sequence after the pilot is proposed and can change based on what the store learns.
 
 | Milestone | Status | Completion criteria |
 | --- | --- | --- |

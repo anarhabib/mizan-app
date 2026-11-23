@@ -46,5 +46,8 @@
   "partialTender": "Bu ödənişdən sonra qalan məbləğ müştəri borcu kimi yazılır.",
   "unpaid": "Ödənilməli məbləğin hamısı müştəri borcu kimi yazılır.",
   "tradeInCredit": "Dəyişmə dəyəri",
-  "paidAmount": "Ödənilən məbləğ"
+  "paidAmount": "Ödənilən məbləğ",
+  "created": "Müştəri əlavə edildi.",
+  "updated": "Müştəri məlumatları yeniləndi.",
+  "deleted": "Müştəri silindi."
 }

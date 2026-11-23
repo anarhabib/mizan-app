@@ -1,6 +1,6 @@
-Mizan — Codex Agent Instructions
+Misqal — Codex Agent Instructions
 Role and priorities
-You assist the sole developer of Mizan, a jewelry-store inventory and sales management application. Favor reliable, maintainable, straightforward implementations over abstraction. Work incrementally and preserve existing functionality and data. Keep tool and model usage lean without reducing correctness, security, or usability.
+You assist the sole developer of Misqal, a jewelry-store inventory and sales management application. Favor reliable, maintainable, straightforward implementations over abstraction. Work incrementally and preserve existing functionality and data. Keep tool and model usage lean without reducing correctness, security, or usability.
 Sources of truth
 - PROJECT_CONTEXT.md: confirmed product scope, business rules, architecture, feature requirements. Read only the sections relevant to the task.
 - docs/API_NOTES.md: backend contract (endpoints, auth, errors, number formats, pagination, idempotency). Frontend work reads this instead of backend code. If it looks stale or lacks detail, read only the one relevant backend file and update the note.
@@ -45,19 +45,29 @@ Data integrity and security
 - Enforce permissions server-side, not only by hiding UI controls.
 Frontend (summary; details in docs/FRONTEND.md)
 - The UI was rebuilt from scratch. Do not recreate old components, palettes, glass headers or the previous icon library.
-- Feature-based structure. Server state only in TanStack Query. shadcn/ui for primitives. Tailwind for styling. The applied shadcn preset (components.json, theme variables in src/index.css, font, radius, icon library) is the visual base: do not replace or restyle it, and use the icon library named in components.json. Branding is provisional: the logo lives only in shared/ui/BrandMark and the accent color only in the --primary token, so a rebrand is a one-file change. Never hardcode brand colors in components; use semantic tokens.
+- Feature-based structure. Server state only in TanStack Query. Tailwind for styling. Preserve the applied shadcn preset, theme variables, typography, radius and icon library.
+- Check installed shadcn components before creating interactive UI. Compose official primitives, use native HTML for semantic structure, and delete replaced implementations. Use Sonner for operation feedback, Skeleton for initial loading, Spinner for pending actions, and Progress when the operation reports meaningful progress.
 - Mobile-first, compact on desktop. No unnecessary re-renders.
 - Every store-scoped API call carries organizationId and storeId; both belong in every query key.
 - Money and weights stay as decimal strings in the UI; never use parseFloat or Number for them. Display server-calculated values; do not compute money in the UI.
 - Sales and any stock- or money-changing action are never optimistic. Disable submit while pending and invalidate exact query keys on success. POST /sales always sends an Idempotency-Key.
 - Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
 - Visual check only when the task asks for it, or once before a UI PR: one pass at 390px and 1280px. Report deliberate deviations and unverified states.
+Branding
+- Approved brand assets are located in `src/assets/branding` under `apps/web`.
+- Use `BrandMark` as the centralized branding component.
+- Never recreate or duplicate approved logos.
+- Use the brand accent selectively in small UI details.
+- Preserve neutral application surfaces and semantic status colors.
+- Use color intentionally across components and pages. Use semantic success, warning, danger and informational colors for feedback, and the brand accent for small selection details. Pair color with text, an icon or a programmatic state.
+- Never hardcode brand colors inside feature components.
+- Preserve light/dark theme compatibility.
 Execution efficiency
 - Work inline in the session. Use subagents only for substantial independent work or high-risk review, giving them focused requirements, changed files and the diff, not the whole conversation.
 - Reuse approved plans and decisions. Do not reopen resolved scope, repeat questions, or write new plans or documents for routine tasks.
 - Read the smallest relevant sections; do not re-read unchanged files. Batch independent reads and searches and constrain output to relevant findings and errors.
 - Do not run repeated full-repo scans, repeated builds after small visual changes, screenshots, or web browsing unless the task needs them.
-- Do not reinstall or rewrite shadcn components; the developer adds them with the CLI.
+- Install missing official components with `pnpm dlx shadcn@latest add <component> --cwd apps/web` when authorized. Preserve installed and customized primitives.
 - Use pnpm dlx modern-web-guidance retrieve <id> only for CSS, layout, color, motion, performance or accessibility topics, and only for guide IDs named in the task (at most 3). Never search or list guides. The CLI saves each guide to a temp file and prints its path: read it once with the file-reading tool (not cat or head), never re-read it. Use shadcn components for overlays, menus, toasts and form controls, not native-API guides for those.
 - Use Windows-compatible PowerShell commands and literal paths; run dependent commands sequentially and check exit codes.
 - Do not claim measured token savings without actual usage data.

@@ -1,3 +1,4 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -146,11 +147,15 @@ export function DisplayModeControl({
             >
               {t("displayMode.cancel")}
             </Button>
-            <Button className="min-h-11 lg:min-h-9" disabled={isSubmitting}>
+            <PendingButton
+              pending={isSubmitting}
+              className="min-h-11 lg:min-h-9"
+              disabled={isSubmitting}
+            >
               {t(
                 isSubmitting ? "displayMode.switching" : "displayMode.confirm",
               )}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       </SheetContent>

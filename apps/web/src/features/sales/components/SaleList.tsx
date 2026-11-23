@@ -1,3 +1,4 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { useEffect, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
@@ -98,10 +99,11 @@ export function SaleList({
           <ul className="divide-y overflow-hidden rounded-lg border border-border bg-card">
             {rows.map((sale) => (
               <li key={sale.id}>
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={(event) => inspect(sale.id, event.currentTarget)}
-                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:gap-4 lg:py-2"
+                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
                 >
                   <span className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-center">
                     <span className="wrap-anywhere text-xs text-muted-foreground">
@@ -136,7 +138,7 @@ export function SaleList({
                     aria-hidden="true"
                     className="size-4 justify-self-end text-muted-foreground lg:order-4"
                   />
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -153,14 +155,15 @@ export function SaleList({
           />
         )}
         {query.hasNextPage && !query.isFetchNextPageError && (
-          <Button
+          <PendingButton
+            pending={query.isFetchingNextPage}
             variant="outline"
             disabled={query.isFetching || query.isPlaceholderData}
             className="min-h-11 lg:min-h-9"
             onClick={() => void query.fetchNextPage()}
           >
             {t(query.isFetchingNextPage ? "loadingMore" : "loadMore")}
-          </Button>
+          </PendingButton>
         )}
       </section>
     </div>

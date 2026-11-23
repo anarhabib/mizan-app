@@ -6,8 +6,6 @@
     "save": "Valyutaları saxla"
   },
   "title": "Tənzimləmələr",
-  "empty": "Ayar yoxdur",
-  "description": "Təşkilatın ticarət ayarlarını idarə edin.",
   "costVisibility": "Alış qiymətinin görünməsi",
   "costVisibilityDescription": "Satıcılar məhsulun təfərrüatlarında alış qiymətini görə bilsin.",
   "purities": "Əyarlar",
@@ -30,5 +28,6 @@
   "networkError": "Bağlantı kəsildi. Yenidən cəhd etməzdən əvvəl mövcud ayarları yoxlayın.",
   "genericError": "Xəta baş verdi. Yenidən cəhd edin.",
   "retry": "Yenidən cəhd et",
-  "saving": "Saxlanılır…"
+  "saving": "Saxlanılır…",
+  "saved": "Parametrlər yadda saxlanıldı."
 }
