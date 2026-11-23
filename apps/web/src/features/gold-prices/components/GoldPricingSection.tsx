@@ -275,7 +275,7 @@ function CurrentRates({
                   key={column}
                   scope="col"
                   role="columnheader"
-                  className="h-auto px-2 pb-2 font-medium wrap-anywhere whitespace-normal first:w-16"
+                  className="h-auto px-2 pb-2 text-right font-medium wrap-anywhere whitespace-normal first:w-16 first:text-left"
                 >
                   {t(column)}
                 </TableHead>
@@ -300,7 +300,7 @@ function CurrentRates({
                   </TableHead>
                   <TableCell
                     role="cell"
-                    className="min-w-0 p-0 wrap-anywhere whitespace-normal md:px-2 md:py-3 md:align-top"
+                    className="min-w-0 p-0 wrap-anywhere whitespace-normal md:px-2 md:py-3 md:text-right md:align-top"
                   >
                     <span className="block text-xs text-muted-foreground md:hidden">
                       {t("reference")}
@@ -326,7 +326,7 @@ function CurrentRates({
                           purity,
                         })}
                         onClick={() => edit({ kind: price.kind, purity })}
-                        className="h-auto min-h-11 w-full justify-between gap-1 px-1 text-left whitespace-normal md:min-h-9"
+                        className="h-auto min-h-11 w-full justify-between gap-1 px-1 text-left whitespace-normal md:min-h-9 md:justify-end md:text-right"
                       >
                         <span className="min-w-0 wrap-anywhere">
                           <span className="block text-xs text-muted-foreground md:hidden">

@@ -7,6 +7,15 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ProductThumbnail } from "@/features/products";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
@@ -18,6 +27,7 @@ import {
   type SaleScope,
 } from "../api/queries";
 import { SaleDate } from "./SaleResult";
+import { SalePaymentStatusBadge } from "./SalePaymentStatusBadge";
 
 export function SaleList({
   scope,
@@ -31,6 +41,7 @@ export function SaleList({
   setFilters?: (filters: Omit<SaleFilters, "q">) => void;
 }) {
   const { t } = useTranslation("sales");
+  const { t: productLabel } = useTranslation("products");
   const [search, setSearch] = useState("");
   const [q, setQuery] = useState("");
   const [localFilters, setLocalFilters] = useState<Omit<SaleFilters, "q">>({});
@@ -66,6 +77,7 @@ export function SaleList({
             type="search"
             value={search}
             autoComplete="off"
+            maxLength={160}
             placeholder={t("searchHint")}
             onChange={(event) => setSearch(event.target.value)}
             className="min-h-11 lg:min-h-9"
@@ -161,9 +173,93 @@ export function SaleList({
             />
           )}
         {rows.length > 0 && (
+          <div
+            inert={query.isPlaceholderData}
+            className="hidden rounded-lg border border-border bg-card lg:block"
+          >
+            <Table aria-label={t("title")}>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead scope="col">
+                    {productLabel("fields.code")}
+                  </TableHead>
+                  <TableHead scope="col">
+                    {productLabel("formFields.name")}
+                  </TableHead>
+                  <TableHead scope="col">
+                    {productLabel("fields.category")}
+                  </TableHead>
+                  <TableHead scope="col">{t("date")}</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    {t("fields.saleTotal")}
+                  </TableHead>
+                  <TableHead scope="col">{t("paymentStatusLabel")}</TableHead>
+                  <TableHead scope="col" className="w-12">
+                    <span className="sr-only">{t("detail")}</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((sale) => (
+                  <TableRow key={sale.id}>
+                    <TableCell className="w-32 text-xs wrap-anywhere whitespace-normal text-muted-foreground">
+                      {sale.product.code}
+                    </TableCell>
+                    <TableCell className="w-full font-medium wrap-anywhere whitespace-normal">
+                      <div className="flex items-center gap-2">
+                        <ProductThumbnail src={sale.thumbnailUrl} />
+                        <span>
+                          {sale.product.name}
+                          {sale.itemCount > 1 && (
+                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                              {t("extraProducts", {
+                                count: sale.itemCount - 1,
+                              })}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="min-w-24 max-w-40 wrap-anywhere whitespace-normal text-muted-foreground">
+                      {sale.product.category}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      <SaleDate value={sale.createdAt} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <MoneyText
+                        value={{
+                          amount: sale.saleAmount,
+                          currency: sale.currency,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <SalePaymentStatusBadge status={sale.paymentStatus} />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        aria-label={`${t("detail")} · ${sale.product.code}`}
+                        onClick={(event) =>
+                          inspect(sale.id, event.currentTarget)
+                        }
+                      >
+                        <ChevronRight aria-hidden="true" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        {rows.length > 0 && (
           <ul
             inert={query.isPlaceholderData}
-            className="divide-y overflow-hidden rounded-lg border border-border bg-card"
+            className="divide-y overflow-hidden rounded-lg border border-border bg-card lg:hidden"
           >
             {rows.map((sale) => (
               <li key={sale.id}>
@@ -171,9 +267,9 @@ export function SaleList({
                   variant="ghost"
                   type="button"
                   onClick={(event) => inspect(sale.id, event.currentTarget)}
-                  className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,1fr)_10rem_10rem_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
+                  className="grid h-auto min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-none px-3 py-3 text-left text-sm font-normal whitespace-normal outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 >
-                  <span className="grid min-w-0 gap-2 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
+                  <span className="grid min-w-0 gap-2">
                     <span className="wrap-anywhere text-xs text-muted-foreground">
                       {sale.product.code}
                     </span>
@@ -184,14 +280,9 @@ export function SaleList({
                           {t("extraProducts", { count: sale.itemCount - 1 })}
                         </span>
                       )}
-                      {sale.paymentStatus !== "PAID" && (
-                        <span className="block text-xs font-normal text-warning-foreground">
-                          {t(`paymentStatus.${sale.paymentStatus}`)}
-                        </span>
-                      )}
                     </span>
                   </span>
-                  <span className="text-right wrap-anywhere lg:order-3">
+                  <span className="text-right wrap-anywhere">
                     <MoneyText
                       value={{
                         amount: sale.saleAmount,
@@ -199,12 +290,13 @@ export function SaleList({
                       }}
                     />
                   </span>
-                  <span className="text-xs text-muted-foreground lg:order-2">
+                  <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <SaleDate value={sale.createdAt} />
+                    <SalePaymentStatusBadge status={sale.paymentStatus} />
                   </span>
                   <ChevronRight
                     aria-hidden="true"
-                    className="size-4 justify-self-end text-muted-foreground lg:order-4"
+                    className="size-4 justify-self-end text-muted-foreground"
                   />
                 </Button>
               </li>

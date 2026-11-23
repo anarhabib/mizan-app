@@ -1,5 +1,22 @@
 # Misqal project state
 
+## Task 15 — table, filter and status consistency (November 23, 2026)
+
+- `ProductList.tsx` and `SaleList.tsx` use shadcn tables with localized desktop column headers, right-aligned numeric values and named detail actions. Mobile uses the existing cards, and the Products toolbar scrolls within one row. Sales search enforces the API's 160-character limit.
+- `SalePaymentStatusBadge.tsx` gives Sales, receipts and customer purchase history the same payment badges. Purchase history reads the exact paid and outstanding amounts already returned by the API and disables cursor navigation while showing a placeholder page. Product credit status still follows outstanding debt on the linked sale. `MarketWidgets.tsx` and `GoldPricingSection.tsx` align desktop rate columns, with a sticky header in the dashboard's bounded rate list.
+- Contracts build, web TypeScript and production build, changed-file lint and formatting, and 33 targeted Vitest tests passed. Chromium with API fixtures passed at 390px and 1280px in both themes, including localized headings, payment statuses, cursor resets, repayment refresh and store and organization switching. AZ and RU labels were checked alongside EN. Live database integration, physical devices and other browsers were not exercised. Changes are local on `task/15-table-status-polish`.
+
+### Follow-up — table headers, thumbnails and categories
+
+- The shared table header uses the muted surface in both themes. `ProductList.tsx` and `SaleList.tsx` show product thumbnails and a localized Category column on desktop. Sales shows the first product and its category for multi-product receipts.
+- `product.storage.ts` signs the scoped photos for each requested page in one batch. The protected Products and Sales lists return optional `thumbnailUrl` values with `photos=1`. A missing or broken photo shows a placeholder. No migration is required.
+- Contracts and API builds, web TypeScript, changed-source lint and formatting, and 11 targeted tests passed. Chromium fixtures checked both widths and themes, plus AZ and RU headers. Database and real Storage integration tests were skipped because the local test services were unavailable.
+
+### Follow-up — mobile Products filters
+
+- `ProductFilters.tsx` puts Status, Category, Purity and Clear filters in a mobile drawer. `ProductList.tsx` keeps search beside the Filters button on mobile and the inline toolbar on desktop. Filter changes still apply immediately and reset the cursor.
+- Web TypeScript, changed-file lint and formatting, and nine targeted Vitest tests passed. Chromium fixtures covered 390px and 1280px in light and dark, including opening and closing the drawer, retaining search, submitting combined filters, clearing filters and avoiding horizontal page overflow.
+
 ## Task 20 — products overview, navigation and pagination (November 23, 2026)
 
 - `apps/web/src/shared/ui/PageContainer.tsx` and `apps/web/src/index.css` provide fluid wide (1600px), standard and narrow layouts. `apps/web/src/app/Shell.tsx` keeps the store selector in the header, places the collapse control and Settings in the desktop sidebar, and exposes account actions through `AccountMenu.tsx` in the desktop footer and mobile More.

@@ -145,7 +145,11 @@ export interface SaleList {
       | "balance"
       | "paymentStatus"
       | "outstandingDebt"
-    > & { paymentCurrency: string | null; itemCount: number }
+    > & {
+      paymentCurrency: string | null;
+      itemCount: number;
+      thumbnailUrl?: string;
+    }
   >;
   nextCursor?: string;
 }

@@ -97,6 +97,10 @@ test.skipIf(!db)(
           inspect: async (key: string) => uploads.get(key) ?? null,
           signDownload: async (key: string) =>
             "https://example.test/download/" + key,
+          signDownloads: async (keys) =>
+            new Map(
+              keys.map((key) => [key, "https://example.test/download/" + key]),
+            ),
         },
       },
     });

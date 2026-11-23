@@ -27,6 +27,7 @@ export interface ProductListItem {
   weight: string;
   status: ProductStatus;
   hasOutstandingDebt?: boolean;
+  thumbnailUrl?: string;
 }
 
 export interface ProductDetail extends ProductListItem {

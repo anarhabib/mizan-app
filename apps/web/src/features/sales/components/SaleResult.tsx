@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import type { SaleProfit, SaleResult as Result } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/features/workspace";
 import { formatDateTime } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -13,6 +12,7 @@ import { PurityText } from "@/shared/ui/PurityText";
 import { WeightText } from "@/shared/ui/WeightText";
 import { saleDetailQuery, type SaleScope } from "../api/queries";
 import { SaleRepayment } from "./SaleRepayment";
+import { SalePaymentStatusBadge } from "./SalePaymentStatusBadge";
 import { SaleTotals } from "./SaleTotals";
 
 export function SaleDate({ value }: { value: string }) {
@@ -71,9 +71,7 @@ function SaleRecord({
         <p className="text-xs text-muted-foreground">
           <SaleDate value={sale.createdAt} />
         </p>
-        <Badge variant={sale.paymentStatus === "PAID" ? "success" : "warning"}>
-          {t(`paymentStatus.${sale.paymentStatus}`)}
-        </Badge>
+        <SalePaymentStatusBadge status={sale.paymentStatus} />
         {sale.customerId && sale.customerName && (
           <Link
             to="/customers"

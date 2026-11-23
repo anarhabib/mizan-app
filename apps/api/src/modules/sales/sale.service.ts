@@ -37,6 +37,10 @@ import {
   parseSalePreview,
 } from "./sale-input.js";
 import { calculateProfit } from "./profit.js";
+import {
+  pagePhotoUrls,
+  type ProductPhotoStorage,
+} from "../products/product.storage.js";
 import { requireSaleConfirmation } from "./sale-confirmation.js";
 import {
   calculateSettlement,
@@ -433,7 +437,9 @@ export async function listSales(
     limit?: string;
     paymentDate?: string;
     paymentStatus?: string;
+    photos?: boolean;
   },
+  storage?: ProductPhotoStorage,
 ): Promise<SaleList> {
   const pageSize = readPageSize(filters.limit, "INVALID_SALE");
   const scope = { organizationId, storeId };
@@ -588,26 +594,43 @@ export async function listSales(
       productCategory: true,
       productPurity: true,
       productWeight: true,
+      product:
+        filters.photos && storage
+          ? { select: { photoObjectKey: true } }
+          : undefined,
       _count: { select: { items: true } },
     },
   });
-  return {
-    items: rows.slice(0, pageSize).map((sale) => ({
-      id: sale.id,
-      createdAt: sale.createdAt.toISOString(),
-      actorId: sale.actorId,
-      currency: sale.defaultCurrency,
-      saleAmount: sale.defaultSaleAmount.toFixed(),
-      balance: sale.defaultSettlement.toFixed(),
-      outstandingDebt: sale.outstandingDebt.toFixed(),
-      paymentStatus: paymentStatus(
-        sale.defaultSettlement,
-        sale.outstandingDebt,
-      ),
-      paymentCurrency: sale.paymentCurrency,
-      product: productSnapshot(sale),
-      itemCount: sale._count.items || 1,
+  const page = rows.slice(0, pageSize);
+  const photos = await pagePhotoUrls(
+    filters.photos ? storage : undefined,
+    scope,
+    page.map((sale) => ({
+      id: sale.productId,
+      photoObjectKey: sale.product?.photoObjectKey,
     })),
+  );
+  return {
+    items: page.map((sale) => {
+      const thumbnailUrl = photos.get(sale.productId);
+      return {
+        id: sale.id,
+        createdAt: sale.createdAt.toISOString(),
+        actorId: sale.actorId,
+        currency: sale.defaultCurrency,
+        saleAmount: sale.defaultSaleAmount.toFixed(),
+        balance: sale.defaultSettlement.toFixed(),
+        outstandingDebt: sale.outstandingDebt.toFixed(),
+        paymentStatus: paymentStatus(
+          sale.defaultSettlement,
+          sale.outstandingDebt,
+        ),
+        paymentCurrency: sale.paymentCurrency,
+        product: productSnapshot(sale),
+        itemCount: sale._count.items || 1,
+        ...(thumbnailUrl && { thumbnailUrl }),
+      };
+    }),
     nextCursor: rows.length > pageSize ? rows[pageSize - 1].id : undefined,
   };
 }

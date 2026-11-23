@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import type { CustomerSummary, MoneyInput } from "@mizan/contracts";
 import { Button } from "@/components/ui/button";
 import { ProductPanel } from "@/features/products";
-import { SaleRepayment } from "@/features/sales";
+import { SalePaymentStatusBadge, SaleRepayment } from "@/features/sales";
 import { useWorkspace } from "@/features/workspace";
 import { apiRequest, ApiError } from "@/shared/lib/api";
 import { formatDateTime } from "@/shared/lib/format";
@@ -422,7 +422,7 @@ function PurchaseHistory({
   const history = useQuery(customerHistoryQuery(scope, id, pagination.request));
   const rows = history.data?.items ?? [];
   return (
-    <section className="grid gap-3">
+    <section aria-busy={history.isFetching} className="grid gap-3">
       <h2 className="font-medium">{t("history")}</h2>
       {history.isPending && <ListSkeleton rows={3} />}
       {history.isError && (
@@ -432,51 +432,70 @@ function PurchaseHistory({
           retry={() => void history.refetch()}
         />
       )}
-      {!history.isPending && !history.isError && !rows.length && (
+      {history.isSuccess && !history.isPlaceholderData && !rows.length && (
         <EmptyState title={t("emptyHistory")} />
       )}
       {rows.length > 0 && (
-        <ul className="divide-y rounded-lg border bg-card">
-          {rows.map((sale) => (
-            <li key={sale.id} className="grid gap-3 p-3">
-              <div className="min-w-0">
-                <Link
-                  to="/sales"
-                  search={{ sale: sale.id }}
-                  className="inline-flex min-h-11 items-center font-medium underline underline-offset-4 wrap-anywhere lg:min-h-9"
-                >
-                  {t("purchaseLabel", {
-                    product: sale.productName,
-                    count: sale.itemCount,
-                  })}
-                </Link>
-                <p className="text-xs text-muted-foreground">
-                  <DateText value={sale.createdAt} />
-                </p>
-              </div>
-              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Amount label={t("purchaseTotal")} value={sale.total} />
-                <Amount label={t("tradeInCredit")} value={sale.tradeInCredit} />
-                <Amount label={t("paidAmount")} value={sale.paidAmount} />
-                <Amount label={t("debt")} value={sale.outstandingDebt} />
-              </dl>
-              {!/^0(?:\.0+)?$/.test(sale.outstandingDebt.amount) && (
-                <SaleRepayment
-                  scope={scope}
-                  saleId={sale.id}
-                  customerId={id}
-                  outstanding={sale.outstandingDebt}
-                  onSubmittingChange={onRepaymentSubmittingChange}
-                />
-              )}
-            </li>
-          ))}
+        <ul
+          inert={history.isPlaceholderData}
+          className="divide-y rounded-lg border bg-card"
+        >
+          {rows.map((sale) => {
+            const hasDebt = !/^0(?:\.0+)?$/.test(sale.outstandingDebt.amount);
+            const hasPaid = !/^0(?:\.0+)?$/.test(sale.paidAmount.amount);
+            return (
+              <li key={sale.id} className="grid gap-3 p-3">
+                <div className="min-w-0">
+                  <Link
+                    to="/sales"
+                    search={{ sale: sale.id }}
+                    className="inline-flex min-h-11 items-center font-medium underline underline-offset-4 wrap-anywhere lg:min-h-9"
+                  >
+                    {t("purchaseLabel", {
+                      product: sale.productName,
+                      count: sale.itemCount,
+                    })}
+                  </Link>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <DateText value={sale.createdAt} />
+                    <SalePaymentStatusBadge
+                      status={
+                        hasDebt
+                          ? hasPaid
+                            ? "PARTIALLY_PAID"
+                            : "UNPAID"
+                          : "PAID"
+                      }
+                    />
+                  </div>
+                </div>
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <Amount label={t("purchaseTotal")} value={sale.total} />
+                  <Amount
+                    label={t("tradeInCredit")}
+                    value={sale.tradeInCredit}
+                  />
+                  <Amount label={t("paidAmount")} value={sale.paidAmount} />
+                  <Amount label={t("debt")} value={sale.outstandingDebt} />
+                </dl>
+                {hasDebt && (
+                  <SaleRepayment
+                    scope={scope}
+                    saleId={sale.id}
+                    customerId={id}
+                    outstanding={sale.outstandingDebt}
+                    onSubmittingChange={onRepaymentSubmittingChange}
+                  />
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
       <CursorPagination
         pagination={pagination}
         nextCursor={history.data?.nextCursor}
-        pending={history.isPending}
+        pending={history.isPending || history.isPlaceholderData}
         label={t("history")}
       />
     </section>

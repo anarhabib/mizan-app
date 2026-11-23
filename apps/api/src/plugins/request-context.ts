@@ -97,7 +97,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerMembershipRoutes(app, access, memberships);
   registerSettingsRoutes(app, access, settingsDb);
   registerProductRoutes(app, access, products);
-  registerSaleRoutes(app, access, salesDb);
+  registerSaleRoutes(app, access, salesDb, products?.storage);
   registerCustomerRoutes(app, access, salesDb);
   registerDashboardRoutes(app, access, salesDb, goldMarketEnabled);
 
