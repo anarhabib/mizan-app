@@ -53,5 +53,6 @@
   "cancel": "Cancel",
   "retry": "Reload directory",
   "saving": "Updating the team directory…",
-  "updated": "Team directory updated."
+  "updated": "Team directory updated.",
+  "revoked": "Invitation revoked."
 }

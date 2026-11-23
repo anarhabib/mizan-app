@@ -22,7 +22,15 @@ export function SaleDate({ value }: { value: string }) {
   );
 }
 
-export function SaleDetail({ scope, id }: { scope: SaleScope; id: string }) {
+export function SaleDetail({
+  scope,
+  id,
+  onRepaymentSubmittingChange,
+}: {
+  scope: SaleScope;
+  id: string;
+  onRepaymentSubmittingChange: (submitting: boolean) => void;
+}) {
   const detail = useQuery(saleDetailQuery(scope, id));
   if (detail.isError)
     return (
@@ -33,10 +41,24 @@ export function SaleDetail({ scope, id }: { scope: SaleScope; id: string }) {
       />
     );
   if (detail.isPending) return <ListSkeleton rows={3} />;
-  return <SaleRecord sale={detail.data} scope={scope} />;
+  return (
+    <SaleRecord
+      sale={detail.data}
+      scope={scope}
+      onRepaymentSubmittingChange={onRepaymentSubmittingChange}
+    />
+  );
 }
 
-function SaleRecord({ sale, scope }: { sale: Result; scope: SaleScope }) {
+function SaleRecord({
+  sale,
+  scope,
+  onRepaymentSubmittingChange,
+}: {
+  sale: Result;
+  scope: SaleScope;
+  onRepaymentSubmittingChange: (submitting: boolean) => void;
+}) {
   const { t } = useTranslation("sales");
   const { t: customerText } = useTranslation("customers");
   const { canManageAsOwner } = useWorkspace();
@@ -161,6 +183,7 @@ function SaleRecord({ sale, scope }: { sale: Result; scope: SaleScope }) {
           saleId={sale.id}
           customerId={sale.customerId}
           outstanding={outstanding}
+          onSubmittingChange={onRepaymentSubmittingChange}
         />
       )}
 

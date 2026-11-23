@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ConfirmationContent } from "@/shared/ui/ConfirmationContent";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { ProductDetail as Detail } from "@mizan/contracts";
@@ -42,25 +52,25 @@ export function ProductDetail({
   const upload = useUploadProductPhoto(scope, id);
   const edit = useEditProductAcquisition(scope, id);
   const removal = useDeleteProduct(scope, id);
-  const [view, setView] = useState<"detail" | "edit" | "delete">("detail");
+  const [view, setView] = useState<"detail" | "edit">("detail");
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const product = detail.data;
 
   return (
     <ProductPanel
       title={
-        view === "edit"
-          ? t("editAcquisition")
-          : view === "delete"
-            ? t("delete.title")
-            : (product?.name ?? t("detail"))
+        view === "edit" ? t("editAcquisition") : (product?.name ?? t("detail"))
       }
       opener={opener}
       close={close}
-      busy={upload.isPending || edit.isPending || removal.isPending}
-      restoreFallbackFocus={restoreFallbackFocus}
-      descriptionId={
-        view === "delete" ? "product-delete-description" : undefined
+      busy={
+        upload.isPending ||
+        submittingEdit ||
+        edit.isPending ||
+        removal.isPending
       }
+      restoreFallbackFocus={restoreFallbackFocus}
     >
       {owner && view === "edit" && product ? (
         <div className="grid gap-4">
@@ -68,62 +78,21 @@ export function ProductDetail({
             product={product}
             currency={product.acquisitionCost?.currency ?? ""}
             pending={edit.isPending}
+            onSubmittingChange={setSubmittingEdit}
             save={async (values) => {
               await edit.mutateAsync(values);
+              toast.success(t("updated"));
               setView("detail");
             }}
           />
           <Button
             variant="secondary"
             onClick={() => setView("detail")}
-            disabled={edit.isPending}
+            disabled={submittingEdit || edit.isPending}
             className="min-h-11 lg:min-h-9"
           >
             {t("cancel")}
           </Button>
-        </div>
-      ) : owner && view === "delete" && product ? (
-        <div className="grid gap-4">
-          <p id="product-delete-description" className="text-muted-foreground">
-            {t("delete.description", { name: product.name })}
-          </p>
-          {removal.error && (
-            <p role="alert" className="text-destructive">
-              {t(
-                detail.error?.code === "PRODUCT_NOT_FOUND"
-                  ? "PRODUCT_NOT_FOUND"
-                  : removal.error.code === "PRODUCT_DELETE_CONFLICT"
-                    ? "PRODUCT_DELETE_CONFLICT"
-                    : removal.error.code === "ACCESS_DENIED"
-                      ? "ACCESS_DENIED"
-                      : "generic",
-                { ns: "errors" },
-              )}
-            </p>
-          )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              autoFocus
-              variant="secondary"
-              onClick={() => setView("detail")}
-              disabled={removal.isPending}
-              className="min-h-11 lg:min-h-9"
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => removal.mutate(undefined, { onSuccess: close })}
-              disabled={
-                removal.isPending ||
-                !product.canDelete ||
-                detail.error?.code === "PRODUCT_NOT_FOUND"
-              }
-              className="min-h-11 lg:min-h-9"
-            >
-              {t(removal.isPending ? "delete.pending" : "delete.title")}
-            </Button>
-          </div>
         </div>
       ) : (
         <>
@@ -172,18 +141,84 @@ export function ProductDetail({
                   {t("delete.protected")}
                 </p>
               )}
-              {owner && detail.data.canDelete && (
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    removal.reset();
-                    setView("delete");
+              {owner && (detail.data.canDelete || confirmDelete) && (
+                <AlertDialog
+                  open={confirmDelete}
+                  onOpenChange={(next) => {
+                    if (!removal.isPending) {
+                      if (next) removal.reset();
+                      setConfirmDelete(next);
+                    }
                   }}
-                  disabled={upload.isPending}
-                  className="min-h-11 justify-self-start lg:min-h-9"
                 >
-                  {t("delete.title")}
-                </Button>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={upload.isPending || !detail.data.canDelete}
+                      className="min-h-11 justify-self-start lg:min-h-9"
+                    >
+                      {t("delete.title")}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <ConfirmationContent
+                    onEscapeKeyDown={(event) => {
+                      if (removal.isPending) event.preventDefault();
+                    }}
+                  >
+                    <AlertDialogTitle>{t("delete.title")}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t("delete.description", { name: detail.data.name })}
+                    </AlertDialogDescription>
+                    {removal.error && (
+                      <p role="alert" className="text-destructive">
+                        {t(
+                          detail.error?.code === "PRODUCT_NOT_FOUND"
+                            ? "PRODUCT_NOT_FOUND"
+                            : removal.error.code === "PRODUCT_DELETE_CONFLICT"
+                              ? "PRODUCT_DELETE_CONFLICT"
+                              : removal.error.code === "ACCESS_DENIED"
+                                ? "ACCESS_DENIED"
+                                : "generic",
+                          { ns: "errors" },
+                        )}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <AlertDialogCancel asChild>
+                        <Button
+                          variant="secondary"
+
+                          disabled={removal.isPending}
+                          className="min-h-11 lg:min-h-9"
+                        >
+                          {t("cancel")}
+                        </Button>
+                      </AlertDialogCancel>
+                      <PendingButton
+                        pending={removal.isPending}
+                        variant="destructive"
+                        onClick={() =>
+                          removal.mutate(undefined, {
+                            onSuccess: () => {
+                              toast.success(t("deleted"));
+                              close();
+                            },
+                          })
+                        }
+                        disabled={
+                          removal.isPending ||
+                          !detail.data.canDelete ||
+                          detail.error?.code === "PRODUCT_NOT_FOUND"
+                        }
+                        className="min-h-11 lg:min-h-9"
+                      >
+                        {t(
+                          removal.isPending ? "delete.pending" : "delete.title",
+                        )}
+                      </PendingButton>
+                    </div>
+                  </ConfirmationContent>
+                </AlertDialog>
               )}
             </div>
           )}

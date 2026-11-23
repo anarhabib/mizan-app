@@ -53,5 +53,6 @@
   "cancel": "İmtina et",
   "retry": "Siyahını yenilə",
   "saving": "Komanda siyahısı yenilənir…",
-  "updated": "Komanda siyahısı yeniləndi."
+  "updated": "Komanda siyahısı yeniləndi.",
+  "revoked": "Dəvət ləğv edildi."
 }

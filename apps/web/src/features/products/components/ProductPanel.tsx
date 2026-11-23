@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -14,18 +14,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-
-const desktopQuery = "(min-width: 64rem)";
-function subscribe(onChange: () => void) {
-  const media = window.matchMedia(desktopQuery);
-  media.addEventListener("change", onChange);
-  return () => media.removeEventListener("change", onChange);
-}
-const isDesktop = () => window.matchMedia(desktopQuery).matches;
-
-export function useProductDesktop() {
-  return useSyncExternalStore(subscribe, isDesktop, () => false);
-}
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ProductPanel({
   title,
@@ -44,7 +33,7 @@ export function ProductPanel({
   descriptionId?: string;
   restoreFallbackFocus?: () => void;
 }) {
-  const desktop = useProductDesktop();
+  const mobile = useIsMobile();
   const { t } = useTranslation("products");
   const dismiss = () => {
     if (!busy) close();
@@ -74,12 +63,18 @@ export function ProductPanel({
     </div>
   );
 
-  if (desktop) {
+  if (!mobile) {
     return (
       <Sheet open onOpenChange={dismiss}>
         <SheetContent
           showCloseButton={false}
           aria-describedby={descriptionId}
+          onEscapeKeyDown={(event) => {
+            if (busy) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (busy) event.preventDefault();
+          }}
           onCloseAutoFocus={restoreFocus}
           className="gap-0 data-[side=right]:sm:max-w-lg motion-reduce:animate-none motion-reduce:transition-none"
         >

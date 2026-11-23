@@ -1,3 +1,4 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { Link, Navigate } from "@tanstack/react-router";
 import type { AuthError } from "@supabase/supabase-js";
 import { useState } from "react";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { auth } from "@/shared/lib/auth";
+import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { AuthPanel } from "./AuthPanel";
 import { useSession } from "./session";
 
@@ -71,7 +73,7 @@ export function RecoveryPage() {
   if (!ready)
     return (
       <AuthPanel title={t("recovery")}>
-        <p role="status">{t("loading")}</p>
+        <ListSkeleton rows={2} />
       </AuthPanel>
     );
   if (recovery) return <AuthForm mode="recovery" />;
@@ -215,9 +217,10 @@ function AuthForm({
               {errors.root.message}
             </p>
           )}
-          <Button
+          <PendingButton
+            pending={isSubmitting}
             className="min-h-11 lg:min-h-9"
-            disabled={!auth || !ready || isSubmitting}
+            disabled={!auth || !ready}
           >
             {t(
               isSubmitting
@@ -228,7 +231,7 @@ function AuthForm({
                     ? "sendResetLink"
                     : mode,
             )}
-          </Button>
+          </PendingButton>
         </form>
       )}
       {setMode && (

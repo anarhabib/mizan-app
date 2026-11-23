@@ -1,3 +1,8 @@
+import {
+  Field,
+  FieldDescription,
+  FieldError as FieldFeedback,
+} from "@/components/ui/field";
 import type { ReactNode } from "react";
 import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -19,24 +24,24 @@ export function FormField({
 }) {
   const { t } = useTranslation("sales");
   return (
-    <div className="grid min-w-0 gap-2">
+    <Field data-invalid={Boolean(error)} className="grid min-w-0 gap-2">
       <Label id={`${id}-label`} htmlFor={id}>
         {label}
       </Label>
       {children}
       {hint && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+        <FieldDescription id={`${id}-hint`} className="text-xs">
           {hint}
-        </p>
+        </FieldDescription>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-destructive">
+        <FieldFeedback id={`${id}-error`} className="text-xs">
           {error.type === "paymentTooSmall"
             ? t("errors.paymentTooSmall")
             : t("invalidField")}
-        </p>
+        </FieldFeedback>
       )}
-    </div>
+    </Field>
   );
 }
 

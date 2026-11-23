@@ -1,4 +1,4 @@
-# Mizan — Tasks
+# Misqal — Tasks
 
 Status as of the frontend rebuild. Update a checkbox only when its status changes.
 Prompts referenced below are in `docs/CODEX_PROMPTS.md`.

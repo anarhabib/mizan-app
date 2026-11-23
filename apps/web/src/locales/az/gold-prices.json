@@ -4,7 +4,6 @@
   "purityReferences": "Əyar üzrə qram qiymətləri",
   "perGram": "/ q",
   "stale": "Son mövcud qiymət",
-  "loading": "Qızıl qiymətləri yüklənir…",
   "unavailable": "Bazar qiyməti əlçatan deyil",
   "retry": "Yenidən cəhd et",
   "retrieved": "Son yükləmə {{date}}",

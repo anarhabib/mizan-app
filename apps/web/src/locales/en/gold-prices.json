@@ -4,7 +4,6 @@
   "purityReferences": "Reference prices per gram by purity",
   "perGram": "/ g",
   "stale": "Last available quote",
-  "loading": "Loading gold prices…",
   "unavailable": "Market price unavailable",
   "retry": "Try again",
   "retrieved": "Last retrieved {{date}}",

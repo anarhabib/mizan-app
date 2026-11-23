@@ -10,6 +10,8 @@ import { Shell } from "@/app/Shell";
 import { AuthPanel, useSession } from "@/features/auth";
 import { WorkspaceProvider } from "@/features/workspace";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
+import { BrandMark } from "@/shared/ui/BrandMark";
+import { DocumentTitle } from "@/shared/ui/DocumentTitle";
 
 function RootLayout() {
   const { t } = useTranslation("auth");
@@ -38,7 +40,9 @@ function RootLayout() {
 function NotFound() {
   const { t } = useTranslation("shell");
   return (
-    <div className="p-6">
+    <div className="grid justify-items-start gap-3 p-6">
+      <DocumentTitle title={t("notFound")} />
+      <BrandMark />
       <h1>{t("notFound")}</h1>
       <Link to="/products" className="underline">
         {t("home")}

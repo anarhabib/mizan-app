@@ -1,3 +1,5 @@
+import { ListSkeleton } from "@/shared/ui/ListSkeleton";
+import { Badge } from "@/components/ui/badge";
 import { useId } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { checkoutCurrencies, officialRateCurrencies } from "@mizan/contracts";
@@ -60,24 +62,21 @@ export function ExchangeRateWidget({ scope }: { scope: ExchangeRateScope }) {
             ))}
           </dl>
           {(query.data?.stale || query.isError) && (
-            <span
-              role="status"
-              className="rounded-md bg-warning px-2 py-1 text-xs text-warning-foreground"
-            >
+            <Badge role="status" variant="warning">
               {t("exchangeRates.stale")}
-            </span>
+            </Badge>
           )}
         </>
+      ) : query.isPending ? (
+        <div className="min-w-32 flex-1">
+          <ListSkeleton rows={1} className="h-8" />
+        </div>
       ) : (
         <div
           role="status"
           className="flex items-center gap-2 text-muted-foreground"
         >
-          {t(
-            query.isPending
-              ? "exchangeRates.loading"
-              : "exchangeRates.unavailable",
-          )}
+          {t("exchangeRates.unavailable")}
           {query.isError && (
             <Button
               type="button"

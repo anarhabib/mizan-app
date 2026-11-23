@@ -1,3 +1,6 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { OptionSelect } from "@/shared/ui/OptionSelect";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useId, useState } from "react";
 import {
   checkoutCurrencies,
@@ -6,17 +9,18 @@ import {
   type OrganizationSettings,
 } from "@mizan/contracts";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 export function CurrencySettingsForm({
   settings,
   busy,
+  saving,
   error,
   save,
 }: {
   settings: OrganizationSettings;
   busy: boolean;
+  saving: boolean;
   error?: string;
   save: (body: CurrencySettings) => void;
 }) {
@@ -55,35 +59,27 @@ export function CurrencySettingsForm({
         <fieldset disabled={busy} className="grid gap-3">
           <div className="grid max-w-48 gap-2">
             <Label htmlFor={id}>{t("currencies.default")}</Label>
-            <select
+            <OptionSelect
               id={id}
-              className="h-11 rounded-md border border-control-border bg-control px-2 lg:h-9"
+              disabled={busy}
               value={defaultCurrency}
-              onChange={(event) => {
-                const code = event.target.value;
+              onChange={(code) => {
                 setDefaultCurrency(code);
                 setSelected((current) =>
                   current.includes(code) ? current : [...current, code],
                 );
               }}
-            >
-              {choices.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
+              options={choices.map((code) => ({ value: code, label: code }))}
+            />
           </div>
           <fieldset className="flex flex-wrap gap-x-4">
             <legend className="font-medium">{t("currencies.payment")}</legend>
             {choices.map((code) => (
               <label key={code} className="flex min-h-11 items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selected.includes(code)}
-                  disabled={code === defaultCurrency}
-                  onChange={(event) => {
-                    const enabled = event.target.checked;
+                  disabled={busy || code === defaultCurrency}
+                  onCheckedChange={(enabled) => {
                     setSelected((current) =>
                       enabled
                         ? [...current, code]
@@ -95,12 +91,13 @@ export function CurrencySettingsForm({
               </label>
             ))}
           </fieldset>
-          <Button
+          <PendingButton
+            pending={saving}
             type="submit"
             className="min-h-11 justify-self-start lg:min-h-9"
           >
             {t("currencies.save")}
-          </Button>
+          </PendingButton>
           {error && (
             <p role="alert" className="text-destructive">
               {error}

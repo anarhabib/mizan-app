@@ -130,5 +130,8 @@
   },
   "unavailableRateOption": "{{purity}} · Цена недоступна",
   "perGram": " / г",
-  "agreedAmount": "Согласованная сумма"
+  "agreedAmount": "Согласованная сумма",
+  "completed": "Продажа учтена.",
+  "completedWithTradeIn": "Продажа и приём золота учтены.",
+  "repaymentSaved": "Платёж учтён."
 }

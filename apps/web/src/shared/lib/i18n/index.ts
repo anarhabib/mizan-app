@@ -80,13 +80,6 @@ function initialLanguage() {
   }
 }
 
-void i18n.use(initReactI18next).init({
-  resources,
-  lng: initialLanguage(),
-  fallbackLng: "az",
-  defaultNS: "shell",
-  interpolation: { escapeValue: false },
-});
 i18n.on("languageChanged", (language) => {
   if (typeof document !== "undefined") document.documentElement.lang = language;
   try {
@@ -94,5 +87,12 @@ i18n.on("languageChanged", (language) => {
   } catch {
     // Language selection still works when browser storage is unavailable.
   }
+});
+void i18n.use(initReactI18next).init({
+  resources,
+  lng: initialLanguage(),
+  fallbackLng: "az",
+  defaultNS: "shell",
+  interpolation: { escapeValue: false },
 });
 export default i18n;

@@ -1,4 +1,4 @@
-# Mizan — Frontend conventions
+# Misqal — Frontend conventions
 
 Read this before any UI task. Keep it short; update only when a convention changes.
 
@@ -14,7 +14,7 @@ apps/web/src/
     hooks/
     index.ts    the only public entry point
   shared/
-    ui/         shadcn components (CLI-managed, do not edit or regenerate) + BrandMark, PageHeader, etc.
+    ui/         composed application UI, including BrandMark and PageHeader
     lib/        api client, auth (supabase), format, form helpers, i18n setup
     hooks/
   locales/      az/, en/ and ru/, one namespace file per feature
@@ -22,7 +22,7 @@ apps/web/src/
 
 Features: `auth`, `workspace`, `products`, `sales`, `settings`, `team`.
 
-The current scaffold keeps CLI-managed primitives in `src/components/ui` and their utility in `src/lib/utils.ts` (aliases in `components.json`). Import these in shared wrappers; do not move or rewrite generated primitives. Application components live in `src/shared/ui`.
+Check `src/components/ui` before building an interactive control. Compose installed shadcn primitives for feature-specific UI and use semantic HTML for structure. When authorized to add a missing primitive, run `pnpm dlx shadcn@latest add <component> --cwd apps/web` without overwriting installed components. Remove the replaced implementation and unused translations.
 
 - Features import other features only through `index.ts`. `shared` never imports from `features`.
 - Business logic lives in hooks or `lib`, not in presentational components.
@@ -87,11 +87,18 @@ The current scaffold keeps CLI-managed primitives in `src/components/ui` and the
 - Base text 14px. Controls `h-9` (`h-8` dense on desktop). Spacing scale: 2, 3, 4, 6 only.
 - Desktop content `max-w-5xl`. Bottom navigation on mobile, sidebar on `lg`.
 - Lists are rows on mobile; use tables only on `lg` and only when columns help. Dialogs become drawers on mobile.
-- The shadcn preset in `components.json` is the visual base (colors, radius, font, icon library). One accent color, defined only by the `--primary` token (set by the preset). Never hardcode colors in components; use semantic tokens (`bg-primary`, `text-muted-foreground`, etc.) so a rebrand is one change. The logo is rendered only by `shared/ui/BrandMark`. Borders over shadows. No gradients, glass blur, emoji icons or cards nested in cards.
+- Preserve the shadcn preset in `components.json`, including typography, radius, icon library, and light and dark themes. Use semantic tokens and favor borders over shadows. Keep neutral surfaces and independent status colors.
 - Tabular numbers for amounts and weights. Real labels and real data, never lorem ipsum.
 - Touch targets at least 40px on mobile. Visible focus ring. Respect `prefers-reduced-motion`, safe-area insets and OS text scale.
-- Use shadcn primitives for overlays, menus, forms and toasts. Do not hand-build them.
+- Use semantic green, amber, red and blue for success, warning, error and informational feedback across pages. Use the brand accent for small selection indicators. Keep larger surfaces neutral and pair color with a label, icon or accessible state.
+- Send localized operation feedback through the single root Sonner Toaster after server confirmation. Use matching Alert and Badge variants for feedback that stays on the page. Keep field errors inline and consequential errors or confirmations visible until addressed.
+- Use Skeleton for initial data loading and Spinner in disabled pending actions. Keep existing data visible during background refresh. Use Progress only when the operation reports meaningful progress.
 - Photos: downscale on the device before upload (longest side about 1600 px, JPEG, under 5 MiB; allowed types JPEG, PNG, WebP).
+
+## Branding
+
+- `src/shared/ui/BrandMark.tsx` renders the approved light and dark wordmarks and compact marks from `src/assets/branding`. The favicon uses the supplied lime SVG and the Apple Touch Icon uses its 180px raster export.
+- `--brand-accent` in `src/index.css` colors small selection indicators. Keep brand colors centralized and preserve the approved artwork and existing semantic tokens.
 
 ## Verification (UI)
 

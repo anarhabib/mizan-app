@@ -1,6 +1,14 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { useState } from "react";
 import { CircleMinus } from "lucide-react";
-import { AlertDialog } from "radix-ui";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ConfirmationContent } from "@/shared/ui/ConfirmationContent";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
@@ -18,13 +26,13 @@ export function DeactivatePurity({
   const { t } = useTranslation("settings");
   const [open, setOpen] = useState(false);
   return (
-    <AlertDialog.Root
+    <AlertDialog
       open={open}
       onOpenChange={(next) => {
         if (!busy) setOpen(next);
       }}
     >
-      <AlertDialog.Trigger asChild>
+      <AlertDialogTrigger asChild>
         <Button
           variant="destructive"
           disabled={busy}
@@ -34,49 +42,47 @@ export function DeactivatePurity({
           <CircleMinus aria-hidden="true" />
           {t("deactivate")}
         </Button>
-      </AlertDialog.Trigger>
-      <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-50 bg-overlay/50" />
-        <AlertDialog.Content
-          className="fixed inset-x-0 bottom-0 z-50 grid max-h-dvh gap-3 overflow-auto rounded-t-xl border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-card-foreground sm:inset-auto sm:top-1/2 sm:left-1/2 sm:w-104 sm:-translate-1/2 sm:rounded-xl"
-          onEscapeKeyDown={(event) => {
-            if (busy) event.preventDefault();
-          }}
-        >
-          <AlertDialog.Title className="font-heading text-base font-semibold">
-            {t("deactivatePurity", { value })}
-          </AlertDialog.Title>
-          <AlertDialog.Description className="text-sm text-muted-foreground">
-            {t("deactivateDescription")}
-          </AlertDialog.Description>
-          {error && (
-            <p role="alert" className="text-destructive">
-              {error}
-            </p>
-          )}
-          <div className="flex flex-wrap justify-end gap-2">
-            <AlertDialog.Cancel asChild>
-              <Button
-                variant="secondary"
-                disabled={busy}
-                className="min-h-10 lg:min-h-8"
-              >
-                {t("cancel")}
-              </Button>
-            </AlertDialog.Cancel>
+      </AlertDialogTrigger>
+
+      <ConfirmationContent
+        onEscapeKeyDown={(event) => {
+          if (busy) event.preventDefault();
+        }}
+      >
+        <AlertDialogTitle className="font-heading text-base font-semibold">
+          {t("deactivatePurity", { value })}
+        </AlertDialogTitle>
+        <AlertDialogDescription className="text-sm text-muted-foreground">
+          {t("deactivateDescription")}
+        </AlertDialogDescription>
+        {error && (
+          <p role="alert" className="text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="flex flex-wrap justify-end gap-2">
+          <AlertDialogCancel asChild>
             <Button
-              variant="destructive"
+              variant="secondary"
               disabled={busy}
               className="min-h-10 lg:min-h-8"
-              onClick={async () => {
-                if (await save()) setOpen(false);
-              }}
             >
-              {busy ? t("saving") : t("deactivate")}
+              {t("cancel")}
             </Button>
-          </div>
-        </AlertDialog.Content>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
+          </AlertDialogCancel>
+          <PendingButton
+            pending={busy}
+            variant="destructive"
+            disabled={busy}
+            className="min-h-10 lg:min-h-8"
+            onClick={async () => {
+              if (await save()) setOpen(false);
+            }}
+          >
+            {busy ? t("saving") : t("deactivate")}
+          </PendingButton>
+        </div>
+      </ConfirmationContent>
+    </AlertDialog>
   );
 }

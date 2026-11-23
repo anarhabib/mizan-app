@@ -3,7 +3,6 @@
     "title": "Official exchange rates",
     "effectiveDate": "Effective {{date}}",
     "stale": "Rates may be out of date",
-    "loading": "Loading exchange rates…",
     "unavailable": "Exchange rates are currently unavailable.",
     "retry": "Retry"
   },
@@ -103,5 +102,8 @@
     "invalidType": "Choose a JPEG, PNG or WebP image.",
     "processingError": "The image could not be prepared. Try a different image.",
     "uncertain": "The upload could not be confirmed. Check the photo before trying again."
-  }
+  },
+  "created": "Product created.",
+  "updated": "Product updated.",
+  "deleted": "Product deleted."
 }

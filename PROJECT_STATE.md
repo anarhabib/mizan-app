@@ -1,4 +1,16 @@
-# Mizan project state
+# Misqal project state
+
+## Color and mutation feedback follow-up (November 23, 2026)
+
+- Shared Sonner and Alert components use semantic feedback colors. Checked controls and selected menu options use the brand accent. AGENTS.md and frontend conventions document color use across Misqal.
+- Product photo upload uses shadcn Input, Empty, Alert and pending buttons while retaining the mobile camera and signed upload flow. Pending spinners stay visible on disabled actions and distinguish camera, file upload and Settings operations.
+- Changed-file lint, 131 frontend tests and the production build passed. Browser and device checks for this follow-up remain open.
+
+## Frontend standardization and rebranding (November 23, 2026)
+
+- `apps/web/src/app/Shell.tsx` uses shadcn Sidebar on desktop and retains one bottom navigation on mobile. Official tabs, selects, form controls, tables, alerts and confirmations live in `apps/web/src/components/ui`. Shared pending buttons and skeletons use Spinner and Skeleton. The root Sonner toaster reports localized operation results and critical transaction feedback stays in the relevant form or dialog.
+- `apps/web/src/shared/ui/BrandMark.tsx` renders the approved Misqal wordmark and compact variants. Browser titles, favicon and Apple Touch Icon use the Misqal brand. The accent token colors small selection indicators. The repository has no PWA manifest or service worker. Prior package, schema and storage identifiers are retained.
+- Contracts build, frontend type checks, changed-file lint and formatting, 131 Vitest tests, and the production build passed. Translation keys match across AZ, EN and RU, including their respective plural categories. Chromium fixtures covered both themes at 390px and 1280px, including keyboard navigation, pending and failed mutations, confirmations, pricing and checkout, and repayment. Real-device and live-service checks remain open. Vite reported a chunk-size warning.
 
 ## Unified gold pricing (November 23, 2026)
 

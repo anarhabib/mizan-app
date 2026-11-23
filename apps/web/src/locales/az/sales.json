@@ -128,5 +128,8 @@
   },
   "unavailableRateOption": "{{purity}} · Qiymət mövcud deyil",
   "perGram": " / q",
-  "agreedAmount": "Razılaşdırılmış məbləğ"
+  "agreedAmount": "Razılaşdırılmış məbləğ",
+  "completed": "Satış qeydə alındı.",
+  "completedWithTradeIn": "Satış və lom qızıl qəbulu qeydə alındı.",
+  "repaymentSaved": "Ödəniş qeydə alındı."
 }

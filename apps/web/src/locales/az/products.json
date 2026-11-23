@@ -3,7 +3,6 @@
     "title": "Rəsmi məzənnələr",
     "effectiveDate": "Qüvvəyə minmə tarixi {{date}}",
     "stale": "Yenilənmə gözlənilir",
-    "loading": "Məzənnələr yüklənir…",
     "unavailable": "Məzənnələr hazırda əlçatan deyil.",
     "retry": "Yenidən cəhd et"
   },
@@ -103,5 +102,8 @@
     "invalidType": "JPEG, PNG və ya WebP formatında şəkil seçin.",
     "processingError": "Şəkil hazırlana bilmədi. Başqa şəkil seçin.",
     "uncertain": "Şəklin yüklənməsi təsdiqlənmədi. Yenidən cəhd etməzdən əvvəl şəkli yoxlayın."
-  }
+  },
+  "created": "Məhsul yaradıldı.",
+  "updated": "Məhsul yeniləndi.",
+  "deleted": "Məhsul silindi."
 }

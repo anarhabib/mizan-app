@@ -38,19 +38,22 @@ function OwnerTeam({ scope }: { scope: TeamScope }) {
   const directory = useQuery(teamDirectoryQuery(scope));
   const mutation = useTeamAction(scope);
   const running = useRef(false);
-  const run: RunTeamAction = async (action) => {
+  const run: RunTeamAction = async (action, onError) => {
     if (running.current) return false;
     running.current = true;
     try {
       const delivery = await mutation.mutateAsync(action);
-      if (delivery === "failed") toast.warning(t("delivery.failed"));
+      if (action.kind === "revoke") toast.success(t("revoked"));
+      else if (delivery === "failed") toast.warning(t("delivery.failed"));
       else if (delivery) toast.success(t(`delivery.${delivery}`));
       else toast.success(t("updated"));
       return true;
     } catch (error) {
-      toast.error(
-        t(error instanceof ApiError ? teamErrorKey(error) : "errors.generic"),
+      const message = t(
+        error instanceof ApiError ? teamErrorKey(error) : "errors.generic",
       );
+      if (onError) onError(message);
+      else toast.error(message);
       return false;
     } finally {
       running.current = false;

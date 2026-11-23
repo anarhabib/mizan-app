@@ -1,17 +1,10 @@
+import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { FieldErrors, UseFormRegisterReturn } from "react-hook-form";
 import { checkoutCurrencies, salePaymentMethods } from "@mizan/contracts";
-import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   exchangeRatesQuery,
   suggestedExchangeRate,
@@ -27,6 +20,7 @@ export function PaymentFields({
   values,
   setExchangeRate,
   selectMethod,
+  selectCurrency,
   fields,
   errors,
   disabled,
@@ -35,7 +29,8 @@ export function PaymentFields({
   values: PaymentValues;
   setExchangeRate: (rate: string) => void;
   selectMethod: (method: string) => void;
-  fields: Record<Exclude<keyof PaymentValues, "method">, UseFormRegisterReturn>;
+  selectCurrency: (currency: string) => void;
+  fields: Record<"amount" | "exchangeRate", UseFormRegisterReturn>;
   errors?: FieldErrors<PaymentValues>;
   disabled: boolean;
 }) {
@@ -75,68 +70,42 @@ export function PaymentFields({
         label={t("fields.paymentMethod")}
         error={errors?.method}
       >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              id={`${id}-method`}
-              type="button"
-              variant="outline"
-              disabled={disabled}
-              className="min-h-11 justify-between lg:min-h-9"
-              aria-labelledby={`${id}-method-label ${id}-method-value`}
-            >
-              <span id={`${id}-method-value`}>{t(`methods.${method}`)}</span>
-              <ChevronDown aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuRadioGroup value={method} onValueChange={selectMethod}>
-              {salePaymentMethods.map((option) => (
-                <DropdownMenuRadioItem key={option} value={option}>
-                  {t(`methods.${option}`)}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <OptionSelect
+          id={id + "-method"}
+          value={method}
+          onChange={selectMethod}
+          disabled={disabled}
+          invalid={Boolean(errors?.method)}
+          describedBy={errors?.method ? id + "-method-error" : undefined}
+          options={salePaymentMethods.map((value) => ({
+            value,
+            label: t(`methods.${value}`),
+          }))}
+        />
       </FormField>
       <FormField
         id={`${id}-currency`}
         label={t("fields.paymentCurrency")}
         error={errors?.currency}
       >
-        <select
-          id={`${id}-currency`}
+        <OptionSelect
+          id={id + "-currency"}
           disabled={disabled}
-          className="h-11 rounded-md border border-control-border bg-control px-2 focus-visible:ring-2 focus-visible:ring-ring lg:h-9"
-          aria-invalid={Boolean(errors?.currency)}
-          aria-describedby={
-            errors?.currency ? `${id}-currency-error` : undefined
-          }
-          {...fields.currency}
+          invalid={Boolean(errors?.currency)}
+          describedBy={errors?.currency ? id + "-currency-error" : undefined}
           value={
             currencies.includes(normalizedCurrency) ? normalizedCurrency : ""
           }
-          onChange={(event) => {
-            const next = event.target.value.trim().toUpperCase();
-            void fields.currency.onChange(event);
+          placeholder={t("fields.paymentCurrency")}
+          options={currencies.map((value) => ({ value, label: value }))}
+          onChange={(next) => {
+            selectCurrency(next);
             if (next !== normalizedCurrency) {
               manuallyEdited.current = false;
               setExchangeRate(suggestedExchangeRate(rates.data, next) ?? "");
             }
           }}
-        >
-          {!currencies.includes(normalizedCurrency) && (
-            <option value="" disabled>
-              —
-            </option>
-          )}
-          {currencies.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+        />
       </FormField>
       <DecimalInput
         name={fields.amount}

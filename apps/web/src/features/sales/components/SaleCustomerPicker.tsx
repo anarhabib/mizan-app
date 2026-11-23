@@ -10,10 +10,12 @@ export function SaleCustomerPicker({
   scope,
   close,
   select,
+  onSubmittingChange,
 }: {
   scope: SaleScope;
   close: () => void;
   select: (customer: CustomerContact) => void;
+  onSubmittingChange: (submitting: boolean) => void;
 }) {
   const { t } = useTranslation("customers");
   const [creating, setCreating] = useState(false);
@@ -25,6 +27,7 @@ export function SaleCustomerPicker({
           scope={scope}
           close={() => setCreating(false)}
           saved={select}
+          onSubmittingChange={onSubmittingChange}
         />
       ) : (
         <>
@@ -49,10 +52,11 @@ export function SaleCustomerPicker({
           <CustomerSearch
             scope={scope}
             render={(customer) => (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => select(customer)}
-                className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring lg:min-h-9"
+                className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring lg:min-h-9 h-auto rounded-none font-normal whitespace-normal"
               >
                 <span className="font-medium wrap-anywhere">
                   {customer.name}
@@ -60,7 +64,7 @@ export function SaleCustomerPicker({
                 <span className="text-muted-foreground wrap-anywhere">
                   {customer.phone}
                 </span>
-              </button>
+              </Button>
             )}
           />
         </>

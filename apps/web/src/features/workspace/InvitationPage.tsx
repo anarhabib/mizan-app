@@ -1,7 +1,8 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { AuthPanel, SignOutButton, useSession } from "@/features/auth";
 import { ApiError, apiRequest } from "@/shared/lib/api";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -22,6 +23,7 @@ export function InvitationPage({ userId }: { userId: string }) {
     },
     onSuccess: () => {
       clearInvitationToken();
+      toast.success(t("invitationAccepted"));
       return queryClient.invalidateQueries({
         queryKey: contextsQuery(userId).queryKey,
         exact: true,
@@ -51,13 +53,13 @@ export function InvitationPage({ userId }: { userId: string }) {
           pending={mutation.isPending}
         />
       ) : (
-        <Button
-          disabled={mutation.isPending}
+        <PendingButton
+          pending={mutation.isPending}
           className="min-h-11 lg:min-h-9"
           onClick={() => mutation.mutate()}
         >
           {t(mutation.isPending ? "acceptingInvitation" : "acceptInvitation")}
-        </Button>
+        </PendingButton>
       )}
       <Link
         to="/products"

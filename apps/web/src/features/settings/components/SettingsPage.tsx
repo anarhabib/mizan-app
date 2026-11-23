@@ -1,6 +1,9 @@
+import { Spinner } from "@/components/ui/spinner";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcw, RotateCw } from "lucide-react";
-import { Switch } from "radix-ui";
+import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +11,7 @@ import { GoldPricingSection } from "@/features/gold-prices";
 import { productKeys } from "@/features/products";
 import { saleKeys } from "@/features/sales";
 import { useWorkspace } from "@/features/workspace";
+import { ApiError } from "@/shared/lib/api";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import {
@@ -60,8 +64,14 @@ function OwnerSettings({
     if (mutation.isPending) return false;
     try {
       await mutation.mutateAsync(change);
+      toast.success(t("saved"));
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const key = settingsErrorKey(error);
+        if (key === "genericError" || key === "authUnavailable")
+          toast.error(t(key));
+      }
       return false;
     }
   };
@@ -90,9 +100,11 @@ function OwnerSettings({
   }
   const { settings, purities } = query.data;
   const busy = mutation.isPending;
-  const error = mutation.error
-    ? t(settingsErrorKey(mutation.error))
-    : undefined;
+  const errorKey = mutation.error && settingsErrorKey(mutation.error);
+  const error =
+    errorKey && errorKey !== "genericError" && errorKey !== "authUnavailable"
+      ? t(errorKey)
+      : undefined;
   const change = mutation.variables;
   return (
     <div className="grid gap-6">
@@ -104,6 +116,7 @@ function OwnerSettings({
         settings={settings}
         busy={busy}
         error={change?.action === "currencies" ? error : undefined}
+        saving={busy && change?.action === "currencies"}
         save={(body) => void save({ action: "currencies", body })}
       />
       <section
@@ -129,23 +142,28 @@ function OwnerSettings({
             </p>
           )}
         </div>
-        <Switch.Root
-          className="group flex min-h-10 w-11 shrink-0 items-center rounded-md outline-none hover:border-foreground/40 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-          aria-labelledby="settings-visibility-title"
-          aria-describedby="settings-visibility-description"
-          checked={settings.salespersonCanViewAcquisitionCost}
-          disabled={busy}
-          onCheckedChange={(checked) =>
-            void save({
-              action: "visibility",
-              body: { salespersonCanViewAcquisitionCost: checked },
-            })
-          }
-        >
-          <span className="flex h-6 w-full items-center rounded-full border border-control-border bg-control p-0.5 group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary">
-            <Switch.Thumb className="size-4 rounded-full bg-muted-foreground transition-transform motion-reduce:transition-none data-[state=checked]:translate-x-5 data-[state=checked]:bg-primary-foreground" />
-          </span>
-        </Switch.Root>
+        <div className="flex shrink-0 items-center gap-2">
+          {busy && change?.action === "visibility" && (
+            <Spinner
+              aria-hidden="true"
+              className="motion-reduce:animate-none"
+            />
+          )}
+          <Switch
+            size="default"
+            className="relative shrink-0 after:absolute after:-inset-y-3 after:inset-x-0 motion-reduce:transition-none [&_[data-slot=switch-thumb]]:motion-reduce:transition-none"
+            aria-labelledby="settings-visibility-title"
+            aria-describedby="settings-visibility-description"
+            checked={settings.salespersonCanViewAcquisitionCost}
+            disabled={busy}
+            onCheckedChange={(checked) =>
+              void save({
+                action: "visibility",
+                body: { salespersonCanViewAcquisitionCost: checked },
+              })
+            }
+          />
+        </div>
       </section>
 
       <section
@@ -197,16 +215,25 @@ function OwnerSettings({
                     save={() => save({ action: "deactivate", value })}
                   />
                 ) : (
-                  <Button
+                  <PendingButton
+                    pending={
+                      busy &&
+                      change?.action === "reactivate" &&
+                      change.value === value
+                    }
                     variant="success"
                     className="min-h-10 lg:min-h-8"
                     disabled={busy}
                     aria-label={t("reactivatePurity", { value })}
                     onClick={() => void save({ action: "reactivate", value })}
                   >
-                    <RotateCcw aria-hidden="true" />
+                    {!(
+                      busy &&
+                      change?.action === "reactivate" &&
+                      change.value === value
+                    ) && <RotateCcw aria-hidden="true" />}
                     {t("reactivate")}
-                  </Button>
+                  </PendingButton>
                 )}
               </li>
             ))}

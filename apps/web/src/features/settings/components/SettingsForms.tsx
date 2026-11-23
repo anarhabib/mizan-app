@@ -1,7 +1,7 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resolvePurityForm, type PurityInput } from "../lib/form";
@@ -46,10 +46,14 @@ export function PurityForm({
             {...form.register("value")}
           />
         </div>
-        <Button type="submit" className="min-h-10 lg:min-h-8">
-          <Plus aria-hidden="true" />
+        <PendingButton
+          pending={isSubmitting}
+          type="submit"
+          className="min-h-10 lg:min-h-8"
+        >
+          {!isSubmitting && <Plus aria-hidden="true" />}
           {t("addPurity")}
-        </Button>
+        </PendingButton>
       </fieldset>
       {errors.value && (
         <p

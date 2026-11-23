@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { OptionSelect } from "@/shared/ui/OptionSelect";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Controller,
   useFieldArray,
@@ -24,7 +28,7 @@ import {
   exchangeRatesQuery,
   suggestedExchangeRate,
 } from "@/features/exchange-rates";
-import { ProductSelect, productDetailQuery } from "@/features/products";
+import { productDetailQuery } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { formatMoney } from "@/shared/lib/format";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -98,12 +102,14 @@ export function SaleForm({
   options,
   disabled,
   submission,
+  onSubmittingChange,
 }: {
   productId: string;
   scope: SaleScope;
   options: SaleOptions;
   disabled: boolean;
   submission: Submission;
+  onSubmittingChange: (submitting: boolean) => void;
 }) {
   const { t, i18n } = useTranslation("sales");
   const client = useQueryClient();
@@ -269,12 +275,26 @@ export function SaleForm({
     const error = await action();
     if (error) {
       if (error.field) form.setError(error.field, { type: error.message });
+      else if (error.message === "generic") toast.error(t("errors.generic"));
       else setMessage(error.message);
     }
   }
-  const submit = form.handleSubmit((payload) =>
+  const submitting = useRef(false);
+  const submitSale = form.handleSubmit((payload) =>
     submitAction(() => submission.submit(payload)),
   );
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting.current || disabled) return;
+    submitting.current = true;
+    onSubmittingChange(true);
+    try {
+      await submitSale(event);
+    } finally {
+      submitting.current = false;
+      onSubmittingChange(false);
+    }
+  }
   const financials = canManageAsOwner
     ? submission.confirmation?.financials
     : undefined;
@@ -346,14 +366,15 @@ export function SaleForm({
         >
           {t("cancel")}
         </Button>
-        <Button
+        <PendingButton
+          pending={submission.busy}
           type="button"
           disabled={submission.busy}
           className="min-h-11 lg:min-h-9"
           onClick={() => void submitAction(submission.confirm)}
         >
           {t(submission.busy ? "saving" : "confirmSale")}
-        </Button>
+        </PendingButton>
       </div>
     </div>
   );
@@ -461,7 +482,7 @@ export function SaleForm({
                       label={t("fields.purity")}
                       error={error?.purity}
                     >
-                      <ProductSelect
+                      <OptionSelect
                         id={rateId}
                         value={field.value}
                         onChange={field.onChange}
@@ -670,13 +691,16 @@ export function SaleForm({
               htmlFor="sale-no-payment"
               className="min-h-11 gap-3 lg:min-h-9"
             >
-              <input
+              <Checkbox
                 id="sale-no-payment"
-                type="checkbox"
-                className="size-4 accent-primary"
-                {...form.register("noPayment", {
-                  onChange: () => form.clearErrors("customerId"),
-                })}
+                disabled={disabled}
+                checked={noPayment}
+                onCheckedChange={(checked) => {
+                  form.setValue("noPayment", checked === true, {
+                    shouldDirty: true,
+                  });
+                  form.clearErrors("customerId");
+                }}
               />
               {t("noPaymentAtCheckout")}
             </Label>
@@ -698,6 +722,13 @@ export function SaleForm({
                   form.setValue(`payments.${index}.exchangeRate`, rate);
                   form.clearErrors(`payments.${index}.exchangeRate`);
                 }}
+                selectCurrency={(value) =>
+                  form.setValue(`payments.${index}.currency`, value, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: form.formState.isSubmitted,
+                  })
+                }
                 selectMethod={(method) => {
                   const value = salePaymentMethods.find(
                     (option) => option === method,
@@ -707,7 +738,6 @@ export function SaleForm({
                 errors={errors.payments?.[index]}
                 disabled={disabled}
                 fields={{
-                  currency: form.register(`payments.${index}.currency`),
                   amount: form.register(`payments.${index}.amount`),
                   exchangeRate: form.register(`payments.${index}.exchangeRate`),
                 }}
@@ -796,14 +826,15 @@ export function SaleForm({
         {submission.checkedInStock && !submission.busy && (
           <p role="status">{t("checkedInStock")}</p>
         )}
-        <Button
+        <PendingButton
+          pending={form.formState.isSubmitting || submission.busy}
           ref={saveButton}
           type="submit"
           className="min-h-11 justify-self-start lg:min-h-9"
           disabled={form.formState.isSubmitting || disabled}
         >
           {t(submission.busy ? "saving" : "save")}
-        </Button>
+        </PendingButton>
       </fieldset>
     </form>
   );
@@ -814,6 +845,7 @@ export function SaleForm({
         <div ref={pickerHeading} tabIndex={-1}>
           <SaleCustomerPicker
             scope={scope}
+            onSubmittingChange={onSubmittingChange}
             close={() => setPickingCustomer(false)}
             select={(selected) => {
               setCustomer(selected);

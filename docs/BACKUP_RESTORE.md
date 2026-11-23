@@ -128,7 +128,7 @@ JOIN mizan."Product" p ON (p."organizationId", p."storeId", p."id") =
 WHERE p."status" <> 'SOLD';
 ```
 
-Also verify Auth linkage on the source and again after a full Supabase recovery. Every Mizan user should resolve to its original Auth identity.
+Also verify Auth linkage on the source and again after a full Supabase recovery. Every Misqal user should resolve to their original Auth identity.
 
 ```sql
 SELECT count(*) AS missing_auth_identities

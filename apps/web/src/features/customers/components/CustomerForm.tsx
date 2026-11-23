@@ -1,4 +1,7 @@
-import { useId, useRef } from "react";
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { useId, useRef, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -23,11 +26,13 @@ export function CustomerForm({
   customer,
   close,
   saved,
+  onSubmittingChange,
 }: {
   scope: CustomerScope;
   customer?: CustomerContact & Pick<CustomerInput, "note">;
   close: () => void;
   saved: (customer: CustomerContact) => void;
+  onSubmittingChange: (submitting: boolean) => void;
 }) {
   const { t } = useTranslation("customers");
   const prefix = useId();
@@ -64,6 +69,7 @@ export function CustomerForm({
     },
     onSuccess: (result) => {
       void invalidateCustomers(client, scope, result.id);
+      toast.success(t(customer ? "updated" : "created"));
       saved(result);
     },
     onError: (error) => {
@@ -77,38 +83,32 @@ export function CustomerForm({
         form.setError(error.field, { type: "validate" });
       } else {
         void invalidateCustomers(client, scope, customer?.id);
+        if (customer || !isUncertainCustomerSave(error))
+          toast.error(t("saveFailed"));
       }
     },
-    onSettled: () => {
-      saving.current = false;
-    },
   });
-  const unknownCreate =
-    !customer &&
-    mutation.error instanceof ApiError &&
-    (mutation.error.isNetwork ||
-      mutation.error.status >= 500 ||
-      mutation.error.status === 408 ||
-      mutation.error.code === "INVALID_RESPONSE");
-  const showError =
-    mutation.isError &&
-    !(
-      mutation.error instanceof ApiError &&
-      mutation.error.code === "INVALID_CUSTOMER"
-    );
+  const unknownCreate = !customer && isUncertainCustomerSave(mutation.error);
+
+  const pending = mutation.isPending || form.formState.isSubmitting;
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (saving.current || unknownCreate) return;
+    saving.current = true;
+    onSubmittingChange(true);
+    try {
+      await form.handleSubmit((input) =>
+        mutation.mutateAsync(input).catch(() => undefined),
+      )(event);
+    } finally {
+      saving.current = false;
+      onSubmittingChange(false);
+    }
+  }
 
   return (
-    <form
-      className="grid gap-4"
-      noValidate
-      onSubmit={(event) => {
-        void form.handleSubmit((input) => {
-          if (saving.current || unknownCreate) return;
-          saving.current = true;
-          mutation.mutate(input);
-        })(event);
-      }}
-    >
+    <form className="grid gap-4" noValidate onSubmit={submit}>
       {(["name", "phone"] as const).map((field) => {
         const id = `${prefix}-${field}`;
         const invalid = Boolean(form.formState.errors[field]);
@@ -122,7 +122,7 @@ export function CustomerForm({
               type={field === "phone" ? "tel" : "text"}
               maxLength={field === "phone" ? 40 : 120}
               className="min-h-11 lg:min-h-9"
-              disabled={mutation.isPending}
+              disabled={pending}
               aria-invalid={invalid}
               aria-describedby={invalid ? `${id}-error` : undefined}
             />
@@ -136,12 +136,12 @@ export function CustomerForm({
       })}
       <div className="grid gap-2">
         <Label htmlFor={`${prefix}-note`}>{t("optionalNote")}</Label>
-        <textarea
+        <Textarea
           id={`${prefix}-note`}
           {...form.register("note")}
           rows={3}
           maxLength={maxCustomerNoteLength}
-          disabled={mutation.isPending}
+          disabled={pending}
           aria-invalid={Boolean(form.formState.errors.note)}
           aria-describedby={
             form.formState.errors.note ? `${prefix}-note-error` : undefined
@@ -158,9 +158,9 @@ export function CustomerForm({
           </p>
         )}
       </div>
-      {showError && (
+      {unknownCreate && (
         <p role="alert" className="text-destructive">
-          {t(unknownCreate ? "unknownCreate" : "saveFailed")}
+          {t("unknownCreate")}
         </p>
       )}
       <div className="flex flex-wrap justify-end gap-2">
@@ -168,18 +168,29 @@ export function CustomerForm({
           type="button"
           variant="outline"
           className="min-h-11 lg:min-h-9"
-          disabled={mutation.isPending}
+          disabled={pending}
           onClick={close}
         >
           {t("cancel")}
         </Button>
-        <Button
+        <PendingButton
+          pending={pending}
           className="min-h-11 lg:min-h-9"
-          disabled={mutation.isPending || unknownCreate}
+          disabled={unknownCreate}
         >
-          {t(mutation.isPending ? "saving" : "save")}
-        </Button>
+          {t(pending ? "saving" : "save")}
+        </PendingButton>
       </div>
     </form>
+  );
+}
+
+function isUncertainCustomerSave(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    (error.isNetwork ||
+      error.status >= 500 ||
+      error.status === 408 ||
+      error.code === "INVALID_RESPONSE")
   );
 }

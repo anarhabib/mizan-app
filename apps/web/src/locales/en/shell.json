@@ -29,5 +29,8 @@
     "invalidPassword": "The password is incorrect.",
     "unavailable": "Password confirmation is unavailable for this session.",
     "failed": "Could not switch display modes. Try again."
-  }
+  },
+  "expandNavigation": "Expand navigation",
+  "collapseNavigation": "Collapse navigation",
+  "notifications": "Notifications"
 }

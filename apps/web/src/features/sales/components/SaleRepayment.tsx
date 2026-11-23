@@ -1,3 +1,5 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
 import { useRef, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useWatch } from "react-hook-form";
@@ -26,11 +28,13 @@ export function SaleRepayment({
   saleId,
   customerId,
   outstanding,
+  onSubmittingChange,
 }: {
   scope: SaleScope;
   saleId: string;
   customerId: string;
   outstanding: MoneyInput;
+  onSubmittingChange: (submitting: boolean) => void;
 }) {
   const { t } = useTranslation("sales");
   const settings = useWorkspace().settings;
@@ -98,11 +102,10 @@ export function SaleRepayment({
   });
 
   async function send(next: Attempt) {
-    if (locked.current) return;
-    locked.current = true;
     attempt.current = next;
     try {
       await mutation.mutateAsync(next);
+      toast.success(t("repaymentSaved"));
       form.reset();
       setOpen(false);
       setUncertain(false);
@@ -121,21 +124,28 @@ export function SaleRepayment({
           ]);
         }
       }
-    } finally {
-      locked.current = false;
     }
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    void form.handleSubmit(async (values) => {
-      if (uncertain && attempt.current) return send(attempt.current);
-      const result = buildPayment(values);
-      if ("field" in result) {
-        form.setError(result.field, { type: "validate" });
-        return;
-      }
-      await send({ key: crypto.randomUUID(), payload: result.input });
-    })(event);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (locked.current) return;
+    locked.current = true;
+    onSubmittingChange(true);
+    try {
+      await form.handleSubmit(async (values) => {
+        if (uncertain && attempt.current) return send(attempt.current);
+        const result = buildPayment(values);
+        if ("field" in result) {
+          form.setError(result.field, { type: "validate" });
+          return;
+        }
+        await send({ key: crypto.randomUUID(), payload: result.input });
+      })(event);
+    } finally {
+      onSubmittingChange(false);
+      locked.current = false;
+    }
   }
   if (!open) {
     return (
@@ -172,6 +182,13 @@ export function SaleRepayment({
             form.setValue("exchangeRate", rate);
             form.clearErrors("exchangeRate");
           }}
+          selectCurrency={(value) =>
+            form.setValue("currency", value, {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: form.formState.isSubmitted,
+            })
+          }
           selectMethod={(value) => {
             const option = salePaymentMethods.find((item) => item === value);
             if (option) form.setValue("method", option);
@@ -179,7 +196,6 @@ export function SaleRepayment({
           disabled={pending || uncertain}
           errors={form.formState.errors}
           fields={{
-            currency: form.register("currency"),
             amount: form.register("amount"),
             exchangeRate: form.register("exchangeRate"),
           }}
@@ -196,7 +212,8 @@ export function SaleRepayment({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button
+        <PendingButton
+          pending={pending}
           type="submit"
           disabled={pending}
           className="min-h-11 lg:min-h-9"
@@ -204,7 +221,7 @@ export function SaleRepayment({
           {t(
             pending ? "saving" : uncertain ? "retryRepayment" : "saveRepayment",
           )}
-        </Button>
+        </PendingButton>
         <Button
           type="button"
           variant="ghost"

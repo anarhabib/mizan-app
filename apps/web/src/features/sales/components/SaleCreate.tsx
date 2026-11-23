@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { RotateCw } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ProductPanel, productDetailQuery } from "@/features/products";
@@ -32,6 +32,8 @@ export function SaleCreate({
   const options = useQuery({ ...saleOptionsQuery(scope), enabled: isInStock });
   const saleId =
     submission.resultId ?? submission.recoveredId ?? product.data?.sale?.id;
+  const [submittingForm, setSubmittingForm] = useState(false);
+  const [repaying, setRepaying] = useState(false);
   const receipt = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!saleId) return;
@@ -54,7 +56,7 @@ export function SaleCreate({
       }
       opener={opener}
       close={submission.confirmation ? submission.cancelConfirmation : close}
-      busy={submission.busy}
+      busy={submission.busy || submittingForm || repaying}
     >
       {saleId ? (
         <div ref={receipt} tabIndex={-1}>
@@ -63,7 +65,11 @@ export function SaleCreate({
               {t("alreadyRecorded")}
             </p>
           )}
-          <SaleDetail scope={scope} id={saleId} />
+          <SaleDetail
+            scope={scope}
+            id={saleId}
+            onRepaymentSubmittingChange={setRepaying}
+          />
         </div>
       ) : (
         <div className="grid gap-4">
@@ -128,6 +134,7 @@ export function SaleCreate({
                     options.isFetching
                   }
                   submission={submission}
+                  onSubmittingChange={setSubmittingForm}
                 />
               )}
             </>

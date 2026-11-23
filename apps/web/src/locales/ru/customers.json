@@ -48,5 +48,8 @@
   "purchaseLabel_few": "{{product}} · {{count}} товара",
   "purchaseLabel_many": "{{product}} · {{count}} товаров",
   "tradeInCredit": "Стоимость обмена",
-  "paidAmount": "Оплачено"
+  "paidAmount": "Оплачено",
+  "created": "Клиент добавлен.",
+  "updated": "Данные клиента обновлены.",
+  "deleted": "Клиент удалён."
 }

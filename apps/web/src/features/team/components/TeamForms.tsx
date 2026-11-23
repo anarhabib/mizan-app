@@ -1,33 +1,31 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
 import { useId, type ComponentProps } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { normalizeInvitationEmail, type StoreOption } from "@mizan/contracts";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OptionSelect } from "@/shared/ui/OptionSelect";
 import type { TeamAction } from "../api/team";
 
-export type RunTeamAction = (action: TeamAction) => Promise<boolean>;
+export type RunTeamAction = (
+  action: TeamAction,
+  onError?: (message: string) => void,
+) => Promise<boolean>;
 
 function StoreSelect({
   stores,
   ...props
-}: ComponentProps<"select"> & { stores: StoreOption[] }) {
+}: Omit<ComponentProps<typeof OptionSelect>, "options"> & {
+  stores: StoreOption[];
+}) {
   const { t } = useTranslation("team");
   return (
-    <select
-      className="h-11 w-full min-w-0 rounded-md border border-control-border bg-control px-3 text-base text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)] outline-none hover:border-control-hover-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 dark:hover:border-foreground/40 dark:shadow-none lg:h-8 lg:text-sm"
+    <OptionSelect
+      options={stores.map(({ id, name }) => ({ value: id, label: name }))}
+      placeholder={t("chooseStore")}
       {...props}
-    >
-      <option value="" disabled>
-        {t("chooseStore")}
-      </option>
-      {stores.map(({ id, name }) => (
-        <option key={id} value={id}>
-          {name}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
 
@@ -46,6 +44,7 @@ export function InviteForm({
   const id = useId();
   const {
     register,
+    control,
     handleSubmit,
     resetField,
     setError,
@@ -104,12 +103,19 @@ export function InviteForm({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${id}-store`}>{t("store")}</Label>
-          <StoreSelect
-            id={`${id}-store`}
-            stores={stores}
-            aria-invalid={Boolean(errors.storeId)}
-            aria-describedby={errors.storeId ? `${id}-store-error` : undefined}
-            {...register("storeId")}
+          <Controller
+            control={control}
+            name="storeId"
+            render={({ field }) => (
+              <StoreSelect
+                id={`${id}-store`}
+                stores={stores}
+                disabled={busy}
+                invalid={Boolean(errors.storeId)}
+                describedBy={errors.storeId ? `${id}-store-error` : undefined}
+                {...field}
+              />
+            )}
           />
           {errors.storeId && (
             <p id={`${id}-store-error`} className="text-destructive">
@@ -117,13 +123,14 @@ export function InviteForm({
             </p>
           )}
         </div>
-        <Button
+        <PendingButton
+          pending={isSubmitting}
           type="submit"
           disabled={busy || isSubmitting || stores.length === 0}
           className="min-h-11 lg:mt-[22px] lg:min-h-8"
         >
           {t("actions.invite")}
-        </Button>
+        </PendingButton>
       </div>
       {stores.length === 0 && (
         <p className="text-muted-foreground">{t("noStores")}</p>
@@ -146,10 +153,10 @@ export function AssignStoreForm({
   const { t } = useTranslation("team");
   const id = useId();
   const {
-    register,
+    control,
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<{ storeId: string }>({ defaultValues: { storeId: "" } });
   const submit = handleSubmit(async ({ storeId }) => {
     if (busy || !stores.some((store) => store.id === storeId)) return;
@@ -163,16 +170,38 @@ export function AssignStoreForm({
       <Label htmlFor={id} className="sr-only">
         {t("chooseStore")}
       </Label>
-      <StoreSelect id={id} stores={stores} required {...register("storeId")} />
-      <Button
+      <div className="grid gap-2">
+        <Controller
+          control={control}
+          name="storeId"
+          rules={{ validate: (value) => stores.some(({ id }) => id === value) }}
+          render={({ field }) => (
+            <StoreSelect
+              id={id}
+              stores={stores}
+              disabled={busy}
+              invalid={Boolean(errors.storeId)}
+              describedBy={errors.storeId ? `${id}-error` : undefined}
+              {...field}
+            />
+          )}
+        />
+        {errors.storeId && (
+          <p id={`${id}-error`} className="text-destructive">
+            {t("errors.store")}
+          </p>
+        )}
+      </div>
+      <PendingButton
+        pending={isSubmitting}
         type="submit"
         variant="outline"
         size="sm"
-        disabled={busy || isSubmitting}
+        disabled={busy || isSubmitting || !stores.length}
         className="min-h-11 lg:min-h-8"
       >
         {t("actions.assign")}
-      </Button>
+      </PendingButton>
     </form>
   );
 }

@@ -16,5 +16,6 @@
   "acceptInvitation": "Accept invitation",
   "acceptingInvitation": "Accepting invitation…",
   "invitationAccepted": "Invitation accepted.",
-  "openWorkspace": "Open workspace"
+  "openWorkspace": "Open workspace",
+  "created": "Store created."
 }

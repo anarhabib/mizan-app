@@ -4,6 +4,8 @@ import { ThemeProvider } from "next-themes";
 import { queryClient } from "./query-client";
 import { SessionProvider } from "@/features/auth";
 import { Toaster } from "@/components/ui/sonner";
+import { useTranslation } from "react-i18next";
+import { useIsMobile } from "@/hooks/use-mobile";
 const Devtools = import.meta.env.DEV
   ? lazy(() =>
       import("@tanstack/react-query-devtools").then((module) => ({
@@ -11,17 +13,28 @@ const Devtools = import.meta.env.DEV
       })),
     )
   : null;
+
+function DesktopDevtools() {
+  const mobile = useIsMobile();
+  if (mobile || !Devtools) return null;
+  return (
+    <Suspense fallback={null}>
+      <Devtools initialIsOpen={false} />
+    </Suspense>
+  );
+}
+
 export function AppProviders({ children }: { children: ReactNode }) {
+  const { t } = useTranslation("shell");
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>{children}</SessionProvider>
-        <Toaster />
-        {Devtools && (
-          <Suspense fallback={null}>
-            <Devtools initialIsOpen={false} />
-          </Suspense>
-        )}
+        <Toaster
+          position="top-center"
+          containerAriaLabel={t("notifications")}
+        />
+        {Devtools && <DesktopDevtools />}
       </QueryClientProvider>
     </ThemeProvider>
   );

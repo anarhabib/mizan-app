@@ -1,4 +1,9 @@
+import { PendingButton } from "@/shared/ui/PendingButton";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useQuery } from "@tanstack/react-query";
+import { useRef, useState, type FormEvent } from "react";
 import {
   Controller,
   useForm,
@@ -13,7 +18,6 @@ import {
   type ProductDetail,
 } from "@mizan/contracts";
 import { MoneyText } from "@/shared/ui/MoneyText";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/shared/lib/api";
@@ -28,7 +32,6 @@ import {
   type ProductFormValues,
 } from "../lib/form";
 import { ProductPanel } from "./ProductPanel";
-import { ProductSelect } from "./ProductSelect";
 
 type TextField =
   | "code"
@@ -56,13 +59,14 @@ export function ProductCreate({
   const { t } = useTranslation("products");
   const options = useQuery(productOptionsQuery(scope));
   const create = useCreateProduct(scope);
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <ProductPanel
       title={t("create")}
       opener={opener}
       close={close}
-      busy={create.isPending}
+      busy={submitting || create.isPending}
     >
       {options.isPending ? (
         <ListSkeleton rows={3} />
@@ -79,7 +83,12 @@ export function ProductCreate({
           currency={currency}
           purities={options.data.purities}
           pending={create.isPending}
-          save={async (input) => created(await create.mutateAsync(input))}
+          onSubmittingChange={setSubmitting}
+          save={async (input) => {
+            const product = await create.mutateAsync(input);
+            toast.success(t("created"));
+            created(product);
+          }}
         />
       )}
     </ProductPanel>
@@ -91,12 +100,14 @@ export function ProductForm({
   purities = [],
   product,
   pending,
+  onSubmittingChange,
   save,
 }: {
   currency: string;
   purities?: number[];
   product?: ProductDetail;
   pending: boolean;
+  onSubmittingChange: (submitting: boolean) => void;
   save: (input: ProductCreateInput) => Promise<void>;
 }) {
   const { t } = useTranslation(["products", "errors"]);
@@ -120,6 +131,7 @@ export function ProductForm({
   });
   const { errors, isSubmitting } = form.formState;
   const busy = isSubmitting || pending;
+  const submitting = useRef(false);
   const submit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
     try {
@@ -132,16 +144,38 @@ export function ProductForm({
           return;
         }
       }
-      form.setError("root", {
-        type:
-          error instanceof ApiError
-            ? error.isNetwork
-              ? "uncertain"
-              : error.code
-            : "generic",
-      });
+      if (error instanceof ApiError && error.isNetwork) {
+        form.setError("root", { type: "uncertain" });
+      } else {
+        const code = error instanceof ApiError ? error.code : "";
+        toast.error(
+          t(
+            code === "PRODUCT_EDIT_CONFLICT" ||
+              code === "PRODUCT_NOT_FOUND" ||
+              code === "INVALID_PRODUCT" ||
+              code === "ACCESS_DENIED" ||
+              code === "AUTH_UNAVAILABLE"
+              ? code
+              : "generic",
+            { ns: "errors" },
+          ),
+        );
+      }
     }
   });
+
+  async function submitForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting.current || pending) return;
+    submitting.current = true;
+    onSubmittingChange(true);
+    try {
+      await submit(event);
+    } finally {
+      submitting.current = false;
+      onSubmittingChange(false);
+    }
+  }
 
   function fieldMessage(error: FieldError, field: TextField | "purity") {
     if (error.type === "PRODUCT_CODE_CONFLICT")
@@ -177,7 +211,7 @@ export function ProductForm({
       <div key={field} className="grid min-w-0 gap-2">
         <Label htmlFor={id}>{t(`formFields.${field}`)}</Label>
         {field === "note" ? (
-          <textarea
+          <Textarea
             {...registration}
             {...accessibility}
             rows={3}
@@ -220,7 +254,12 @@ export function ProductForm({
 
   const rootError = errors.root?.type;
   return (
-    <form onSubmit={submit} noValidate aria-busy={busy} className="grid gap-4">
+    <form
+      onSubmit={submitForm}
+      noValidate
+      aria-busy={busy}
+      className="grid gap-4"
+    >
       {!product && (
         <>
           {renderText("code", errors.code)}
@@ -235,7 +274,7 @@ export function ProductForm({
                   <Label htmlFor="create-product-purity">
                     {t("fields.purity")}
                   </Label>
-                  <ProductSelect
+                  <OptionSelect
                     id="create-product-purity"
                     ref={field.ref}
                     value={field.value}
@@ -285,23 +324,16 @@ export function ProductForm({
       {!product && renderText("note", errors.note)}
       {rootError && (
         <p role="alert" className="text-destructive">
-          {rootError === "uncertain"
-            ? t(product ? "editUncertain" : "createUncertain")
-            : t(
-                rootError === "PRODUCT_EDIT_CONFLICT" ||
-                  rootError === "PRODUCT_NOT_FOUND" ||
-                  rootError === "INVALID_PRODUCT" ||
-                  rootError === "ACCESS_DENIED" ||
-                  rootError === "AUTH_UNAVAILABLE"
-                  ? rootError
-                  : "generic",
-                { ns: "errors" },
-              )}
+          {t(product ? "editUncertain" : "createUncertain")}
         </p>
       )}
-      <Button type="submit" className="min-h-11 lg:min-h-9" disabled={busy}>
+      <PendingButton
+        pending={busy}
+        type="submit"
+        className="min-h-11 lg:min-h-9"
+      >
         {t(busy ? "saving" : "save")}
-      </Button>
+      </PendingButton>
     </form>
   );
 }
