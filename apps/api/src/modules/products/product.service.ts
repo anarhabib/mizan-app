@@ -28,7 +28,12 @@ import {
   presentDetail,
   presentListItem,
 } from "./product.presenter.js";
-import type { ProductPhotoStorage } from "./product.storage.js";
+import {
+  pagePhotoUrls,
+  photoDirectory,
+  scopedPhotoKey,
+  type ProductPhotoStorage,
+} from "./product.storage.js";
 import { readGoldMarket } from "../gold-prices/gold-market.service.js";
 import {
   currentGoldRules,
@@ -267,7 +272,7 @@ export async function getProductOverview(
 }
 
 export async function listProducts(
-  db: OrganizationDatabase,
+  { db, storage }: ProductOptions,
   access: AccessContext,
   filters: {
     q?: string;
@@ -281,6 +286,7 @@ export async function listProducts(
     agedDays?: number;
     credit?: boolean;
     limit?: string;
+    photos?: boolean;
   },
 ) {
   const pageSize = readPageSize(filters.limit, "INVALID_PRODUCT");
@@ -356,9 +362,21 @@ export async function listProducts(
     },
     orderBy: { code: "asc" },
     take: pageSize + 1,
-    select: listFields,
+    select: {
+      ...listFields,
+      photoObjectKey: Boolean(filters.photos && storage),
+    },
   });
-  const items = rows.slice(0, pageSize).map(presentListItem);
+  const page = rows.slice(0, pageSize);
+  const photos = await pagePhotoUrls(
+    filters.photos ? storage : undefined,
+    access,
+    page,
+  );
+  const items = page.map((row) => {
+    const thumbnailUrl = photos.get(row.id);
+    return { ...presentListItem(row), ...(thumbnailUrl && { thumbnailUrl }) };
+  });
   const facets = filters.facets
     ? await Promise.all([
         db.product.groupBy({
@@ -391,17 +409,16 @@ export async function getProduct(
   id: string,
 ) {
   const row = await findProduct(options.db, access, id);
-  const directory = photoDirectory(access, row.id);
+  const key = scopedPhotoKey(access, row.id, row.photoObjectKey);
   let photoUrl = null;
   if (
-    row.photoObjectKey?.startsWith(directory) &&
-    uuidPattern.test(row.photoObjectKey.slice(directory.length)) &&
+    key &&
     row.photoContentType &&
     row.photoSize !== null &&
     options.storage
   ) {
     try {
-      photoUrl = await options.storage.signDownload(row.photoObjectKey);
+      photoUrl = await options.storage.signDownload(key);
     } catch (error) {
       if (!(error instanceof AccessError && error.code === "PHOTO_UNAVAILABLE"))
         throw error;
@@ -435,16 +452,6 @@ export async function getProduct(
     ...(material && { estimatedMaterialValue: material }),
     ...(selling && { estimatedSellingValue: selling }),
   };
-}
-
-function photoDirectory(access: AccessContext, id: string) {
-  return [
-    access.organizationId,
-    access.storeId,
-    id.toLowerCase(),
-    "photo",
-    "",
-  ].join("/");
 }
 
 function photoStorage(options: ProductOptions) {

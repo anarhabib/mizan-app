@@ -7,6 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
@@ -20,6 +28,7 @@ import {
   type ProductScope,
 } from "../api/queries";
 import { ProductFilters } from "./ProductFilters";
+import { ProductThumbnail } from "./ProductThumbnail";
 
 export function ProductStatusBadge({
   status,
@@ -127,7 +136,7 @@ function ProductSearch({ onSearch }: { onSearch: (value: string) => void }) {
   return (
     <div
       role="search"
-      className="grid w-full min-w-48 max-w-sm flex-[1_0_12rem] gap-2 md:max-lg:min-w-44 md:max-lg:basis-44"
+      className="grid w-full min-w-0 max-w-sm flex-1 gap-2 lg:min-w-48 lg:flex-[1_0_12rem]"
     >
       <Label htmlFor="product-search">{t("search")}</Label>
       <Input
@@ -176,9 +185,78 @@ function ProductResults({
           />
         )}
       {products.length > 0 && (
+        <div
+          inert={query.isPlaceholderData}
+          className="hidden rounded-lg border border-border bg-card lg:block"
+        >
+          <Table aria-label={t("title")}>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead scope="col">{t("fields.code")}</TableHead>
+                <TableHead scope="col">{t("formFields.name")}</TableHead>
+                <TableHead scope="col">{t("fields.category")}</TableHead>
+                <TableHead scope="col" className="text-right">
+                  {t("fields.weight")}
+                </TableHead>
+                <TableHead scope="col" className="text-right">
+                  {t("fields.purity")}
+                </TableHead>
+                <TableHead scope="col">{t("fields.status")}</TableHead>
+                <TableHead scope="col" className="w-12">
+                  <span className="sr-only">{t("detail")}</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="w-32 text-xs wrap-anywhere whitespace-normal text-muted-foreground">
+                    {product.code}
+                  </TableCell>
+                  <TableCell className="w-full font-medium wrap-anywhere whitespace-normal">
+                    <div className="flex items-center gap-2">
+                      <ProductThumbnail src={product.thumbnailUrl} />
+                      <span>{product.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="min-w-24 max-w-40 wrap-anywhere whitespace-normal text-muted-foreground">
+                    {product.category}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <WeightText value={product.weight} />
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    <PurityText value={product.purity} />
+                  </TableCell>
+                  <TableCell>
+                    <ProductStatusBadge
+                      status={product.status}
+                      hasOutstandingDebt={product.hasOutstandingDebt}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      aria-label={`${t("detail")} · ${product.code}`}
+                      onClick={(event) =>
+                        inspect(product.id, event.currentTarget)
+                      }
+                    >
+                      <ChevronRight aria-hidden="true" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      {products.length > 0 && (
         <ul
           inert={query.isPlaceholderData}
-          className="divide-y overflow-hidden rounded-lg border border-border bg-card"
+          className="divide-y overflow-hidden rounded-lg border border-border bg-card lg:hidden"
         >
           {products.map((product) => (
             <li key={product.id}>
@@ -186,9 +264,9 @@ function ProductResults({
                 variant="ghost"
                 type="button"
                 onClick={(event) => inspect(product.id, event.currentTarget)}
-                className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:grid-cols-[minmax(0,1fr)_10rem_9rem_auto] lg:gap-4 lg:py-2 h-auto justify-start rounded-none font-normal whitespace-normal"
+                className="grid h-auto min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-none px-3 py-3 text-left text-sm font-normal whitespace-normal outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
-                <span className="grid min-w-0 gap-2 lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center">
+                <span className="grid min-w-0 gap-2">
                   <span className="wrap-break-word text-xs text-muted-foreground">
                     {product.code}
                   </span>
@@ -196,13 +274,13 @@ function ProductResults({
                     {product.name}
                   </span>
                 </span>
-                <span className="justify-self-end lg:order-3">
+                <span className="justify-self-end">
                   <ProductStatusBadge
                     status={product.status}
                     hasOutstandingDebt={product.hasOutstandingDebt}
                   />
                 </span>
-                <span className="flex flex-wrap gap-x-3 gap-y-2 text-muted-foreground lg:order-2">
+                <span className="flex flex-wrap gap-x-3 gap-y-2 text-muted-foreground">
                   <WeightText value={product.weight} />
                   <span>
                     <span className="sr-only">{t("fields.purity")} </span>
@@ -211,7 +289,7 @@ function ProductResults({
                 </span>
                 <ChevronRight
                   aria-hidden="true"
-                  className="size-4 justify-self-end text-muted-foreground lg:order-4"
+                  className="size-4 justify-self-end text-muted-foreground"
                 />
               </Button>
             </li>

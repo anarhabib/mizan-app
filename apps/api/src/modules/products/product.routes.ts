@@ -26,6 +26,7 @@ type Query = {
   category?: string;
   purity?: string;
   facets?: string;
+  photos?: string;
   soldOn?: string;
   receivedOn?: string;
   agedDays?: string;
@@ -135,7 +136,8 @@ export function registerProductRoutes(
         after.includes("\0"))
     )
       throw new AccessError("INVALID_PRODUCT", "after");
-    return listProducts(options().db, request.access!, {
+    return listProducts(options(), request.access!, {
+      photos: request.query.photos === "1",
       q: q?.trim(),
       status,
       after,

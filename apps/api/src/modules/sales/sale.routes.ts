@@ -4,6 +4,7 @@ import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import { AccessError } from "../access/access.errors.js";
 import { resolveAccessContext } from "../access/access.service.js";
+import type { ProductPhotoStorage } from "../products/product.storage.js";
 import { SaleConfirmationRequired } from "./sale-confirmation.js";
 import { parsePayment } from "./sale-input.js";
 import { formatPaymentAzn, SaleDecimal } from "./settlement.js";
@@ -30,6 +31,7 @@ export function registerSaleRoutes(
   app: FastifyInstance,
   access?: AccessOptions,
   db?: SalesDatabase,
+  storage?: ProductPhotoStorage,
 ) {
   const preHandler =
     access && db
@@ -104,9 +106,15 @@ export function registerSaleRoutes(
       paymentStatus?: string;
       after?: string;
       limit?: string;
+      photos?: string;
     };
   }>("/sales", { preHandler }, (request) =>
-    listSales(db!, request.access!, request.query),
+    listSales(
+      db!,
+      request.access!,
+      { ...request.query, photos: request.query.photos === "1" },
+      storage,
+    ),
   );
 
   app.get<Scope & { Params: { id: string } }>(

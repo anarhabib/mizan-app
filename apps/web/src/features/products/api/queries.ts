@@ -74,9 +74,10 @@ export function productPageQuery(
   return queryOptions<ProductList, ApiError>({
     queryKey: [...productKeys.list(scope, filters), page] as const,
     queryFn: ({ signal }) =>
-      apiRequest<ProductList>(productPath(scope, "", { ...filters, ...page }), {
-        signal,
-      }),
+      apiRequest<ProductList>(
+        productPath(scope, "", { ...filters, ...page, photos: 1 }),
+        { signal },
+      ),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   });

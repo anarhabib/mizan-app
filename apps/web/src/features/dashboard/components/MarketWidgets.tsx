@@ -11,6 +11,14 @@ import {
 } from "@mizan/contracts";
 import { Badge } from "@/components/ui/badge";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -443,43 +451,60 @@ export function StoreRatesWidget({
             {stale && <Badge variant="warning">{t("stale")}</Badge>}
             <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
               <div
-                className="max-h-48 overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring"
+                className="max-h-48 overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring [&>[data-slot=table-container]]:overflow-visible"
                 tabIndex={rates.length ? 0 : undefined}
                 role="region"
                 aria-label={t("storeRatesTable")}
               >
-                <table className="w-full table-fixed text-left text-xs wrap-anywhere">
-                  <thead className="sticky top-0 bg-card text-muted-foreground">
-                    <tr>
-                      <th className="py-2 font-medium">{t("purityShort")}</th>
-                      <th className="py-2 text-right font-medium">
+                <Table className="table-fixed text-left text-xs wrap-anywhere">
+                  <TableHeader className="sticky top-0">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead
+                        scope="col"
+                        className="h-auto px-0 py-2 whitespace-normal text-muted-foreground"
+                      >
+                        {t("purityShort")}
+                      </TableHead>
+                      <TableHead
+                        scope="col"
+                        className="h-auto px-0 py-2 text-right whitespace-normal text-muted-foreground"
+                      >
                         {t("reference")}
-                      </th>
+                      </TableHead>
                       {kind !== "reference" && (
-                        <th className="py-2 text-right font-medium">
+                        <TableHead
+                          scope="col"
+                          className="h-auto px-0 py-2 text-right whitespace-normal text-muted-foreground"
+                        >
                           {t(kind)}
-                        </th>
+                        </TableHead>
                       )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {rates.map((rate) => (
-                      <tr key={rate.purity}>
-                        <th scope="row" className="py-2">
+                      <TableRow
+                        key={rate.purity}
+                        className="hover:bg-transparent"
+                      >
+                        <TableHead
+                          scope="row"
+                          className="h-auto px-0 py-2 font-semibold tabular-nums"
+                        >
                           {rate.purity}
-                        </th>
-                        <td className="py-2 text-right tabular-nums">
+                        </TableHead>
+                        <TableCell className="px-0 text-right whitespace-normal tabular-nums">
                           {display(rate.reference)}
-                        </td>
+                        </TableCell>
                         {kind !== "reference" && (
-                          <td className="py-2 text-right tabular-nums">
+                          <TableCell className="px-0 text-right whitespace-normal tabular-nums">
                             {display(rate.commercial[kind])}
-                          </td>
+                          </TableCell>
                         )}
-                      </tr>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
               <div className="min-w-0 space-y-2">
                 {purity !== undefined ? (

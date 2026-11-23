@@ -73,9 +73,12 @@ export function saleListQuery(
   return queryOptions<SaleList, ApiError>({
     queryKey: [...saleKeys.list(scope, filters), page] as const,
     queryFn: ({ signal }) =>
-      apiRequest<SaleList>(salePath(scope, "", { ...filters, ...page }), {
-        signal,
-      }),
+      apiRequest<SaleList>(
+        salePath(scope, "", { ...filters, ...page, photos: 1 }),
+        {
+          signal,
+        },
+      ),
     placeholderData: keepPreviousData,
     staleTime: 15_000,
   });
