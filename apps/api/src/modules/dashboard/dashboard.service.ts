@@ -275,6 +275,13 @@ function counts(rows: Prisma.Sql) {
   ) ORDER BY count DESC, label), '[]'::jsonb) FROM (${rows}) AS counts)`;
 }
 
+function categoryCounts(table: Prisma.Sql) {
+  return Prisma.sql`(SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'label', label, 'categoryCode', code, 'count', count
+  ) ORDER BY count DESC, label, code), '[]'::jsonb)
+  FROM (SELECT label, code, COUNT(*) count FROM ${table} GROUP BY label, code) grouped)`;
+}
+
 export async function dashboardCharts(
   db: Prisma.TransactionClient,
   scope: Scope,
@@ -288,11 +295,17 @@ export async function dashboardCharts(
     dated_sales AS (SELECT *, ${localDay} AS day FROM sales),
     dated_payments AS (SELECT *, ${localDay} AS day FROM payments),
     sold_categories AS (
-      SELECT COALESCE(i."productCategory", s."productCategory") AS label FROM sales s
+      SELECT COALESCE(i."productCategory", s."productCategory") AS label,
+        CASE WHEN i."productId" IS NULL THEN s."productCategoryCode" ELSE i."productCategoryCode" END AS code
+      FROM sales s
       LEFT JOIN "mizan"."SaleItem" i ON (i."organizationId", i."storeId", i."saleId") =
         (s."organizationId", s."storeId", s.id)
     ),
-    stock AS (SELECT category, purity FROM "mizan"."Product" WHERE ${store(scope)} AND status = 'IN_STOCK')
+    stock AS (
+      SELECT p.purity, COALESCE(c.name, p.category) AS label, c.code
+      FROM (SELECT * FROM "mizan"."Product" WHERE ${store(scope)} AND status = 'IN_STOCK') p
+      LEFT JOIN "mizan"."ProductCategory" c ON (c."organizationId", c.id) = (p."organizationId", p."categoryId")
+    )
     SELECT
       (SELECT jsonb_agg(jsonb_build_object(
         'day', days.day::date::text,
@@ -300,10 +313,10 @@ export async function dashboardCharts(
         'payments', ${money(Prisma.sql`SELECT currency, SUM(amount) amount FROM dated_payments WHERE day = days.day::date GROUP BY currency`)},
         'count', (SELECT COUNT(*) FROM dated_sales WHERE day = days.day::date)
       ) ORDER BY days.day) FROM generate_series(${day}::date - 6, ${day}::date, interval '1 day') days(day)) AS days,
-      ${counts(Prisma.sql`SELECT label, COUNT(*) count FROM sold_categories GROUP BY label`)} AS categories,
+      ${categoryCounts(Prisma.sql`sold_categories`)} AS categories,
       ${counts(Prisma.sql`SELECT method label, COUNT(*) count FROM payments GROUP BY method`)} AS methods,
       ${counts(Prisma.sql`SELECT purity::text label, COUNT(*) count FROM stock GROUP BY purity`)} AS purities,
-      ${counts(Prisma.sql`SELECT category label, COUNT(*) count FROM stock GROUP BY category`)} AS "inventoryCategories",
+      ${categoryCounts(Prisma.sql`stock`)} AS "inventoryCategories",
       (SELECT jsonb_build_object(
         'PAID', COUNT(*) FILTER (WHERE status = 'PAID'),
         'PARTIALLY_PAID', COUNT(*) FILTER (WHERE status = 'PARTIALLY_PAID'),
@@ -321,13 +334,16 @@ export async function dashboardActivity(
     db.$queryRaw<
       (Omit<DashboardActivity["items"][number], "at"> & { at: Date })[]
     >`
+      SELECT activity.id, activity."recordId", activity.kind, activity.label, activity.at, activity.value,
+        u."fullName" AS "actorName"
+      FROM (
       (
         SELECT id, id AS "recordId", 'sale' AS kind, "productName" AS label, "createdAt" AS at,
-          jsonb_build_object('currency', currency, 'amount', "saleAmount"::text) AS value
+          jsonb_build_object('currency', currency, 'amount', "saleAmount"::text) AS value, "actorId"
         FROM "mizan"."Sale" WHERE ${store(scope)} ORDER BY "createdAt" DESC, id DESC LIMIT 5
       )
       UNION ALL (
-        SELECT m.id, p.id, 'intake', p.name, m."createdAt", NULL::jsonb
+        SELECT m.id, p.id, 'intake', p.name, m."createdAt", NULL::jsonb, m."actorId"
         FROM "mizan"."InventoryMovement" m JOIN "mizan"."Product" p
           ON (p."organizationId", p."storeId", p.id) = (m."organizationId", m."storeId", m."productId")
         WHERE m."organizationId" = ${scope.organizationId}::uuid AND m."storeId" = ${scope.storeId}::uuid
@@ -335,7 +351,7 @@ export async function dashboardActivity(
       )
       UNION ALL (
         SELECT t.id, s.id, 'tradeIn', s."productName", r."receivedAt",
-          jsonb_build_object('currency', s.currency, 'amount', t."acceptedValue"::text)
+          jsonb_build_object('currency', s.currency, 'amount', t."acceptedValue"::text), s."actorId"
         FROM "mizan"."ReceivedOldGold" r JOIN "mizan"."TradeIn" t
           ON (t."organizationId", t."storeId", t.id) = (r."organizationId", r."storeId", r."tradeInId")
         JOIN "mizan"."Sale" s ON (s."organizationId", s."storeId", s.id) = (t."organizationId", t."storeId", t."saleId")
@@ -344,7 +360,7 @@ export async function dashboardActivity(
       )
       UNION ALL (
         SELECT p.id, s.id, 'repayment', COALESCE(c.name, s."productName"), p."createdAt",
-          jsonb_build_object('currency', p.currency, 'amount', p.amount::text)
+          jsonb_build_object('currency', p.currency, 'amount', p.amount::text), p."actorId"
         FROM "mizan"."SalePayment" p JOIN "mizan"."Sale" s
           ON (s."organizationId", s."storeId", s.id) = (p."organizationId", p."storeId", p."saleId")
         LEFT JOIN "mizan"."Customer" c ON (c."organizationId", c."storeId", c.id) =
@@ -352,7 +368,8 @@ export async function dashboardActivity(
         WHERE p."organizationId" = ${scope.organizationId}::uuid AND p."storeId" = ${scope.storeId}::uuid
           AND p.position IS NULL ORDER BY p."createdAt" DESC, p.id DESC LIMIT 5
       )
-      ORDER BY at DESC, id DESC
+      ) activity LEFT JOIN "mizan"."User" u ON u.id = activity."actorId"
+      ORDER BY activity.at DESC, activity.id DESC
     `,
     db.$queryRaw<DashboardActivity["debtors"]>`
       SELECT c.id, c.name, jsonb_build_object('currency', 'AZN',

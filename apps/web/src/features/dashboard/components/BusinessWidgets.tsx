@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from "react";
+import { categoryLabel } from "@mizan/contracts";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type {
   DashboardActivity,
+  DashboardCount,
   DashboardAgedStock,
   DashboardCharts,
   DashboardOwnerSummary,
@@ -366,7 +368,7 @@ export function ChartWidget({
   salesMetric: "sales" | "count";
   changeSalesMetric: (metric: "sales" | "count") => void;
 }) {
-  const { t } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation("dashboard");
   const [dimension, setDimension] = useState("purity");
   if (kind === "salesTrend" || kind === "paymentTrend")
     return (
@@ -377,6 +379,11 @@ export function ChartWidget({
       />
     );
 
+  const localizeCategory = ({ label, categoryCode }: DashboardCount) =>
+    categoryLabel(
+      { name: label, code: categoryCode ?? null },
+      i18n.resolvedLanguage,
+    );
   const distributions = {
     categories: data.categories,
     paymentMethods: data.methods.map(({ label, count }) => ({
@@ -409,7 +416,15 @@ export function ChartWidget({
       ) : (
         <p className="text-xs text-muted-foreground">{t("lastSeven")}</p>
       )}
-      <DistributionChart rows={distributions[kind]} />
+      <DistributionChart
+        rows={distributions[kind]}
+        formatLabel={
+          kind === "categories" ||
+          (kind === "distribution" && dimension === "category")
+            ? localizeCategory
+            : undefined
+        }
+      />
     </>
   );
 }
@@ -439,7 +454,7 @@ export function ActivityWidget({
   data: DashboardActivity;
   kind: ActivityWidgetId;
 }) {
-  const { t, i18n } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation(["dashboard", "auth"]);
   const locale = i18n.resolvedLanguage ?? "az";
   if (kind === "debtors")
     return (
@@ -507,11 +522,13 @@ export function ActivityWidget({
                 {item.label}
               </Link>
             )}
-            <p className="pb-1 text-xs text-muted-foreground">
+            <p className="pb-1 text-xs wrap-anywhere text-muted-foreground">
               {t(item.kind)} ·{" "}
               <time dateTime={item.at}>
                 {formatMarketTime(item.at, locale)}
               </time>
+              {" · "}
+              {item.actorName ?? t("unknownActor", { ns: "auth" })}
             </p>
           </div>
           {item.value && (

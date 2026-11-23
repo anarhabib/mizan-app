@@ -3,7 +3,9 @@ import { useId, type ReactNode } from "react";
 import { ListFilter } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import type { ProductStatus } from "@mizan/contracts";
+import { categoryLabel, type ProductStatus } from "@mizan/contracts";
+import { categoryQuery } from "@/features/product-categories";
+import { useWorkspace } from "@/features/workspace";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -25,7 +27,6 @@ import {
 
 type FacetFilters = Omit<Filters, "q">;
 const all = "all";
-const categoryPrefix = "category:";
 const statuses = ["IN_STOCK", "SOLD", "SOLD_ON_CREDIT"] as const;
 
 export function ProductFilters({
@@ -39,13 +40,15 @@ export function ProductFilters({
   setFilters: (filters: FacetFilters) => void;
   children: ReactNode;
 }) {
-  const { t } = useTranslation("products");
+  const { t, i18n } = useTranslation("products");
   const id = useId();
   const mobile = useIsMobile();
   const facets = useQuery(productFacetsQuery(scope));
-  const categories = new Set(facets.data?.categories);
+  const { canManageAsOwner } = useWorkspace();
+  const categories = useQuery(
+    categoryQuery(scope.organizationId, canManageAsOwner),
+  );
   const purities = new Set(facets.data?.purities);
-  if (filters.category !== undefined) categories.add(filters.category);
   if (filters.purity !== undefined) purities.add(filters.purity);
   const any = { value: all, label: t("all") };
 
@@ -77,60 +80,59 @@ export function ProductFilters({
           ]}
         />
       </div>
-      {facets.isPending ? (
-        <div className="lg:w-72 lg:shrink-0">
+      {categories.isPending ? (
+        <div className="lg:w-44 lg:shrink-0">
           <ListSkeleton rows={1} />
         </div>
       ) : (
-        <>
-          <div className="grid min-w-0 gap-2 lg:w-44 lg:shrink-0">
-            <Label htmlFor={`${id}-category`}>{t("fields.category")}</Label>
-            <OptionSelect
-              id={`${id}-category`}
-              value={
-                filters.category === undefined
-                  ? all
-                  : categoryPrefix + filters.category
-              }
-              onChange={(value) =>
-                setFilters({
-                  ...filters,
-                  category:
-                    value === all
-                      ? undefined
-                      : value.slice(categoryPrefix.length),
-                })
-              }
-              options={[
-                any,
-                ...Array.from(categories, (category) => ({
-                  value: categoryPrefix + category,
-                  label: category,
-                })),
-              ]}
-            />
-          </div>
-          <div className="grid min-w-0 gap-2 lg:w-24 lg:shrink-0">
-            <Label htmlFor={`${id}-purity`}>{t("fields.purity")}</Label>
-            <OptionSelect
-              id={`${id}-purity`}
-              value={filters.purity?.toString() ?? all}
-              onChange={(value) =>
-                setFilters({
-                  ...filters,
-                  purity: value === all ? undefined : Number(value),
-                })
-              }
-              options={[
-                any,
-                ...Array.from(purities, (purity) => ({
-                  value: String(purity),
-                  label: String(purity),
-                })),
-              ]}
-            />
-          </div>
-        </>
+        <div className="grid min-w-0 gap-2 lg:w-44 lg:shrink-0">
+          <Label htmlFor={`${id}-category`}>{t("fields.category")}</Label>
+          <OptionSelect
+            id={`${id}-category`}
+            value={filters.categoryId ?? all}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                category: undefined,
+                categoryId: value === all ? undefined : value,
+              })
+            }
+            disabled={!categories.data?.length}
+            options={[
+              any,
+              ...(categories.data ?? []).map((category) => ({
+                value: category.id,
+                label: categoryLabel(category, i18n.resolvedLanguage),
+              })),
+            ]}
+          />
+        </div>
+      )}
+      {facets.isPending ? (
+        <div className="lg:w-24 lg:shrink-0">
+          <ListSkeleton rows={1} />
+        </div>
+      ) : (
+        <div className="grid min-w-0 gap-2 lg:w-24 lg:shrink-0">
+          <Label htmlFor={`${id}-purity`}>{t("fields.purity")}</Label>
+          <OptionSelect
+            id={`${id}-purity`}
+            value={filters.purity?.toString() ?? all}
+            onChange={(value) =>
+              setFilters({
+                ...filters,
+                purity: value === all ? undefined : Number(value),
+              })
+            }
+            options={[
+              any,
+              ...Array.from(purities, (purity) => ({
+                value: String(purity),
+                label: String(purity),
+              })),
+            ]}
+          />
+        </div>
       )}
       <div className="grid min-w-0 gap-2 lg:w-44 lg:shrink-0">
         <Label htmlFor={`${id}-gemstones`}>{t("jewelry.gemstones")}</Label>
@@ -170,6 +172,13 @@ export function ProductFilters({
       pending={facets.isFetching}
     />
   );
+  const categoryError = categories.isError && !categories.data && (
+    <ErrorState
+      error={categories.error}
+      retry={() => void categories.refetch()}
+      pending={categories.isFetching}
+    />
+  );
 
   return (
     <>
@@ -202,6 +211,7 @@ export function ProductFilters({
               <div className="grid min-h-0 gap-4 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 {fields}
                 {facetError}
+                {categoryError}
               </div>
             </DrawerContent>
           </Drawer>
@@ -216,6 +226,7 @@ export function ProductFilters({
         )}
       </div>
       {!mobile && facets.isError && <div className="mt-2">{facetError}</div>}
+      {!mobile && categoryError && <div className="mt-2">{categoryError}</div>}
     </>
   );
 }

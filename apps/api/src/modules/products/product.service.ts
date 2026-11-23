@@ -1,5 +1,6 @@
 import { Prisma } from "@mizan/database";
 import { randomUUID } from "node:crypto";
+import { categoryLabel } from "@mizan/contracts";
 import type {
   MoneyInput,
   ProductAcquisitionInput,
@@ -73,7 +74,7 @@ export async function createProduct(
   input: ProductCreateInput,
   total: MoneyInput,
 ) {
-  const { code, name, category, purity, metalType, note, gemstones } = input;
+  const { code, name, purity, metalType, note, gemstones } = input;
   const store = scope(access);
   try {
     return await db.$transaction(async (tx) => {
@@ -95,12 +96,14 @@ export async function createProduct(
         select: { active: true },
       });
       if (!grade?.active) throw new AccessError("PURITY_CONFLICT", "purity");
+      const category = await activeCategory(tx, store.organizationId, input);
       const product = await tx.product.create({
         data: {
           ...store,
           code,
           name,
-          category,
+          category: input.category ?? category.name,
+          categoryId: category.id,
           purity,
           metalType,
           note,
@@ -139,6 +142,37 @@ export async function createProduct(
     }
     throw error;
   }
+}
+
+async function activeCategory(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  input: { categoryId?: string; category?: string },
+) {
+  const { categoryId, category } = input;
+  if (categoryId) {
+    const row = await tx.productCategory.findFirst({
+      where: { organizationId, id: categoryId, isActive: true },
+      select: { id: true, name: true },
+    });
+    if (row) return row;
+  } else if (category) {
+    // Older clients can still select a configured category by its existing label.
+    const rows = await tx.productCategory.findMany({
+      where: { organizationId, isActive: true },
+      select: { id: true, code: true, name: true },
+    });
+    const folded = category.toLowerCase();
+    const row =
+      rows.find(({ name }) => name.toLowerCase() === folded) ??
+      rows.find((candidate) =>
+        ["en", "ru"].some(
+          (locale) => categoryLabel(candidate, locale).toLowerCase() === folded,
+        ),
+      );
+    if (row) return row;
+  }
+  throw new AccessError("CATEGORY_UNAVAILABLE", "categoryId");
 }
 
 function acquisitionData(input: ProductAcquisitionInput, total: MoneyInput) {
@@ -183,12 +217,17 @@ export async function updateProductAcquisition(
   id: string,
   input: ProductAcquisitionInput,
   total: MoneyInput,
+  categoryId?: string,
 ) {
   await db.$transaction(async (tx) => {
     const currentAccess = await lockProductOwner(tx, access);
     const row = await findProduct(tx, currentAccess, id);
     if (!canEditAcquisition(row))
       throw new AccessError("PRODUCT_EDIT_CONFLICT");
+    const category =
+      categoryId && categoryId !== row.productCategory?.id
+        ? await activeCategory(tx, currentAccess.organizationId, { categoryId })
+        : undefined;
     if (row.gemstones.length && !input.acquisitionCost)
       throw new AccessError("INVALID_PRODUCT", "acquisitionCost");
     if (
@@ -200,7 +239,10 @@ export async function updateProductAcquisition(
       where: {
         organizationId_storeId_id: { ...scope(currentAccess), id: row.id },
       },
-      data: acquisitionData(input, total),
+      data: {
+        ...acquisitionData(input, total),
+        ...(category && { category: category.name, categoryId: category.id }),
+      },
     });
   });
 }
@@ -307,6 +349,7 @@ export async function listProducts(
     status?: ProductStatus;
     after?: string;
     category?: string;
+    categoryId?: string;
     purity?: number;
     gemstones?: ProductGemstoneFilter;
     facets?: boolean;
@@ -335,6 +378,7 @@ export async function listProducts(
       ...scope(access),
       status: filters.credit ? "SOLD" : filters.status,
       category: filters.category,
+      categoryId: filters.categoryId,
       purity: filters.purity,
       gemstones:
         filters.gemstones === "recorded"

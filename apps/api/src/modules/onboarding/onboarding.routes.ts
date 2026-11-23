@@ -30,7 +30,7 @@ export function registerOnboardingRoutes(
       if (!input)
         return reply.code(400).send({
           code: "INVALID_ONBOARDING",
-          message: "Biznes, mağaza və valyuta məlumatlarını yoxlayın.",
+          message: "Ad, təşkilat, mağaza və valyuta məlumatlarını yoxlayın.",
         });
       return provisionOwnerWorkspace(db, request.identity.userId, input);
     },

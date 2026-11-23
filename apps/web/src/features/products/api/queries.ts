@@ -22,6 +22,7 @@ export type ProductFilters = {
   q?: string;
   status?: ProductStatus;
   category?: string;
+  categoryId?: string;
   purity?: number;
   gemstones?: ProductGemstoneFilter;
   soldOn?: string;

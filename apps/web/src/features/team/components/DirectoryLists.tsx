@@ -37,8 +37,8 @@ export function DirectoryLists({
           <p className="text-muted-foreground">{t("noMembers")}</p>
         ) : (
           <ul className="divide-y">
-            {members.map(({ userId, email, status, storeIds }) => {
-              const displayName = email ?? t("unknownEmail");
+            {members.map(({ userId, email, fullName, status, storeIds }) => {
+              const displayName = fullName ?? email ?? t("unknownMember");
               const availableStores = stores.filter(
                 ({ id }) => !storeIds.includes(id),
               );
@@ -78,6 +78,11 @@ export function DirectoryLists({
                       </Button>
                     )}
                   </div>
+                  {fullName && email && (
+                    <p className="text-xs wrap-anywhere text-muted-foreground">
+                      {email}
+                    </p>
+                  )}
                   <div className="grid gap-2">
                     <p className="text-muted-foreground">
                       {t("assignedStores")}

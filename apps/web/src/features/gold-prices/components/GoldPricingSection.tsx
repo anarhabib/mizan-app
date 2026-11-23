@@ -398,8 +398,8 @@ function RuleScope({
   const { t } = useTranslation("gold-prices");
   const id = useId();
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <div className="grid min-w-0 gap-2">
+    <div className="grid gap-x-3 gap-y-2 sm:align-form-fields sm:grid-cols-3">
+      <div data-form-field className="grid min-w-0 gap-2">
         <Label htmlFor={id + "-kind"}>{t("priceType")}</Label>
         <OptionSelect
           id={id + "-kind"}
@@ -414,7 +414,7 @@ function RuleScope({
           }
         />
       </div>
-      <div className="grid min-w-0 gap-2">
+      <div data-form-field className="grid min-w-0 gap-2">
         <Label htmlFor={id + "-scope"}>{t("scope")}</Label>
         <OptionSelect
           id={id + "-scope"}
@@ -438,7 +438,7 @@ function RuleScope({
         />
       </div>
       {selection.purity !== null && (
-        <div className="grid min-w-0 gap-2">
+        <div data-form-field className="grid min-w-0 gap-2">
           <Label htmlFor={id + "-purity"}>{t("purity")}</Label>
           <OptionSelect
             id={id + "-purity"}
@@ -580,8 +580,8 @@ function RuleEditor({
           else return submit();
         })}
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid min-w-0 gap-2">
+        <div className="grid gap-2 sm:align-form-fields sm:grid-cols-2">
+          <div data-form-field className="grid min-w-0 gap-2">
             <Label htmlFor={id + "-method"}>{t("mode")}</Label>
             <Controller
               control={form.control}
@@ -602,7 +602,7 @@ function RuleEditor({
             />
           </div>
           {mode !== "FOLLOW" && (
-            <div className="grid min-w-0 gap-2">
+            <div data-form-field className="grid min-w-0 gap-2">
               <Label htmlFor={id + "-value"}>
                 {t(mode === "PERCENTAGE" ? "percentValue" : "aznValue")}
               </Label>
@@ -749,7 +749,7 @@ function PricingHistory({ scope }: { scope: Scope }) {
               </div>
             </dl>
             <p className="text-xs wrap-anywhere text-muted-foreground">
-              {t("actor", { actor: item.actorId })}
+              {t("actor", { actor: item.actorName ?? t("unknownActor") })}
             </p>
           </li>
         ))}

@@ -36,6 +36,7 @@ test.skipIf(!db)(
         url: "/api/v1/onboarding",
         headers: { authorization: "Bearer owner" },
         payload: {
+          fullName: "Sales Test Owner",
           organizationName: "Sales test",
           storeName: "Main store",
           defaultCurrency: "AZN",

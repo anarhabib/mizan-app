@@ -52,7 +52,8 @@ export function useEditProductAcquisition(scope: ProductScope, id: string) {
       acquisitionCost,
       acquisitionBreakdown,
       fixedSellingPrice,
-    }: ProductAcquisitionInput) =>
+      categoryId,
+    }: ProductAcquisitionInput & { categoryId?: string }) =>
       apiRequest<void>(
         productPath(scope, `/${encodeURIComponent(id)}/acquisition`),
         {
@@ -64,6 +65,7 @@ export function useEditProductAcquisition(scope: ProductScope, id: string) {
             acquisitionCost,
             acquisitionBreakdown,
             fixedSellingPrice,
+            categoryId,
           },
         },
       ),

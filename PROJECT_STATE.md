@@ -1,5 +1,25 @@
 # Misqal project state
 
+## Task 21 — social authentication, profiles and product categories (November 24, 2026)
+
+- `apps/web/src/features/auth` adds Google and Apple to the existing Supabase login and callback. The invitation tab keeps its token in memory while OAuth opens separately. Acceptance still checks the verified email. `/me/profile` stores the confirmed name under the Supabase UUID. Owner onboarding saves the name and eleven category defaults atomically. Existing and invited members complete their profiles without creating a workspace.
+- The account menu and dashboard use the confirmed profile name. Scoped API reads supply names for receipts, payments, inventory movements, dashboard activity, team and gold rule history. Legacy users without a name receive localized fallback labels.
+- `packages/database/prisma/migrations/202611240001_profiles_product_categories` adds organization-owned categories, backfills products and preserves original category text and sale snapshots. Owners manage names, order and activation in Settings. Intake, eligible edits and filters use category IDs. New receipts snapshot the label and optional built-in code. Categories remain independent of gemstone attributes and jewelry grouping.
+- Prisma validation, clean and legacy PostgreSQL migrations, schema parity, database and API tests, contracts, web TypeScript, Vitest, changed-file lint and production build passed. The live Storage test was skipped. Mocked Chromium checks covered email/password and OAuth, invitations, profile editing, category settings and the product picker at 360, 390, 768, 1280 and 1920px in both themes. Built-in labels were checked in AZ, EN and RU.
+- Task 16 and Task 21 migrations were applied to the configured hosted development database with developer approval. Prisma reports all 18 migrations applied, and read-only Prisma queries succeeded for the profile and inventory columns. Supabase redirects to Google, and the local profile endpoint requests authentication. The signed-in workspace still needs a browser check with the developer's session. Changes remain local and uncommitted on `task/21-social-auth-user-profiles-categories`.
+
+### Follow-up — OAuth button artwork
+
+- `apps/web/src/features/auth/AuthForms.tsx` uses locally bundled Google and Apple SVG marks in both sign-in and registration. Apple inverts in dark mode. The spinner occupies the same icon position during sign-in. TypeScript, changed-file lint and formatting, and four auth tests passed. Chromium verified equal dimensions and centered labels at 390px and 1280px in both themes.
+
+### Follow-up — dashboard purity pricing table
+
+- `apps/web/src/features/dashboard/components/MarketWidgets.tsx` sizes the purity and price columns within the widget, restores cell padding, and stacks the table above the chart when the card is narrow. Chromium fixtures verified readable headers and no horizontal overflow at 390px and 1280px in both themes, including a narrow desktop card. TypeScript, lint, and 27 dashboard tests passed.
+
+### Follow-up — form control alignment
+
+- Settings, product, payment, and team forms with side-by-side controls share label, control, and feedback rows. Chromium verified category creation and editing with wrapped labels and field errors at 390px and 1280px in both themes. Frontend type checking, changed-file lint, and 172 web tests passed.
+
 ## Task 16 — jewelry products and gemstones (November 23, 2026)
 
 - `packages/database/prisma/migrations/202611230004_product_jewelry` extends Product with gold metal type, optional fixed selling price and acquisition components. `ProductGemstone` stores ordered gemstone groups under the existing organization, store and product IDs. Legacy rows retain their gross weight, recorded alloy weight, acquisition costs and inventory and sales history.

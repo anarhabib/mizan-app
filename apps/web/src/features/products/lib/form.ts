@@ -21,6 +21,7 @@ type GemstoneValues = Omit<ProductGemstone, "stoneCount"> & {
 
 export type ProductFormValues = Omit<
   ProductCreateInput,
+  | "category"
   | "purity"
   | "gemstones"
   | "acquisitionCost"
@@ -40,7 +41,7 @@ type ProductField = FieldPath<ProductFormValues>;
 const fields = {
   code: "code",
   name: "name",
-  category: "category",
+  categoryId: "categoryId",
   purity: "purity",
   weight: "weight",
   netGoldWeight: "netGoldWeight",
@@ -133,7 +134,7 @@ export function resolveProductForm(
   const identity = {
     code: values.code,
     name: values.name,
-    category: values.category,
+    categoryId: values.categoryId || undefined,
     purity: Number(values.purity),
   };
   const input = {

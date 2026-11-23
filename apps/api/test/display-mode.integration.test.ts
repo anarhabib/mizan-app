@@ -57,6 +57,7 @@ test.skipIf(!db)(
       });
     try {
       const onboard = await send("POST", "/onboarding", "owner", {
+        fullName: "Display Mode Test Owner",
         organizationName: "Display mode test",
         storeName: "Main store",
         defaultCurrency: "AZN",
@@ -80,7 +81,7 @@ test.skipIf(!db)(
       const intake = {
         code: "DISPLAY",
         name: "Gold ring",
-        category: "Rings",
+        category: "Ring",
         purity: 585,
         weight: "2",
         acquisitionCostPerGram: { amount: "60", currency: "AZN" },

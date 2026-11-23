@@ -13,6 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   parseProductAcquisition,
+  categoryLabel,
   acquisitionComponents,
   type ProductCreateInput,
   type ProductDetail,
@@ -20,6 +21,9 @@ import {
 import { MoneyText } from "@/shared/ui/MoneyText";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/shared/lib/api";
+import { categoryQuery } from "@/features/product-categories";
+import { useWorkspace } from "@/features/workspace";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
@@ -42,7 +46,6 @@ import {
 type TextField =
   | "code"
   | "name"
-  | "category"
   | "weight"
   | "netGoldWeight"
   | "acquisitionCostPerGram.amount"
@@ -90,6 +93,7 @@ export function ProductCreate({
         <EmptyState title={t("noPurities")} description={t("noPuritiesHint")} />
       ) : (
         <ProductForm
+          scope={scope}
           currency={currency}
           purities={options.data.purities}
           pending={create.isPending}
@@ -106,6 +110,7 @@ export function ProductCreate({
 }
 
 export function ProductForm({
+  scope,
   currency,
   purities = [],
   product,
@@ -113,6 +118,7 @@ export function ProductForm({
   onSubmittingChange,
   save,
 }: {
+  scope: ProductScope;
   currency: string;
   purities?: number[];
   product?: ProductDetail;
@@ -120,7 +126,19 @@ export function ProductForm({
   onSubmittingChange: (submitting: boolean) => void;
   save: (input: ProductCreateInput) => Promise<void>;
 }) {
-  const { t } = useTranslation(["products", "errors"]);
+  const { t, i18n } = useTranslation(["products", "errors", "shell"]);
+  const { canManageAsOwner } = useWorkspace();
+  const categories = useQuery(
+    categoryQuery(scope.organizationId, canManageAsOwner),
+  );
+  const activeCategories =
+    categories.data?.filter((category) => category.isActive) ?? [];
+  const currentCategory = product?.productCategory;
+  const categoryOptions =
+    currentCategory &&
+    !activeCategories.some(({ id }) => id === currentCategory.id)
+      ? [currentCategory, ...activeCategories]
+      : activeCategories;
   const form = useForm<ProductFormValues, unknown, ProductCreateInput>({
     resolver: (values) => resolveProductForm(values, Boolean(product)),
     mode: "onBlur",
@@ -128,7 +146,7 @@ export function ProductForm({
     defaultValues: {
       code: product?.code ?? "",
       name: product?.name ?? "",
-      category: product?.category ?? "",
+      categoryId: currentCategory?.id ?? "",
       purity: product ? String(product.purity) : "",
       weight: product?.weight ?? "",
       netGoldWeight: product?.netGoldWeight ?? "",
@@ -261,16 +279,80 @@ export function ProductForm({
         <>
           {renderText("code", errors.code)}
           {renderText("name", errors.name)}
-          {renderText("category", errors.category)}
+        </>
+      )}
+      <Controller
+        control={form.control}
+        name="categoryId"
+        render={({ field, fieldState }) => {
+          const invalid =
+            fieldState.error?.type === "CATEGORY_UNAVAILABLE"
+              ? t("CATEGORY_UNAVAILABLE", { ns: "errors" })
+              : t("validation.category");
+          return (
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor="product-category">{t("fields.category")}</Label>
+              <OptionSelect
+                id="product-category"
+                ref={field.ref}
+                value={field.value ?? ""}
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                disabled={busy || !categoryOptions.length || !categories.data}
+                placeholder={t(
+                  categories.isPending ? "loadingCategories" : "chooseCategory",
+                )}
+                invalid={fieldState.invalid}
+                describedBy={
+                  fieldState.invalid ? "product-category-error" : undefined
+                }
+                options={categoryOptions.map((category) => ({
+                  value: category.id,
+                  label: categoryLabel(category, i18n.resolvedLanguage),
+                }))}
+              />
+              {fieldState.invalid && (
+                <p id="product-category-error" className="text-destructive">
+                  {invalid}
+                </p>
+              )}
+              {categories.isError && !categories.data && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p role="alert" className="text-destructive">
+                    {t("categoryLoadError")}
+                  </p>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => void categories.refetch()}
+                  >
+                    {t("retry", { ns: "shell" })}
+                  </Button>
+                </div>
+              )}
+              {categories.isSuccess && !categoryOptions.length && (
+                <p role="status" className="text-muted-foreground">
+                  {t("noCategories")}
+                </p>
+              )}
+            </div>
+          );
+        }}
+      />
+      {!product && (
+        <>
           <p className="text-sm text-muted-foreground">
             {t("fields.metalType")} · {t("jewelry.gold")}
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="align-form-fields grid grid-cols-2 gap-2">
             <Controller
               control={form.control}
               name="purity"
               render={({ field, fieldState }) => (
-                <div className="grid content-start gap-2">
+                <div
+                  data-form-field
+                  className="grid min-w-0 content-start gap-2"
+                >
                   <Label htmlFor="create-product-purity">
                     {t("fields.purity")}
                   </Label>
@@ -348,7 +430,7 @@ export function ProductForm({
             )}
           />
         )}
-        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+        <div className="align-form-fields grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-x-3 gap-y-2">
           {totalAcquisition
             ? renderText(
                 "acquisitionCost.amount",
@@ -383,7 +465,7 @@ export function ProductForm({
                 {t("jewelry.validation.breakdownSum")}
               </p>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="align-form-fields grid grid-cols-2 gap-2">
               {acquisitionComponents.map((part) => (
                 <ProductTextField
                   key={part}
@@ -410,7 +492,7 @@ export function ProductForm({
         reveal={Boolean(product?.fixedSellingPrice || errors.fixedSellingPrice)}
         submitCount={submitCount}
       >
-        <div className="mt-2 grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+        <div className="align-form-fields mt-2 grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-x-3 gap-y-2">
           {renderText(
             "fixedSellingPrice.amount",
             errors.fixedSellingPrice?.amount,
@@ -429,6 +511,7 @@ export function ProductForm({
       )}
       <PendingButton
         pending={busy}
+        disabled={!product && (!categories.data || !activeCategories.length)}
         type="submit"
         className="min-h-11 lg:min-h-9"
       >

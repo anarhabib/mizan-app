@@ -24,22 +24,30 @@ export function FormField({
 }) {
   const { t } = useTranslation("sales");
   return (
-    <Field data-invalid={Boolean(error)} className="grid min-w-0 gap-2">
+    <Field
+      data-form-field
+      data-invalid={Boolean(error)}
+      className="grid min-w-0 gap-2"
+    >
       <Label id={`${id}-label`} htmlFor={id}>
         {label}
       </Label>
       {children}
-      {hint && (
-        <FieldDescription id={`${id}-hint`} className="text-xs">
-          {hint}
-        </FieldDescription>
-      )}
-      {error && (
-        <FieldFeedback id={`${id}-error`} className="text-xs">
-          {error.type === "paymentTooSmall"
-            ? t("errors.paymentTooSmall")
-            : t("invalidField")}
-        </FieldFeedback>
+      {(hint || error) && (
+        <div className="grid gap-2">
+          {hint && (
+            <FieldDescription id={`${id}-hint`} className="text-xs">
+              {hint}
+            </FieldDescription>
+          )}
+          {error && (
+            <FieldFeedback id={`${id}-error`} className="text-xs">
+              {error.type === "paymentTooSmall"
+                ? t("errors.paymentTooSmall")
+                : t("invalidField")}
+            </FieldFeedback>
+          )}
+        </div>
       )}
     </Field>
   );

@@ -46,10 +46,14 @@ export function OptionSelect({
         position="popper"
         align="start"
         sideOffset={4}
-        className="z-[60] min-w-(--radix-select-trigger-width) bg-popover before:content-none"
+        className="z-[60] max-w-[calc(100dvw-2rem)] min-w-(--radix-select-trigger-width) bg-popover before:content-none"
       >
         {options.map(({ value, label }) => (
-          <SelectItem key={value} value={value} className="min-h-11 lg:min-h-8">
+          <SelectItem
+            key={value}
+            value={value}
+            className="min-h-11 wrap-anywhere whitespace-normal lg:min-h-8"
+          >
             {label}
           </SelectItem>
         ))}

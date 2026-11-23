@@ -1,6 +1,5 @@
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { useState } from "react";
-import { CircleMinus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -34,12 +33,11 @@ export function DeactivatePurity({
     >
       <AlertDialogTrigger asChild>
         <Button
-          variant="destructive"
+          variant="outline"
           disabled={busy}
           className="min-h-10 lg:min-h-8"
           aria-label={t("deactivatePurity", { value })}
         >
-          <CircleMinus aria-hidden="true" />
           {t("deactivate")}
         </Button>
       </AlertDialogTrigger>

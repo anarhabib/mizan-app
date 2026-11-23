@@ -48,7 +48,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function DashboardPage() {
   const { userId } = useSession();
-  const { organizationId, storeId, canManageAsOwner } = useWorkspace();
+  const { organizationId, storeId, canManageAsOwner, fullName } =
+    useWorkspace();
   if (!userId) return null;
   const storageKey = preferenceKey(userId, organizationId, storeId);
   return (
@@ -56,6 +57,7 @@ export function DashboardPage() {
       key={storageKey}
       scope={{ organizationId, storeId }}
       owner={canManageAsOwner}
+      fullName={fullName}
       storageKey={storageKey}
     />
   );
@@ -72,7 +74,9 @@ function ScopedDashboard({
   scope,
   owner,
   storageKey,
+  fullName,
 }: {
+  fullName: string;
   scope: DashboardScope;
   owner: boolean;
   storageKey: string;
@@ -207,6 +211,7 @@ function ScopedDashboard({
     <>
       <PageHeader
         title={t("title")}
+        description={t("greeting", { name: fullName })}
         actions={
           <Button
             variant="outline"

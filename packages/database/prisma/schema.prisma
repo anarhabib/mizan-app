@@ -63,6 +63,7 @@ enum GoldPriceMode {
 
 model User {
   id          String                   @id @db.Uuid
+  fullName    String?
   createdAt   DateTime                 @default(now())
   memberships OrganizationMembership[]
   initialWorkspace OwnerOnboarding?
@@ -90,6 +91,7 @@ model Organization {
   memberships                       OrganizationMembership[]
   stores                            Store[]
   purities                          PurityGrade[]
+  productCategories                 ProductCategory[]
 
   @@schema("mizan")
 }
@@ -264,6 +266,23 @@ model StoreGoldPriceRule {
   @@schema("mizan")
 }
 
+model ProductCategory {
+  organizationId String       @db.Uuid
+  id             String       @default(uuid()) @db.Uuid
+  code           String?
+  name           String
+  isActive       Boolean      @default(true)
+  sortOrder      Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  products       Product[]
+
+  @@id([organizationId, id])
+  @@unique([organizationId, code])
+  @@schema("mizan")
+}
+
 model Product {
   organizationId         String              @db.Uuid
   storeId                String              @db.Uuid
@@ -271,6 +290,7 @@ model Product {
   code                   String
   name                   String
   category               String
+  categoryId             String?             @db.Uuid
   metalType              ProductMetal        @default(GOLD)
   purity                 Int
   weight                 Decimal             @db.Decimal(15, 3)
@@ -292,6 +312,7 @@ model Product {
   createdAt              DateTime            @default(now())
   store                  Store               @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
   grade                  PurityGrade         @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
+  productCategory        ProductCategory?    @relation(fields: [organizationId, categoryId], references: [organizationId, id], onDelete: Restrict)
   sale                   Sale?
   saleItem               SaleItem?
   movements              InventoryMovement[]
@@ -299,6 +320,7 @@ model Product {
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, code])
+  @@index([organizationId, categoryId])
   @@schema("mizan")
 }
 
@@ -371,6 +393,7 @@ model Sale {
   productCode                 String
   productName                 String
   productCategory             String
+  productCategoryCode         String?
   productPurity               Int
   productWeight               Decimal             @db.Decimal(15, 3)
   createdAt                   DateTime            @default(now())
@@ -425,6 +448,7 @@ model SaleItem {
   productCode            String
   productName            String
   productCategory        String
+  productCategoryCode    String?
   productPurity          Int
   productWeight          Decimal  @db.Decimal(15, 3)
   saleAmount             Decimal  @db.Decimal(20, 4)

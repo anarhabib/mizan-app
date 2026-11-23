@@ -68,7 +68,11 @@ export type DashboardOwnerSummary = {
   grossProfitComparison: DashboardMoneyComparison[];
 };
 
-export type DashboardCount = { label: string; count: number };
+export type DashboardCount = {
+  label: string;
+  count: number;
+  categoryCode?: string | null;
+};
 
 export type DashboardCharts = {
   days: { day: string; sales: Money[]; payments: Money[]; count: number }[];
@@ -84,6 +88,7 @@ export type DashboardActivityItem = {
   recordId: string;
   kind: "sale" | "intake" | "tradeIn" | "repayment";
   label: string;
+  actorName?: string | null;
   at: string;
   value: Money | null;
 };

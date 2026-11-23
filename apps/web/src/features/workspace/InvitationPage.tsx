@@ -3,7 +3,12 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { AuthPanel, SignOutButton, useSession } from "@/features/auth";
+import {
+  AuthPanel,
+  profileQuery,
+  SignOutButton,
+  useSession,
+} from "@/features/auth";
 import { ApiError, apiRequest } from "@/shared/lib/api";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { contextsQuery } from "./api";
@@ -24,14 +29,13 @@ export function InvitationPage({ userId }: { userId: string }) {
     onSuccess: () => {
       clearInvitationToken();
       toast.success(t("invitationAccepted"));
-      return queryClient.invalidateQueries({
-        queryKey: contextsQuery(userId).queryKey,
-        exact: true,
-      });
+      return Promise.all(
+        [contextsQuery(userId), profileQuery(userId)].map(({ queryKey }) =>
+          queryClient.invalidateQueries({ queryKey, exact: true }),
+        ),
+      );
     },
     onError: async (error) => {
-      if (error instanceof ApiError && error.code === "INVITATION_UNAVAILABLE")
-        clearInvitationToken();
       if (error instanceof ApiError && error.isNetwork) {
         await queryClient
           .fetchQuery({ ...contextsQuery(userId), staleTime: 0 })
@@ -61,13 +65,15 @@ export function InvitationPage({ userId }: { userId: string }) {
           {t(mutation.isPending ? "acceptingInvitation" : "acceptInvitation")}
         </PendingButton>
       )}
-      <Link
-        to="/"
-        className="self-start underline"
-        onClick={clearInvitationToken}
-      >
-        {t("openWorkspace")}
-      </Link>
+      {(!getInvitationToken() || mutation.isSuccess) && (
+        <Link
+          to="/"
+          className="self-start underline"
+          onClick={clearInvitationToken}
+        >
+          {t("openWorkspace")}
+        </Link>
+      )}
       <div className="self-start">
         <SignOutButton />
       </div>

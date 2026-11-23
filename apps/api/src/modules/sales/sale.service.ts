@@ -27,6 +27,7 @@ import {
 } from "../gold-prices/store-pricing.service.js";
 import { lockOrganization } from "../access/organization-owner.js";
 import {
+  actorProfile,
   resolveAccessContext,
   uuidPattern,
   type AccessContext,
@@ -54,10 +55,12 @@ import {
 
 export type SalesDatabase = ReturnType<typeof createDatabase>;
 const include = {
+  actor: actorProfile,
   customer: { select: { name: true } },
   tradeIns: { orderBy: { id: "asc" } },
   items: { orderBy: { position: "asc" } },
   payments: {
+    include: { actor: actorProfile },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
   },
 } satisfies Prisma.SaleInclude;
@@ -104,6 +107,7 @@ function productSnapshot(
     | "productCode"
     | "productName"
     | "productCategory"
+    | "productCategoryCode"
     | "productPurity"
     | "productWeight"
   >,
@@ -113,6 +117,7 @@ function productSnapshot(
     code: row.productCode,
     name: row.productName,
     category: row.productCategory,
+    ...(row.productCategoryCode && { categoryCode: row.productCategoryCode }),
     purity: row.productPurity,
     weight: row.productWeight.toFixed(),
     status: "SOLD",
@@ -338,6 +343,8 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
       : null;
   const payments: SalePayment[] = sale.payments.map((row) => ({
     id: row.id,
+    actorId: row.actorId,
+    actorName: row.actor.membership.user.fullName,
     createdAt: row.createdAt.toISOString(),
     kind: row.position === null ? "REPAYMENT" : "CHECKOUT",
     method: row.method as SalePaymentInput["method"],
@@ -353,6 +360,8 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
     payments.unshift({
       ...payment,
       id: sale.id,
+      actorId: sale.actorId,
+      actorName: sale.actor.membership.user.fullName,
       createdAt: sale.createdAt.toISOString(),
       kind: "CHECKOUT",
       method: null,
@@ -373,6 +382,7 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
     paidAmount: paidSaleAmount(sale.defaultSettlement, sale.outstandingDebt),
     payments,
     actorId: sale.actorId,
+    actorName: sale.actor.membership.user.fullName,
     createdAt: sale.createdAt.toISOString(),
     currency,
     saleAmount,
@@ -583,6 +593,7 @@ export async function listSales(
       id: true,
       createdAt: true,
       actorId: true,
+      actor: actorProfile,
       defaultCurrency: true,
       defaultSaleAmount: true,
       defaultSettlement: true,
@@ -592,6 +603,7 @@ export async function listSales(
       productCode: true,
       productName: true,
       productCategory: true,
+      productCategoryCode: true,
       productPurity: true,
       productWeight: true,
       product:
@@ -617,6 +629,7 @@ export async function listSales(
         id: sale.id,
         createdAt: sale.createdAt.toISOString(),
         actorId: sale.actorId,
+        actorName: sale.actor.membership.user.fullName,
         currency: sale.defaultCurrency,
         saleAmount: sale.defaultSaleAmount.toFixed(),
         balance: sale.defaultSettlement.toFixed(),
@@ -713,7 +726,10 @@ export async function recordSale(
         ...scope,
         id: { in: items.map(({ productId }) => productId) },
       };
-      const products = await tx.product.findMany({ where: productWhere });
+      const products = await tx.product.findMany({
+        where: productWhere,
+        include: { productCategory: { select: { name: true, code: true } } },
+      });
       const byId = new Map(products.map((product) => [product.id, product]));
       const saleItems = items.map(({ productId, saleAmount }, position) => {
         const product = byId.get(productId);
@@ -726,7 +742,8 @@ export async function recordSale(
           saleAmount,
           productCode: product.code,
           productName: product.name,
-          productCategory: product.category,
+          productCategory: product.productCategory?.name ?? product.category,
+          productCategoryCode: product.productCategory?.code,
           productPurity: product.purity,
           productWeight: product.weight,
           acquisitionCost: product.acquisitionCost.gt(0)
@@ -875,6 +892,7 @@ export async function recordSale(
           productCode: first.productCode,
           productName: first.productName,
           productCategory: first.productCategory,
+          productCategoryCode: first.productCategoryCode,
           productPurity: first.productPurity,
           productWeight: first.productWeight,
           items: { create: saleItems },
@@ -883,6 +901,7 @@ export async function recordSale(
           }),
         },
         include: {
+          actor: include.actor,
           customer: include.customer,
           items: include.items,
           payments: include.payments,

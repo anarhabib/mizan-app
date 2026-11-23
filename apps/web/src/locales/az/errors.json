@@ -1,4 +1,8 @@
 {
+  "INVALID_PROFILE": "Ad və soyadı yoxlayın.",
+  "INVALID_CATEGORY": "Kateqoriya məlumatlarını yoxlayın.",
+  "CATEGORY_CONFLICT": "Bu adda kateqoriya artıq mövcuddur.",
+  "CATEGORY_UNAVAILABLE": "Bu kateqoriya mövcud deyil və ya aktiv deyil.",
   "SALE_CUSTOMER_REQUIRED": "Borc yazmaq üçün müştəri seçin.",
   "INVALID_CUSTOMER": "Müştərini yadda saxlamaq mümkün olmadı.",
   "CUSTOMER_NOT_FOUND": "Müştəri tapılmadı. Başqa müştəri seçin.",

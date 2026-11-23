@@ -73,6 +73,25 @@ test("rejects duplicate piece codes across stores in one organization", async ()
   });
 });
 
+test("rejects association with another organization's category", async () => {
+  await withFixtures(async (tx) => {
+    const first = await createStore(tx);
+    const second = await createStore(tx);
+    const category = await tx.productCategory.create({
+      data: {
+        organizationId: second.organizationId,
+        name: "Foreign category",
+        sortOrder: 0,
+      },
+    });
+    await expect(
+      tx.product.create({
+        data: { ...first, ...item, categoryId: category.id },
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
+  });
+});
+
 test("rejects associating a tenant member with another tenant's store", async () => {
   await withFixtures(async (tx) => {
     const first = await createStore(tx);

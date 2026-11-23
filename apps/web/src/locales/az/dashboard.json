@@ -1,4 +1,5 @@
 {
+  "greeting": "Xoş gəlmisiniz, {{name}}",
   "moveGroupUp": "{{name}} qrupunu yuxarı köçür",
   "moveGroupDown": "{{name}} qrupunu aşağı köçür",
   "showGroup": "{{name}} qrupunu göstər",

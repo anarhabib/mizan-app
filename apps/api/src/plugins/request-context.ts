@@ -6,11 +6,13 @@ import {
 } from "../modules/access/access.service.js";
 import { authenticate, type VerifyToken } from "./auth.js";
 import { registerOnboardingRoutes } from "../modules/onboarding/onboarding.routes.js";
+import { registerProfileRoutes } from "../modules/access/profile.routes.js";
 import type { OnboardingDatabase } from "../modules/onboarding/onboarding.service.js";
 import type { OrganizationDatabase } from "../modules/access/organization-owner.js";
 import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
 import { registerGoldPriceRoutes } from "../modules/gold-prices/gold-prices.routes.js";
 import { registerProductRoutes } from "../modules/products/product.routes.js";
+import { registerCategoryRoutes } from "../modules/products/category.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
 import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
 import { registerCustomerRoutes } from "../modules/customers/customer.routes.js";
@@ -94,9 +96,11 @@ export const requestContextRoutes: FastifyPluginAsync<{
     reply.header("Cache-Control", "private, no-store");
   });
   registerOnboardingRoutes(app, access, onboardingDb);
+  registerProfileRoutes(app, access);
   registerMembershipRoutes(app, access, memberships);
   registerSettingsRoutes(app, access, settingsDb);
   registerProductRoutes(app, access, products);
+  registerCategoryRoutes(app, access, settingsDb ?? products?.db);
   registerSaleRoutes(app, access, salesDb, products?.storage);
   registerCustomerRoutes(app, access, salesDb);
   registerDashboardRoutes(app, access, salesDb, goldMarketEnabled);

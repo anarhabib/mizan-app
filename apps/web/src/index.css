@@ -328,3 +328,10 @@ html {
     transition: none !important;
   }
 }
+@utility align-form-fields {
+  & > [data-form-field] {
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    align-items: start;
+  }
+}

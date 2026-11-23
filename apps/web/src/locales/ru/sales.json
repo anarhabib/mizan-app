@@ -1,4 +1,6 @@
 {
+  "recordedBy": "Оформил(а): {{name}}",
+  "paymentRecordedBy": "Принял(а) оплату",
   "itemPricing": {
     "recordedWeight": "Общий вес",
     "netWeight": "Вес золотого сплава без вставок",

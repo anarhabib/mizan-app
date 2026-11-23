@@ -1,7 +1,7 @@
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { Link, Navigate } from "@tanstack/react-router";
 import type { AuthError } from "@supabase/supabase-js";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { auth } from "@/shared/lib/auth";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { AuthPanel } from "./AuthPanel";
 import { useSession } from "./session";
+import googleMark from "./google-mark.svg";
+import { readOAuthCallback, startOAuth, type SocialProvider } from "./oauth";
 
 type Mode = "login" | "signup" | "requestReset" | "recovery";
 type Fields = { email: string; password: string };
@@ -36,37 +38,69 @@ function errorKey(error: AuthError) {
   }
 }
 
-export function safeReturnPath(value: unknown) {
-  if (
-    typeof value !== "string" ||
-    !value.startsWith("/") ||
-    value.startsWith("//") ||
-    value.includes("\\") ||
-    [...value].some((character) => character < " " || character === "\u007f")
-  ) {
-    return undefined;
-  }
-  const url = new URL(value, window.location.origin);
-  if (
-    url.origin !== window.location.origin ||
-    url.pathname.startsWith("//") ||
-    /^\/(?:login|auth\/callback)\/?$/.test(url.pathname) ||
-    (url.pathname.startsWith("/invitations/") &&
-      url.pathname !== "/invitations/accept")
-  ) {
-    return undefined;
-  }
-  return `${url.pathname}${url.search}${url.hash}`;
-}
-
 export function AuthPage({ returnTo }: { returnTo?: string }) {
   const { userId, ready } = useSession();
   const [mode, setMode] = useState<Mode>("login");
   if (ready && userId) return <Navigate to="/" href={returnTo} replace />;
-  return <AuthForm key={mode} mode={mode} setMode={setMode} />;
+  return (
+    <AuthForm key={mode} mode={mode} setMode={setMode} returnTo={returnTo} />
+  );
 }
 
-export function RecoveryPage() {
+export function AuthCallback() {
+  const [callback] = useState(() =>
+    readOAuthCallback(new URL(window.location.href)),
+  );
+  return callback ? <OAuthCallback callback={callback} /> : <RecoveryPage />;
+}
+
+function OAuthCallback({
+  callback,
+}: {
+  callback: NonNullable<ReturnType<typeof readOAuthCallback>>;
+}) {
+  const { t } = useTranslation("auth");
+  const { ready, userId } = useSession();
+  const invitation = callback.returnTo === "/invitations/accept";
+  const finished = ready && Boolean(userId) && !callback.error;
+  useEffect(() => {
+    if (finished && invitation) window.close();
+  }, [finished, invitation]);
+  if (finished && !invitation)
+    return <Navigate to="/" href={callback.returnTo} replace />;
+
+  return (
+    <AuthPanel title={t("login")}>
+      {callback.error || (ready && !userId) ? (
+        <>
+          <p role="alert" className="text-destructive">
+            {t(callback.error ?? "oauthError")}
+          </p>
+          {!invitation && (
+            <Link
+              to="/login"
+              search={{ returnTo: callback.returnTo }}
+              className="underline"
+            >
+              {t("backToLogin")}
+            </Link>
+          )}
+          {invitation && (
+            <Button type="button" onClick={() => window.close()}>
+              {t("closeOAuthTab")}
+            </Button>
+          )}
+        </>
+      ) : finished ? (
+        <p role="status">{t("oauthInvitationReturn")}</p>
+      ) : (
+        <ListSkeleton rows={2} />
+      )}
+    </AuthPanel>
+  );
+}
+
+function RecoveryPage() {
   const { t } = useTranslation("auth");
   const { ready, recovery } = useSession();
   if (!ready)
@@ -89,14 +123,22 @@ export function RecoveryPage() {
 function AuthForm({
   mode,
   setMode,
+  returnTo,
 }: {
   mode: Mode;
   setMode?: (mode: Mode) => void;
+  returnTo?: string;
 }) {
   const { t } = useTranslation("auth");
   const { ready, finishRecovery } = useSession();
   const [notice, setNotice] = useState<
     "checkEmail" | "resetSent" | "passwordUpdated"
+  >();
+  const activeRequest = useRef(false);
+  const [provider, setProvider] = useState<SocialProvider>();
+  const [popup, setPopup] = useState<Window>();
+  const [oauthError, setOAuthError] = useState<
+    "oauthError" | "oauthCanceled" | "oauthPopupBlocked"
   >();
   const {
     register,
@@ -107,8 +149,53 @@ function AuthForm({
   } = useForm<Fields>({ mode: "onBlur" });
   const isNewPassword = mode === "signup" || mode === "recovery";
 
+  useEffect(() => {
+    if (!popup) return;
+    const timer = window.setInterval(() => {
+      if (!popup.closed) return;
+      setPopup(undefined);
+      setProvider(undefined);
+      setOAuthError("oauthCanceled");
+      activeRequest.current = false;
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [popup]);
+
+  async function socialSignIn(selected: SocialProvider) {
+    if (!auth || !ready || isSubmitting || activeRequest.current) return;
+    setOAuthError(undefined);
+    clearErrors("root");
+    // Keep the scrubbed invitation token in the original tab's memory.
+    const invitation = returnTo === "/invitations/accept";
+    const tab = invitation ? window.open("about:blank", "_blank") : null;
+    if (invitation && !tab) {
+      setOAuthError("oauthPopupBlocked");
+      return;
+    }
+    if (tab) tab.opener = null;
+    activeRequest.current = true;
+    setProvider(selected);
+    try {
+      await startOAuth(
+        auth,
+        selected,
+        window.location.origin,
+        returnTo,
+        tab ?? undefined,
+      );
+      if (tab) setPopup(tab);
+    } catch {
+      tab?.close();
+      setOAuthError("oauthError");
+      setProvider(undefined);
+      activeRequest.current = false;
+    }
+  }
+
   async function submit({ email, password }: Fields) {
-    if (!auth) return;
+    if (!auth || !ready || activeRequest.current) return;
+    activeRequest.current = true;
+    setOAuthError(undefined);
     clearErrors("root");
     try {
       if (mode === "login") {
@@ -137,6 +224,8 @@ function AuthForm({
       }
     } catch {
       setError("root", { message: t("genericError") });
+    } finally {
+      activeRequest.current = false;
     }
   }
 
@@ -219,7 +308,7 @@ function AuthForm({
           <PendingButton
             pending={isSubmitting}
             className="min-h-11 lg:min-h-9"
-            disabled={!auth || !ready}
+            disabled={!auth || !ready || !!provider}
           >
             {t(
               isSubmitting
@@ -233,6 +322,28 @@ function AuthForm({
           </PendingButton>
         </form>
       )}
+      {!notice && (mode === "login" || mode === "signup") && (
+        <>
+          <PendingButton
+            type="button"
+            variant="outline"
+            pending={provider === "google"}
+            disabled={!auth || !ready || isSubmitting || !!provider}
+            className="min-h-11 w-full justify-center gap-2 px-2 py-1 text-center whitespace-normal lg:min-h-9"
+            onClick={() => void socialSignIn("google")}
+          >
+            {provider !== "google" && (
+              <img src={googleMark} alt="" className="size-4 shrink-0" />
+            )}
+            <span className="min-w-0">{t("google")}</span>
+          </PendingButton>
+          {oauthError && (
+            <p role="alert" className="text-destructive">
+              {t(oauthError)}
+            </p>
+          )}
+        </>
+      )}
       {setMode && (
         <div className="flex flex-wrap gap-2">
           {mode === "login" ? (
@@ -240,7 +351,7 @@ function AuthForm({
               <Button
                 variant="ghost"
                 className="min-h-11 lg:min-h-9"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !!provider}
                 onClick={() => setMode("signup")}
               >
                 {t("signup")}
@@ -248,7 +359,7 @@ function AuthForm({
               <Button
                 variant="ghost"
                 className="min-h-11 lg:min-h-9"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !!provider}
                 onClick={() => setMode("requestReset")}
               >
                 {t("requestReset")}
@@ -258,7 +369,7 @@ function AuthForm({
             <Button
               variant="ghost"
               className="min-h-11 lg:min-h-9"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!provider}
               onClick={() => setMode("login")}
             >
               {t("backToLogin")}

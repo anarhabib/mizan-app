@@ -5,6 +5,7 @@ import type { StoreScope } from "./selection";
 export const WorkspaceContext = createContext<
   | (StoreContext & {
       settings: OrganizationSettings;
+      fullName: string;
       salespersonDisplay?: true;
       contexts: StoreContext[];
       selectStore: (scope: StoreScope) => void;

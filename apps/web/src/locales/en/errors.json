@@ -1,4 +1,8 @@
 {
+  "INVALID_PROFILE": "Check your full name.",
+  "INVALID_CATEGORY": "Check the category details.",
+  "CATEGORY_CONFLICT": "A category with this name already exists.",
+  "CATEGORY_UNAVAILABLE": "This category is unavailable or inactive.",
   "SALE_CUSTOMER_REQUIRED": "Select a customer to record debt.",
   "INVALID_CUSTOMER": "Could not save the customer.",
   "CUSTOMER_NOT_FOUND": "Customer unavailable. Choose another customer.",

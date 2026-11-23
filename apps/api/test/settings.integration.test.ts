@@ -42,6 +42,7 @@ test.skipIf(!db)(
       });
     const onboard = (name: string, account: string) =>
       send("POST", "/api/v1/onboarding", account, {
+        fullName: "Settings Test Owner",
         organizationName: name,
         storeName: "Test store",
         defaultCurrency: "USD",

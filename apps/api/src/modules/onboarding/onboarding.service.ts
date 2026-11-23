@@ -1,4 +1,5 @@
 import {
+  defaultCategoryLabels,
   defaultPurities,
   OnboardingRequest,
   OnboardingResult,
@@ -6,7 +7,7 @@ import {
 } from "@mizan/contracts";
 import type { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
-import { resolveAccessContext } from "../access/access.service.js";
+import { lockUser, resolveAccessContext } from "../access/access.service.js";
 
 export type OnboardingDatabase = Pick<
   Prisma.TransactionClient,
@@ -24,7 +25,7 @@ export function provisionOwnerWorkspace(
 ): Promise<OnboardingResult> {
   return db.$transaction(async (tx) => {
     // Serialize retries for this identity, including when the receipt does not exist yet.
-    await tx.$queryRaw`SELECT "id" FROM "mizan"."User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+    await lockUser(tx, userId);
     const existing = await tx.ownerOnboarding.findUnique({ where: { userId } });
     if (existing) {
       const { organizationId, storeId } = existing;
@@ -35,6 +36,10 @@ export function provisionOwnerWorkspace(
         storeId,
       );
       if (context.role !== "OWNER") throw new AccessError("ACCESS_DENIED");
+      await tx.user.updateMany({
+        where: { id: userId, fullName: null },
+        data: { fullName: input.fullName },
+      });
       return {
         organizationId,
         storeId,
@@ -42,11 +47,29 @@ export function provisionOwnerWorkspace(
       };
     }
 
+    const membership = await tx.organizationMembership.findFirst({
+      where: { userId },
+      select: { userId: true },
+    });
+    if (membership) throw new AccessError("ACCESS_DENIED");
+    await tx.user.updateMany({
+      where: { id: userId, fullName: null },
+      data: { fullName: input.fullName },
+    });
     const organization = await tx.organization.create({
       data: {
         name: input.organizationName,
         defaultCurrency: input.defaultCurrency,
         purities: { create: defaultPurities.map((value) => ({ value })) },
+        productCategories: {
+          create: Object.entries(defaultCategoryLabels).map(
+            ([code, labels], sortOrder) => ({
+              code,
+              name: labels.az,
+              sortOrder,
+            }),
+          ),
+        },
       },
       select: { id: true },
     });

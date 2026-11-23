@@ -32,6 +32,7 @@ import {
 } from "../api/mutations";
 import { productDetailQuery, type ProductScope } from "../api/queries";
 import { ProductForm } from "./ProductCreate";
+import { categoryLabel } from "@mizan/contracts";
 import { ProductStatusBadge } from "./ProductList";
 import { ProductPanel } from "./ProductPanel";
 import { ProductPhoto } from "./ProductPhoto";
@@ -78,6 +79,7 @@ export function ProductDetail({
       {owner && view === "edit" && product ? (
         <div className="grid gap-4">
           <ProductForm
+            scope={scope}
             product={product}
             currency={product.acquisitionCost?.currency ?? ""}
             pending={edit.isPending}
@@ -238,7 +240,7 @@ function ProductRecord({
   product: Detail;
   canViewAcquisition: boolean;
 }) {
-  const { t, i18n } = useTranslation("products");
+  const { t, i18n } = useTranslation(["products", "auth"]);
   const locale = i18n.resolvedLanguage ?? "az";
   const acquisitionCurrency = product.acquisitionCost?.currency;
   const time = (value: string) => (
@@ -256,7 +258,11 @@ function ProductRecord({
             hasOutstandingDebt={product.hasOutstandingDebt}
           />
         </Fact>
-        <Fact label={t("fields.category")}>{product.category}</Fact>
+        <Fact label={t("fields.category")}>
+          {product.productCategory
+            ? categoryLabel(product.productCategory, locale)
+            : product.category}
+        </Fact>
         <Fact label={t("fields.metalType")}>{t("jewelry.gold")}</Fact>
         <Fact label={t("fields.purity")}>
           <PurityText value={product.purity} />
@@ -423,6 +429,8 @@ function ProductRecord({
                 <span>{t(`movements.${movement.kind}`)}</span>
                 <span className="text-xs text-muted-foreground">
                   {time(movement.createdAt)}
+                  {" · "}
+                  {movement.actorName ?? t("unknownActor", { ns: "auth" })}
                 </span>
               </li>
             ))}

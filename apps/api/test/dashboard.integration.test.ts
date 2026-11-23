@@ -104,6 +104,7 @@ test.skipIf(!db)(
       });
     try {
       const registration = await send("POST", "/onboarding", {
+        fullName: "Dashboard Test Owner",
         organizationName: "Dashboard",
         storeName: "Main",
         defaultCurrency: "AZN",
@@ -617,6 +618,7 @@ test.skipIf(!db)(
           url: "/api/v1/onboarding",
           headers,
           payload: {
+            fullName: "FX Test Owner",
             organizationName: "FX",
             storeName: "Main",
             defaultCurrency: "AZN",

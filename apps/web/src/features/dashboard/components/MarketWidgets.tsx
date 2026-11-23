@@ -449,80 +449,87 @@ export function StoreRatesWidget({
         {({ rates, stale }) => (
           <>
             {stale && <Badge variant="warning">{t("stale")}</Badge>}
-            <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-              <div
-                className="max-h-48 overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring [&>[data-slot=table-container]]:overflow-visible"
-                tabIndex={rates.length ? 0 : undefined}
-                role="region"
-                aria-label={t("storeRatesTable")}
-              >
-                <Table className="table-fixed text-left text-xs wrap-anywhere">
-                  <TableHeader className="sticky top-0">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead
-                        scope="col"
-                        className="h-auto px-0 py-2 whitespace-normal text-muted-foreground"
-                      >
-                        {t("purityShort")}
-                      </TableHead>
-                      <TableHead
-                        scope="col"
-                        className="h-auto px-0 py-2 text-right whitespace-normal text-muted-foreground"
-                      >
-                        {t("reference")}
-                      </TableHead>
-                      {kind !== "reference" && (
+            <div className="@container">
+              <div className="grid min-w-0 items-start gap-3 @min-[36rem]:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                <div
+                  className="max-h-48 min-w-0 overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring [&>[data-slot=table-container]]:overflow-visible"
+                  tabIndex={rates.length ? 0 : undefined}
+                  role="region"
+                  aria-label={t("storeRatesTable")}
+                >
+                  <Table className="table-fixed text-left text-xs wrap-anywhere">
+                    <colgroup>
+                      <col className="w-1/5" />
+                      <col />
+                      {kind !== "reference" && <col />}
+                    </colgroup>
+                    <TableHeader className="sticky top-0">
+                      <TableRow className="hover:bg-transparent">
                         <TableHead
                           scope="col"
-                          className="h-auto px-0 py-2 text-right whitespace-normal text-muted-foreground"
+                          className="h-auto py-2 whitespace-normal text-muted-foreground"
                         >
-                          {t(kind)}
+                          {t("purityShort")}
                         </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rates.map((rate) => (
-                      <TableRow
-                        key={rate.purity}
-                        className="hover:bg-transparent"
-                      >
                         <TableHead
-                          scope="row"
-                          className="h-auto px-0 py-2 font-semibold tabular-nums"
+                          scope="col"
+                          className="h-auto py-2 text-right whitespace-normal text-muted-foreground"
                         >
-                          {rate.purity}
+                          {t("reference")}
                         </TableHead>
-                        <TableCell className="px-0 text-right whitespace-normal tabular-nums">
-                          {display(rate.reference)}
-                        </TableCell>
                         {kind !== "reference" && (
-                          <TableCell className="px-0 text-right whitespace-normal tabular-nums">
-                            {display(rate.commercial[kind])}
-                          </TableCell>
+                          <TableHead
+                            scope="col"
+                            className="h-auto py-2 text-right whitespace-normal text-muted-foreground"
+                          >
+                            {t(kind)}
+                          </TableHead>
                         )}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="min-w-0 space-y-2">
-                {purity !== undefined ? (
-                  <QueryContent
-                    query={kind === "reference" ? referenceHistory : history}
-                    chart
-                  >
-                    {(series) => (
-                      <MarketSeriesChart
-                        series={series}
-                        unit="azn"
-                        period={period}
-                      />
-                    )}
-                  </QueryContent>
-                ) : (
-                  <p className="text-muted-foreground">{t("empty")}</p>
-                )}
+                    </TableHeader>
+                    <TableBody>
+                      {rates.map((rate) => (
+                        <TableRow
+                          key={rate.purity}
+                          className="hover:bg-transparent"
+                        >
+                          <TableHead
+                            scope="row"
+                            className="h-auto py-2 font-semibold tabular-nums"
+                          >
+                            {rate.purity}
+                          </TableHead>
+                          <TableCell className="text-right whitespace-normal tabular-nums">
+                            {display(rate.reference)}
+                          </TableCell>
+                          {kind !== "reference" && (
+                            <TableCell className="text-right whitespace-normal tabular-nums">
+                              {display(rate.commercial[kind])}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="min-w-0 space-y-2">
+                  {purity !== undefined ? (
+                    <QueryContent
+                      query={kind === "reference" ? referenceHistory : history}
+                      chart
+                    >
+                      {(series) => (
+                        <MarketSeriesChart
+                          series={series}
+                          unit="azn"
+                          period={period}
+                        />
+                      )}
+                    </QueryContent>
+                  ) : (
+                    <p className="text-muted-foreground">{t("empty")}</p>
+                  )}
+                </div>
               </div>
             </div>
           </>

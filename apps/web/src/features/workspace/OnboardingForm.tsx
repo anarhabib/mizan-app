@@ -1,26 +1,39 @@
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
-import { parseOnboarding, type OnboardingRequest } from "@mizan/contracts";
+import {
+  maxFullNameLength,
+  parseFullName,
+  parseOnboarding,
+  type OnboardingRequest,
+} from "@mizan/contracts";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { AuthPanel, SignOutButton } from "@/features/auth";
+import { AuthPanel, SignOutButton, useSession } from "@/features/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/shared/lib/api";
 import { createWorkspace } from "./api";
 import type { StoreScope } from "./selection";
 
-const fields = ["organizationName", "storeName", "defaultCurrency"] as const;
+const fields = [
+  "fullName",
+  "organizationName",
+  "storeName",
+  "defaultCurrency",
+] as const;
 
 export function OnboardingForm({
   onCreated,
   reloadContexts,
+  fullName,
 }: {
+  fullName: string | null;
   onCreated: (scope: StoreScope) => void;
   reloadContexts: () => Promise<unknown>;
 }) {
-  const { t } = useTranslation(["workspace", "errors"]);
+  const { t } = useTranslation(["workspace", "errors", "auth"]);
+  const { suggestedName } = useSession();
   const {
     register,
     handleSubmit,
@@ -28,7 +41,12 @@ export function OnboardingForm({
     clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<OnboardingRequest>({
-    defaultValues: { organizationName: "", storeName: "", defaultCurrency: "" },
+    defaultValues: {
+      fullName: fullName ?? suggestedName ?? "",
+      organizationName: "",
+      storeName: "",
+      defaultCurrency: "",
+    },
   });
   const mutation = useMutation({ mutationFn: createWorkspace });
 
@@ -74,7 +92,9 @@ export function OnboardingForm({
       >
         {fields.map((field) => (
           <div className="grid gap-2" key={field}>
-            <Label htmlFor={field}>{t(field)}</Label>
+            <Label htmlFor={field}>
+              {field === "fullName" ? t("fullName", { ns: "auth" }) : t(field)}
+            </Label>
             <Input
               id={field}
               className="min-h-11 lg:min-h-9"
@@ -84,11 +104,22 @@ export function OnboardingForm({
               placeholder={
                 field === "defaultCurrency" ? t("currencyExample") : undefined
               }
-              maxLength={field === "defaultCurrency" ? 3 : 100}
+              autoComplete={field === "fullName" ? "name" : undefined}
+              readOnly={field === "fullName" && !!fullName}
+              maxLength={
+                field === "defaultCurrency"
+                  ? 3
+                  : field === "fullName"
+                    ? maxFullNameLength
+                    : 100
+              }
               aria-invalid={!!errors[field]}
               aria-describedby={errors[field] ? `${field}-error` : undefined}
               {...register(field, {
-                validate: (value) => !!value.trim() || t("required"),
+                validate: (value) =>
+                  field === "fullName"
+                    ? !!parseFullName(value) || t("invalidName", { ns: "auth" })
+                    : !!value.trim() || t("required"),
               })}
             />
             {errors[field] && (

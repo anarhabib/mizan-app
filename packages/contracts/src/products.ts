@@ -1,6 +1,11 @@
 import { parseDecimal, roundMoneyHalfUp } from "./decimal.js";
 import { currencyMinorUnits, type MoneyInput } from "./money.js";
 import { parsePurity } from "./settings.js";
+import {
+  categoryIdPattern,
+  parseCategoryName,
+  type ProductCategory,
+} from "./product-categories.js";
 
 export type ProductStatus = "IN_STOCK" | "SOLD";
 export type ProductMetal = "GOLD";
@@ -60,7 +65,8 @@ export type ProductAcquisitionInput = {
 export type ProductCreateInput = ProductAcquisitionInput & {
   code: string;
   name: string;
-  category: string;
+  category?: string;
+  categoryId?: string;
   purity: number;
   metalType?: ProductMetal;
   gemstones?: ProductGemstone[];
@@ -72,6 +78,7 @@ export interface ProductListItem {
   code: string;
   name: string;
   category: string;
+  productCategory?: ProductCategory;
   purity: number;
   weight: string;
   status: ProductStatus;
@@ -100,6 +107,7 @@ export interface ProductDetail extends ProductListItem {
     id: string;
     kind: "PRODUCT_ADDED" | "PRODUCT_SOLD" | "OLD_GOLD_RECEIVED";
     actorId: string;
+    actorName?: string | null;
     createdAt: string;
   }[];
   sale: { id: string; total: MoneyInput; createdAt: string } | null;
@@ -207,8 +215,16 @@ export function parseProductCreate(
   if (!code) return { field: "code" };
   const name = cleanText(raw.name, 160);
   if (!name) return { field: "name" };
-  const category = cleanText(raw.category, 80);
-  if (!category) return { field: "category" };
+  const categoryId = raw.categoryId;
+  const category = parseCategoryName(raw.category);
+  if (categoryId !== undefined) {
+    if (
+      typeof categoryId !== "string" ||
+      !categoryIdPattern.test(categoryId) ||
+      raw.category !== undefined
+    )
+      return { field: "categoryId" };
+  } else if (!category) return { field: "categoryId" };
   const purity = parsePurity(raw.purity);
   if (purity === null) return { field: "purity" };
   if (raw.metalType !== undefined && raw.metalType !== "GOLD")
@@ -240,7 +256,7 @@ export function parseProductCreate(
       ...acquisition.input,
       code,
       name,
-      category,
+      ...(categoryId !== undefined ? { categoryId } : { category: category! }),
       purity,
       note,
       ...(raw.metalType && { metalType: raw.metalType }),

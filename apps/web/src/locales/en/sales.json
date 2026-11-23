@@ -1,4 +1,6 @@
 {
+  "recordedBy": "Recorded by {{name}}",
+  "paymentRecordedBy": "Recorded by",
   "itemPricing": {
     "recordedWeight": "Gross weight",
     "netWeight": "Net gold alloy weight",

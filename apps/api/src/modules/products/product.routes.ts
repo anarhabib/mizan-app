@@ -24,6 +24,7 @@ type Query = {
   status?: string;
   after?: string;
   category?: string;
+  categoryId?: string;
   purity?: string;
   gemstones?: string;
   facets?: string;
@@ -93,6 +94,7 @@ export function registerProductRoutes(
       status,
       after,
       category,
+      categoryId,
       purity,
       gemstones,
       facets,
@@ -109,6 +111,13 @@ export function registerProductRoutes(
         +agedDays > 365)
     )
       throw new AccessError("INVALID_PRODUCT", "agedDays");
+    if (
+      categoryId !== undefined &&
+      (typeof categoryId !== "string" ||
+        !uuidPattern.test(categoryId) ||
+        category !== undefined)
+    )
+      throw new AccessError("INVALID_PRODUCT", "categoryId");
     if (
       category !== undefined &&
       (typeof category !== "string" ||
@@ -150,6 +159,7 @@ export function registerProductRoutes(
       status,
       after,
       category,
+      categoryId,
       purity: purity === undefined ? undefined : Number(purity),
       gemstones,
       facets: facets === "1",
@@ -182,7 +192,7 @@ export function registerProductRoutes(
   app.get<ProductId>("/products/:id", { preHandler }, (request) =>
     getProduct(options(), request.access!, request.params.id),
   );
-  app.patch<ProductId>(
+  app.patch<ProductId & { Body: { categoryId?: unknown } | null }>(
     "/products/:id/acquisition",
     { preHandler },
     async (request, reply) => {
@@ -191,12 +201,19 @@ export function registerProductRoutes(
       const parsed = parseProductAcquisition(request.body);
       if ("field" in parsed)
         throw new AccessError("INVALID_PRODUCT", parsed.field);
+      const categoryId = request.body?.categoryId;
+      if (
+        categoryId !== undefined &&
+        (typeof categoryId !== "string" || !uuidPattern.test(categoryId))
+      )
+        throw new AccessError("INVALID_PRODUCT", "categoryId");
       await updateProductAcquisition(
         options().db,
         request.access!,
         request.params.id,
         parsed.input,
         parsed.total,
+        categoryId,
       );
       return reply.code(204).send();
     },

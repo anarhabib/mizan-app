@@ -2,6 +2,10 @@ export type AccessFailure =
   | "UNAUTHENTICATED"
   | "ACCESS_DENIED"
   | "AUTH_UNAVAILABLE"
+  | "INVALID_PROFILE"
+  | "INVALID_CATEGORY"
+  | "CATEGORY_CONFLICT"
+  | "CATEGORY_UNAVAILABLE"
   | "INVITATION_UNAVAILABLE"
   | "INVALID_MEMBERSHIP"
   | "INVALID_SETTINGS"
@@ -27,6 +31,19 @@ export type AccessFailure =
   | "PHOTO_UNAVAILABLE";
 
 const details = {
+  INVALID_PROFILE: { statusCode: 400, message: "Ad və soyadı yoxlayın." },
+  INVALID_CATEGORY: {
+    statusCode: 400,
+    message: "Kateqoriya məlumatlarını yoxlayın.",
+  },
+  CATEGORY_CONFLICT: {
+    statusCode: 409,
+    message: "Bu adda kateqoriya artıq mövcuddur.",
+  },
+  CATEGORY_UNAVAILABLE: {
+    statusCode: 409,
+    message: "Kateqoriya mövcud deyil və ya aktiv deyil.",
+  },
   SALE_CUSTOMER_REQUIRED: {
     statusCode: 400,
     message: "Borc üçün müştəri seçin.",

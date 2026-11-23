@@ -81,8 +81,8 @@ export function InviteForm({
       <h2 id={`${id}-heading`} className="font-heading text-base font-semibold">
         {t("inviteHeading")}
       </h2>
-      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-        <div className="grid gap-2">
+      <div className="grid gap-2 lg:align-form-fields lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div data-form-field className="grid min-w-0 gap-2">
           <Label htmlFor={`${id}-email`}>{t("email")}</Label>
           <Input
             id={`${id}-email`}
@@ -101,7 +101,7 @@ export function InviteForm({
             </p>
           )}
         </div>
-        <div className="grid gap-2">
+        <div data-form-field className="grid min-w-0 gap-2">
           <Label htmlFor={`${id}-store`}>{t("store")}</Label>
           <Controller
             control={control}
@@ -127,7 +127,7 @@ export function InviteForm({
           pending={isSubmitting}
           type="submit"
           disabled={busy || isSubmitting || stores.length === 0}
-          className="min-h-11 lg:mt-5.5 lg:min-h-8"
+          className="min-h-11 lg:col-start-3 lg:row-start-2 lg:min-h-8"
         >
           {t("actions.invite")}
         </PendingButton>

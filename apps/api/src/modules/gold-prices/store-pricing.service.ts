@@ -475,11 +475,15 @@ export async function getStoreGoldRuleHistory(
     where,
     orderBy: [...orderBy],
     take: pageSize + 1,
-    include: { previous: { select: { mode: true, value: true } } },
+    include: {
+      previous: { select: { mode: true, value: true } },
+      actor: { select: { user: { select: { fullName: true } } } },
+    },
     ...(after && { cursor: { id: after }, skip: 1 }),
   });
   const items = rows.slice(0, pageSize).map((row) => ({
     ...ruleFields(row),
+    actorName: row.actor.user.fullName,
     previous: configuration(row.previous),
   }));
   return {

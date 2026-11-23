@@ -46,6 +46,7 @@ test.skipIf(!db)(
       });
     try {
       const registration = await send("POST", "/onboarding", {
+        fullName: "Jewelry Test Owner",
         organizationName: "Jewelry integration",
         storeName: "Main store",
         defaultCurrency: "AZN",
