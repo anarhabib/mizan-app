@@ -19,7 +19,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatDecimal, formatMoney } from "@/shared/lib/format";
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -74,7 +74,7 @@ export function PriceChart({
     return compact ? (
       <span className="text-xs text-muted-foreground">—</span>
     ) : (
-      <p className="grid min-h-28 place-items-center rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+      <p className="grid h-44 place-items-center px-3 py-6 text-center text-sm text-muted-foreground lg:h-48">
         {t(valid ? "oneObservation" : "noObservations")}
       </p>
     );
@@ -166,17 +166,23 @@ export function PriceChart({
 }
 
 export function DistributionChart({ rows }: { rows: DashboardCount[] }) {
-  const { t } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation("dashboard");
   if (!rows.length || rows.every(({ count }) => count === 0))
     return <p className="text-muted-foreground">{t("empty")}</p>;
   const max = Math.max(...rows.map(({ count }) => count), 1);
   return (
-    <ul className="max-h-56 space-y-2 overflow-y-auto">
+    <ul
+      className="max-h-56 space-y-2 overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring"
+      tabIndex={0}
+      aria-label={t("distributionList")}
+    >
       {rows.map(({ label, count }) => (
         <li key={label} className="grid gap-1">
           <div className="flex justify-between gap-2 text-sm">
             <span className="wrap-anywhere">{label}</span>
-            <span className="tabular-nums">{count.toLocaleString()}</span>
+            <span className="tabular-nums">
+              {count.toLocaleString(i18n.resolvedLanguage)}
+            </span>
           </div>
           <div className="h-1.5 rounded-full bg-muted" aria-hidden="true">
             <div
@@ -193,12 +199,22 @@ export function DistributionChart({ rows }: { rows: DashboardCount[] }) {
 export function WeeklyChart({
   days,
   kind,
+  changeMetric,
 }: {
   days: DashboardCharts["days"];
   kind: "count" | "sales" | "payments";
+  changeMetric?: (kind: "count" | "sales") => void;
 }) {
   const { t, i18n } = useTranslation("dashboard");
   const locale = i18n.resolvedLanguage ?? "az";
+  const description = useId();
+  const metricLabel = t(
+    kind === "count"
+      ? "salesCountMetric"
+      : kind === "sales"
+        ? "salesAmountMetric"
+        : "received",
+  );
   const currencies =
     kind === "count"
       ? []
@@ -210,45 +226,87 @@ export function WeeklyChart({
   const [selected, setSelected] = useState<string>();
   const currency =
     selected && currencies.includes(selected) ? selected : currencies[0];
-  const data = days.map((day) => {
-    const raw =
-      kind === "count"
-        ? String(day.count)
-        : (day[kind].find((total) => total.currency === currency)?.amount ??
-          "0");
-    return { day: day.day, raw, y: +raw };
-  });
+  const data = weeklyChartData(days, kind, currency);
+  const empty =
+    kind === "count" ? days.every(({ count }) => count === 0) : !currency;
   const display = (value: string) =>
     currency
       ? formatMoney({ amount: value, currency }, locale)
       : formatDecimal(value, locale);
+  const today = data.at(-1);
+  const axis = new Intl.NumberFormat(locale, {
+    notation: "compact",
+    maximumFractionDigits: kind === "count" ? 0 : 1,
+  });
+  const tick = { fill: "var(--muted-foreground)" };
   return (
-    <>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">{t("lastSeven")}</p>
-        {currencies.length > 1 && currency && (
-          <Select value={currency} onValueChange={setSelected}>
-            <SelectTrigger aria-label={t("unit")} className="min-h-10">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencies.map((code) => (
-                <SelectItem key={code} value={code}>
-                  {code}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+    <figure
+      className="space-y-2"
+      aria-label={metricLabel}
+      aria-describedby={description}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <figcaption id={description} className="text-xs text-muted-foreground">
+          {t("lastSeven")}
+          {currency && ` · ${currency}`}
+          {today && !empty && (
+            <span className="block font-medium tabular-nums text-foreground">
+              {t("chartToday", { value: display(today.raw) })}
+            </span>
+          )}
+        </figcaption>
+        <div className="flex flex-wrap gap-2">
+          {changeMetric && (
+            <Select
+              value={kind}
+              onValueChange={(value) => {
+                if (value === "sales" || value === "count") changeMetric(value);
+              }}
+            >
+              <SelectTrigger
+                aria-label={t("salesMetric")}
+                className="min-h-11 lg:min-h-8"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sales">{t("salesAmountMetric")}</SelectItem>
+                <SelectItem value="count">{t("salesCountMetric")}</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {currencies.length > 1 && currency && (
+            <Select value={currency} onValueChange={setSelected}>
+              <SelectTrigger
+                aria-label={t("unit")}
+                className="min-h-11 lg:min-h-8"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
-      {kind !== "count" && !currency ? (
-        <p className="text-muted-foreground">{t("empty")}</p>
+      {empty ? (
+        <p className="grid h-44 place-items-center text-sm text-muted-foreground">
+          {t("empty")}
+        </p>
       ) : (
         <ChartContainer
           config={{
-            y: { theme: { light: "var(--chart-4)", dark: "var(--chart-3)" } },
+            y: {
+              label: metricLabel,
+              theme: { light: "var(--chart-4)", dark: "var(--chart-3)" },
+            },
           }}
-          className="h-40 w-full"
+          className="h-44 w-full"
         >
           <BarChart
             data={data}
@@ -263,17 +321,15 @@ export function WeeklyChart({
               }
               tickLine={false}
               axisLine={false}
+              tick={tick}
             />
             <YAxis
               allowDecimals={kind !== "count"}
               width={48}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value: number) =>
-                new Intl.NumberFormat(locale, {
-                  maximumSignificantDigits: 6,
-                }).format(value)
-              }
+              tick={tick}
+              tickFormatter={(value: number) => axis.format(value)}
             />
             <ChartTooltip
               content={
@@ -296,13 +352,30 @@ export function WeeklyChart({
           </BarChart>
         </ChartContainer>
       )}
-      <ul className="sr-only">
-        {data.map(({ day, raw }) => (
-          <li key={day}>
-            {formatMarketTime(day, locale, false)} {display(raw)}
-          </li>
-        ))}
-      </ul>
-    </>
+      {!empty && (
+        <ul className="sr-only">
+          {data.map(({ day, raw }) => (
+            <li key={day}>
+              {formatMarketTime(day, locale, false)} {display(raw)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </figure>
   );
+}
+
+export function weeklyChartData(
+  days: DashboardCharts["days"],
+  kind: "count" | "sales" | "payments",
+  currency?: string,
+) {
+  return days.map((day) => {
+    const raw =
+      kind === "count"
+        ? String(day.count)
+        : (day[kind].find((total) => total.currency === currency)?.amount ??
+          "0");
+    return { day: day.day, raw, y: +raw };
+  });
 }

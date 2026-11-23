@@ -1,4 +1,7 @@
 {
+  "paymentDate": "Payment received on (Baku)",
+  "paymentStatusLabel": "Payment status",
+  "allStatuses": "All statuses",
   "aznEquivalent": "AZN equivalent",
   "conversionLoading": "Calculating AZN equivalent…",
   "conversionUnavailable": "Could not calculate the AZN equivalent.",

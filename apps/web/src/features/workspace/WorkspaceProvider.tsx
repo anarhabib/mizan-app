@@ -3,9 +3,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { StoreContext } from "@mizan/contracts";
 import { AuthPanel, SignOutButton } from "@/features/auth";
+import { Spinner } from "@/components/ui/spinner";
 import { ApiError } from "@/shared/lib/api";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { accessQuery, contextsQuery } from "./api";
 import { WorkspaceContext } from "./context";
 import {
@@ -29,7 +29,6 @@ export function WorkspaceProvider({
   userId: string;
   children: ReactNode;
 }) {
-  const { t } = useTranslation("workspace");
   const queryClient = useQueryClient();
   const [selection, setSelection] = useState(() => readSelection(userId));
   const [pendingMode, setPendingMode] = useState(() =>
@@ -68,12 +67,7 @@ export function WorkspaceProvider({
         pending={resumeMode.isPending}
       />
     );
-  if (pendingMode)
-    return (
-      <AuthPanel title={t("loading")}>
-        <ListSkeleton />
-      </AuthPanel>
-    );
+  if (pendingMode) return <WorkspaceLoading />;
   if (contexts.isError) {
     return (
       <WorkspaceError
@@ -83,12 +77,7 @@ export function WorkspaceProvider({
       />
     );
   }
-  if (!contexts.data)
-    return (
-      <AuthPanel title={t("loading")}>
-        <ListSkeleton />
-      </AuthPanel>
-    );
+  if (!contexts.data) return <WorkspaceLoading />;
   if (!active) {
     return (
       <OnboardingForm
@@ -127,7 +116,6 @@ function SelectedWorkspace({
   selectStore: (scope: StoreScope) => void;
   reloadContexts: () => Promise<void>;
 }) {
-  const { t } = useTranslation("workspace");
   const access = useQuery(accessQuery(userId, active));
   const { organizationId, storeId } = active;
   useEffect(() => {
@@ -154,12 +142,7 @@ function SelectedWorkspace({
       </WorkspaceError>
     );
   }
-  if (!access.data)
-    return (
-      <AuthPanel title={t("loading")}>
-        <ListSkeleton />
-      </AuthPanel>
-    );
+  if (!access.data) return <WorkspaceLoading />;
   return (
     <WorkspaceContext
       value={{
@@ -173,6 +156,27 @@ function SelectedWorkspace({
     >
       {children}
     </WorkspaceContext>
+  );
+}
+
+export function WorkspaceLoading() {
+  const { t } = useTranslation("workspace");
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShow(true), 150);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <div role="status" className="grid min-h-dvh place-items-center">
+      <span className="sr-only">{t("loading")}</span>
+      {show && (
+        <Spinner
+          role="presentation"
+          aria-hidden="true"
+          className="size-8 text-brand-accent motion-reduce:animate-none"
+        />
+      )}
+    </div>
   );
 }
 

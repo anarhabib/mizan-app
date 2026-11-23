@@ -1,4 +1,7 @@
 {
+  "paymentDate": "Ödənişin alındığı tarix (Bakı)",
+  "paymentStatusLabel": "Ödəniş statusu",
+  "allStatuses": "Bütün statuslar",
   "aznEquivalent": "AZN ekvivalenti",
   "conversionLoading": "AZN ekvivalenti hesablanır…",
   "conversionUnavailable": "AZN ekvivalenti hesablanmadı.",

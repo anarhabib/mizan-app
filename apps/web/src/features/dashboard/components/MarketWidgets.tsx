@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import {
   goldPriceKinds,
   marketPeriods,
   officialRateCurrencies,
   type GoldPriceKind,
-  type MarketMovement,
   type MarketPeriod,
   type MarketSeries,
 } from "@mizan/contracts";
@@ -34,48 +32,9 @@ import type { DashboardScope } from "../api/queries";
 import type { ChartUnit, Preferences } from "../preferences";
 import { DashboardCard, QueryContent } from "./DashboardCard";
 import { formatMarketTime, PriceChart } from "./DashboardCharts";
+import { Trend } from "./FinancialValues";
 
 const control = "min-h-10 lg:min-h-8";
-const directions = {
-  up: {
-    icon: ArrowUpRight,
-    label: "directionUp",
-    className: "text-success-foreground",
-  },
-  down: {
-    icon: ArrowDownRight,
-    label: "directionDown",
-    className: "text-danger-foreground",
-  },
-  flat: {
-    icon: Minus,
-    label: "directionFlat",
-    className: "text-muted-foreground",
-  },
-} as const;
-
-function Change({
-  movement,
-  format,
-}: {
-  movement: MarketMovement;
-  format: (amount: string) => string;
-}) {
-  const { t, i18n } = useTranslation("dashboard");
-  const { icon: Icon, label, className } = directions[movement.direction];
-  const sign = movement.direction === "up" ? "+" : "";
-  return (
-    <span
-      className={`inline-flex flex-wrap items-center gap-x-1 text-xs tabular-nums ${className}`}
-    >
-      <Icon className="size-3.5" aria-hidden="true" />
-      <span className="sr-only">{t(label)}</span>
-      {sign}
-      {format(movement.absolute)} ({sign}
-      {formatDecimal(movement.percent, i18n.resolvedLanguage ?? "az")}%)
-    </span>
-  );
-}
 
 export function PeriodSelect({
   period,
@@ -182,7 +141,7 @@ function MarketSeriesChart({
     <>
       <div className="flex min-h-5 flex-wrap justify-between gap-2 text-xs">
         {series.movement && (
-          <Change movement={series.movement} format={format} />
+          <Trend movement={series.movement} format={format} />
         )}
         {series.high !== null && series.low !== null && (
           <>
@@ -305,8 +264,8 @@ export function GoldWidget({
           />
         )}
       </div>
-      {market.data && (
-        <QueryContent query={history}>
+      {(market.data || market.isPending) && (
+        <QueryContent query={history} chart>
           {(data) => (
             <MarketSeriesChart
               series={data[unit]}
@@ -385,14 +344,14 @@ export function ExchangeWidget({ scope }: { scope: DashboardScope }) {
                           {format(snapshot.rates[currency])}
                         </p>
                         {series?.movement && (
-                          <Change movement={series.movement} format={format} />
+                          <Trend movement={series.movement} format={format} />
                         )}
                       </div>
                     </li>
                   );
                 })}
               </ul>
-              <QueryContent query={history}>
+              <QueryContent query={history} rows={1}>
                 {(data) => (
                   <p className="text-xs text-muted-foreground">
                     {t(
@@ -482,53 +441,65 @@ export function StoreRatesWidget({
         {({ rates, stale }) => (
           <>
             {stale && <Badge variant="warning">{t("stale")}</Badge>}
-            <div className="max-h-48 overflow-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="sticky top-0 bg-card text-muted-foreground">
-                  <tr>
-                    <th className="py-2 font-medium">{t("purityShort")}</th>
-                    <th className="py-2 text-right font-medium">
-                      {t("reference")}
-                    </th>
-                    {kind !== "reference" && (
-                      <th className="py-2 text-right font-medium">{t(kind)}</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {rates.map((rate) => (
-                    <tr key={rate.purity}>
-                      <th scope="row" className="py-2">
-                        {rate.purity}
+            <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+              <div
+                className="max-h-48 overflow-y-auto focus-visible:ring-2 focus-visible:ring-ring"
+                tabIndex={rates.length ? 0 : undefined}
+                role="region"
+                aria-label={t("storeRatesTable")}
+              >
+                <table className="w-full table-fixed text-left text-xs wrap-anywhere">
+                  <thead className="sticky top-0 bg-card text-muted-foreground">
+                    <tr>
+                      <th className="py-2 font-medium">{t("purityShort")}</th>
+                      <th className="py-2 text-right font-medium">
+                        {t("reference")}
                       </th>
-                      <td className="py-2 text-right tabular-nums">
-                        {display(rate.reference)}
-                      </td>
                       {kind !== "reference" && (
-                        <td className="py-2 text-right tabular-nums">
-                          {display(rate.commercial[kind])}
-                        </td>
+                        <th className="py-2 text-right font-medium">
+                          {t(kind)}
+                        </th>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {purity !== undefined ? (
-              <QueryContent
-                query={kind === "reference" ? referenceHistory : history}
-              >
-                {(series) => (
-                  <MarketSeriesChart
-                    series={series}
-                    unit="azn"
-                    period={period}
-                  />
+                  </thead>
+                  <tbody className="divide-y">
+                    {rates.map((rate) => (
+                      <tr key={rate.purity}>
+                        <th scope="row" className="py-2">
+                          {rate.purity}
+                        </th>
+                        <td className="py-2 text-right tabular-nums">
+                          {display(rate.reference)}
+                        </td>
+                        {kind !== "reference" && (
+                          <td className="py-2 text-right tabular-nums">
+                            {display(rate.commercial[kind])}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="min-w-0 space-y-2">
+                {purity !== undefined ? (
+                  <QueryContent
+                    query={kind === "reference" ? referenceHistory : history}
+                    chart
+                  >
+                    {(series) => (
+                      <MarketSeriesChart
+                        series={series}
+                        unit="azn"
+                        period={period}
+                      />
+                    )}
+                  </QueryContent>
+                ) : (
+                  <p className="text-muted-foreground">{t("empty")}</p>
                 )}
-              </QueryContent>
-            ) : (
-              <p className="text-muted-foreground">{t("empty")}</p>
-            )}
+              </div>
+            </div>
           </>
         )}
       </QueryContent>

@@ -1,35 +1,39 @@
 import { marketPeriods, type MarketPeriod } from "@mizan/contracts";
 
-export const widgets = [
-  "actions",
-  "gold",
-  "exchange",
-  "sales",
-  "payments",
-  "debt",
-  "inventory",
-  "intake",
-  "storeRates",
-  "grossProfit",
-  "intakeCost",
-  "inventoryCost",
-  "agedStock",
-  "salesTrend",
-  "salesCount",
-  "paymentTrend",
-  "categories",
-  "paymentMethods",
-  "distribution",
-  "settlement",
-  "activity",
-  "recentSales",
-  "recentIntake",
-  "recentTradeIns",
-  "recentRepayments",
-  "debtors",
-] as const;
+const widgetGroups = {
+  operations: ["activity"],
+  sales: ["sales", "salesTrend", "grossProfit", "recentSales", "categories"],
+  payments: [
+    "payments",
+    "paymentTrend",
+    "debt",
+    "paymentMethods",
+    "settlement",
+    "recentRepayments",
+    "debtors",
+  ],
+  inventory: [
+    "inventory",
+    "intake",
+    "intakeCost",
+    "inventoryCost",
+    "agedStock",
+    "distribution",
+    "recentIntake",
+    "recentTradeIns",
+  ],
+  market: ["gold", "exchange", "storeRates"],
+} as const;
 
-export type WidgetId = (typeof widgets)[number];
+export type WidgetGroupId = keyof typeof widgetGroups;
+export type BusinessWidgetId = (typeof widgetGroups)[WidgetGroupId][number];
+export type WidgetId = BusinessWidgetId | "actions";
+const defaultGroupOrder = Object.keys(widgetGroups) as WidgetGroupId[];
+export const widgets: readonly WidgetId[] = [
+  "actions",
+  ...defaultGroupOrder.flatMap((group) => [...widgetGroups[group]]),
+];
+
 export const ownerWidgets = [
   "grossProfit",
   "intakeCost",
@@ -45,27 +49,32 @@ const defaultWidgets: WidgetId[] = [
   "inventory",
   "intake",
   "grossProfit",
+  "salesTrend",
   "storeRates",
   "activity",
 ];
 export type ChartUnit = "usd" | "azn";
 export type Preferences = {
-  order: WidgetId[];
   enabled: WidgetId[];
+  hiddenGroups: WidgetGroupId[];
+  groupOrder: WidgetGroupId[];
   period: MarketPeriod;
   purity: number | null;
   unit: ChartUnit;
   agedDays: number;
+  salesMetric: "sales" | "count";
 };
 
 export function defaultPreferences(): Preferences {
   return {
-    order: [...widgets],
     enabled: [...defaultWidgets],
+    hiddenGroups: [],
+    groupOrder: [...defaultGroupOrder],
     period: "7d",
     purity: null,
     unit: "usd",
     agedDays: 90,
+    salesMetric: "sales",
   };
 }
 
@@ -76,21 +85,39 @@ export function allowedWidgets(owner: boolean) {
 }
 
 export function visibleWidgets(preferences: Preferences, owner: boolean) {
-  const allowed = new Set(allowedWidgets(owner));
-  return preferences.order.filter(
-    (id) => allowed.has(id) && preferences.enabled.includes(id),
+  const enabled = allowedWidgets(owner).filter((id) =>
+    preferences.enabled.includes(id),
   );
+  return groupWidgets(
+    enabled,
+    defaultGroupOrder.filter((id) => !preferences.hiddenGroups.includes(id)),
+  ).flatMap((group) => group.widgets);
 }
 
-export function moveWidget(
-  order: WidgetId[],
-  allowed: WidgetId[],
-  id: WidgetId,
+export function showQuickActions(preferences: Preferences) {
+  return preferences.enabled.includes("actions");
+}
+
+export function groupWidgets(
+  widgetIds: readonly WidgetId[],
+  groupOrder: readonly WidgetGroupId[] = defaultGroupOrder,
+) {
+  const included = new Set(widgetIds);
+  return groupOrder
+    .map((id) => ({
+      id,
+      widgets: widgetGroups[id].filter((widget) => included.has(widget)),
+    }))
+    .filter(({ widgets }) => widgets.length > 0);
+}
+
+export function moveGroup(
+  order: WidgetGroupId[],
+  id: WidgetGroupId,
   step: -1 | 1,
 ) {
-  const visibleOrder = order.filter((item) => allowed.includes(item));
-  const index = visibleOrder.indexOf(id);
-  const next = visibleOrder[index + step];
+  const index = order.indexOf(id);
+  const next = order[index + step];
   if (!next || index < 0) return order;
   return order.map((item) => (item === id ? next : item === next ? id : item));
 }
@@ -107,7 +134,9 @@ function widgetList(value: unknown): WidgetId[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return [
     ...new Set(
-      value.filter((item): item is WidgetId => widgets.includes(item)),
+      value
+        .map((item) => (item === "salesCount" ? "salesTrend" : item))
+        .filter((item): item is WidgetId => widgets.includes(item)),
     ),
   ];
 }
@@ -122,10 +151,21 @@ export function readPreferences(
       storage.getItem(key) ?? "null",
     ) as Partial<Preferences> | null;
     if (!saved) return defaults;
-    const order = widgetList(saved.order) ?? defaults.order;
+    const legacyEnabled: unknown[] = Array.isArray(saved.enabled)
+      ? saved.enabled
+      : [];
+    const countOnly =
+      legacyEnabled.includes("salesCount") &&
+      !legacyEnabled.includes("salesTrend");
+    const savedGroups = Array.isArray(saved.groupOrder)
+      ? saved.groupOrder.filter((id) => defaultGroupOrder.includes(id))
+      : [];
     return {
-      order: [...order, ...widgets.filter((id) => !order.includes(id))],
       enabled: widgetList(saved.enabled) ?? defaults.enabled,
+      hiddenGroups: Array.isArray(saved.hiddenGroups)
+        ? defaultGroupOrder.filter((id) => saved.hiddenGroups?.includes(id))
+        : defaults.hiddenGroups,
+      groupOrder: [...new Set([...savedGroups, ...defaultGroupOrder])],
       period:
         marketPeriods.find((period) => period === saved.period) ??
         defaults.period,
@@ -137,6 +177,8 @@ export function readPreferences(
           ? saved.purity
           : defaults.purity,
       unit: saved.unit === "azn" ? "azn" : "usd",
+      salesMetric:
+        saved.salesMetric === "count" || countOnly ? "count" : "sales",
       agedDays:
         typeof saved.agedDays === "number" &&
         Number.isInteger(saved.agedDays) &&

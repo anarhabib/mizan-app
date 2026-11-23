@@ -1,5 +1,36 @@
 # Misqal project state
 
+## Task 19 — dashboard UX refinement (November 23, 2026)
+
+- `apps/web/src/features/dashboard` now uses ordered, adaptive grid spans, compact financial rows and a quick-action toolbar. The unified sales chart remembers the selected metric per workspace and migrates saved amount/count widget preferences. Dashboard links open scoped Sales, Customers and Products filters or existing record details.
+- `apps/api/src/modules/dashboard` returns decimal-safe comparisons against the same elapsed portion of the previous Asia/Baku day, with gross profit restricted to Owner mode. Sales and product list filters apply before pagination. Payment drill-down opens matching receipts and counts repayments separately from sales. See `docs/API_NOTES.md` for filter and baseline rules. This task requires no migration.
+- `apps/web/src/features/workspace/WorkspaceProvider.tsx` shows a delayed, accessible accent spinner during initialization. `apps/web/src/index.css` centralizes light/dark scrollbar styles and preserves native forced-colors behavior.
+- Contracts and application builds, TypeScript, changed-file lint, 23 contracts tests, 142 web tests and 71 API tests passed. The dashboard integration tests also passed after the final SQL and filter changes. The Vite build reported its existing chunk-size warning. Chromium fixtures covered 360px, 390px, 768px and 1280px in light and dark, including chart switching, scoped links, keyboard scrolling, workspace initialization, customization and role visibility. Azerbaijani and Russian also received narrow-screen checks. PostgreSQL integration used a disposable local database. Firefox, Safari, real-device and live Storage checks remain open. The changes are local on `task/19-dashboard-ux-refinement`.
+
+### Follow-up — functional widget groups
+
+- `apps/web/src/features/dashboard/preferences.ts` assigns existing widgets to Operations, Sales, Payments and Debt, Inventory and Intake, and Market Rates. The sections follow a fixed order. Saved widget visibility and order within each section carry forward, and group visibility uses the existing per-user, per-organization and per-store key.
+- `DashboardPage.tsx` renders the adaptive grid in each nonempty group. `CustomizeDashboard.tsx` provides group disclosure and visibility controls alongside individual widget visibility, ordering and reset. Group visibility respects role restrictions.
+- TypeScript, changed-file lint, 146 web tests and the production build passed. Chromium fixtures verified the grouped dashboard and customization at 390px and 1280px in both themes, including persistence, reset and salesperson restrictions. The follow-up remains local on the existing Task 19 branch.
+
+### Follow-up — group ordering and adaptive packing
+
+- `DashboardPage.tsx` renders Quick Actions directly below the header using its existing visibility preference. `CustomizeDashboard.tsx` previews group moves immediately and persists them on Apply. Reset restores the default group order. Legacy widget selections and the original storage key carry forward.
+- `DashboardWidgetGrid.tsx` and `layout.ts` pack natural card heights on tablet and desktop while keeping saved reading and keyboard order. Recent Sales uses a compact span. Wide widgets can leave gaps that would require changing the saved order to fill. Mobile uses one column.
+- TypeScript, changed-file lint, 151 web tests and the production build passed. Chromium fixtures verified Recent Sales and Inventory geometry at 390px, 768px and 1280px in both themes, including live breakpoint changes and delayed content. They also checked keyboard group moves, canceled previews, persistence across refresh and navigation, reset, and salesperson restrictions. The follow-up remains on the local Task 19 branch.
+
+### Follow-up — shared layout and fixed widget priority
+
+- `layout.ts`, `DashboardWidgetGrid.tsx`, and `dashboard-widget-grid.css` use the available group width, pair charts with nearby cards on roomy tablet layouts, and balance pairs of standard summaries on desktop. Compact cards keep their narrower spans. Packing uses observed card heights and keeps visual and keyboard order aligned.
+- `preferences.ts` defines a fixed widget priority in each group. `CustomizeDashboard.tsx` keeps individual visibility controls and group reordering. Older visibility and group order carry forward under the same storage key, and old intra-group order is ignored.
+- Changed-file lint, 154 web tests, TypeScript and the production build passed. Chromium fixtures covered all five groups at 390px, 768px and 1280px in both themes, including compact-only and mixed layouts, persisted settings, hidden groups, reset, and container resizing. Azerbaijani and Russian tablet fixtures and salesperson access also passed. The changes remain local and uncommitted.
+
+### Follow-up — Quick Actions and mobile More
+
+- `QuickActions.tsx` fits existing actions in one row using their rendered localized widths. Create Sale has first priority, and the ellipsis contains only actions that did not fit. Gold pricing remains owner-only.
+- The Quick Actions and mobile More popups opt into the same content-sized shadcn menu styles in `responsive-menu.ts`. The bottom navigation keeps its existing placement, permissions and routes.
+- TypeScript, changed-file lint, 159 web tests and the production build passed. Chromium fixtures checked 360px, 390px, 768px and 1280px in Azerbaijani, English and Russian in both themes, including live resizing, permission-dependent actions, touch opening and keyboard focus. Physical devices and nonzero notch insets remain unverified. Task 19 and its follow-ups are on `task/19-dashboard-ux-refinement`.
+
 ## Task 14 — operational dashboard (November 23, 2026)
 
 - `apps/web/src/features/dashboard` provides the workspace landing page with configurable sales, payments, customer debt, intake, inventory, activity, quick actions, and market widgets. Products remains a separate route. Preferences are device-local per user, organization, and store. The existing display-mode switch clears sensitive query data.

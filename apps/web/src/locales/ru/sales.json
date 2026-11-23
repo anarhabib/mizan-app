@@ -1,4 +1,7 @@
 {
+  "paymentDate": "Дата получения оплаты (Баку)",
+  "paymentStatusLabel": "Статус оплаты",
+  "allStatuses": "Все статусы",
   "aznEquivalent": "Эквивалент в AZN",
   "conversionLoading": "Расчёт эквивалента в AZN…",
   "conversionUnavailable": "Не удалось рассчитать эквивалент в AZN.",

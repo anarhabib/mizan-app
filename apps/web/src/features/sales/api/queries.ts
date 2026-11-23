@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import type {
   SaleList,
+  SalePaymentStatus,
   SaleOptions,
   MoneyInput,
   SalePaymentInput,
@@ -17,7 +18,12 @@ import type {
 import { apiRequest, type ApiError } from "@/shared/lib/api";
 
 export type SaleScope = Pick<StoreContext, "organizationId" | "storeId">;
-export type SaleFilters = { q?: string; date?: string };
+export type SaleFilters = {
+  q?: string;
+  date?: string;
+  paymentDate?: string;
+  paymentStatus?: SalePaymentStatus;
+};
 
 const scopeKey = ({ organizationId, storeId }: SaleScope) =>
   ["sales", organizationId, storeId] as const;

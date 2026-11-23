@@ -30,6 +30,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { LanguageButton } from "@/shared/ui/LanguageButton";
+import {
+  responsiveMenuItem,
+  responsiveMenuWidth,
+} from "@/shared/ui/responsive-menu";
 import { ThemeButton } from "@/shared/ui/ThemeButton";
 import { SignOutButton } from "@/features/auth";
 import { DisplayModeControl } from "@/features/settings";
@@ -140,14 +144,25 @@ function ShellContent() {
                   {t("more")}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="end">
+              <DropdownMenuContent
+                side="top"
+                align="end"
+                className={responsiveMenuWidth}
+                collisionPadding={8}
+              >
                 {items
                   .filter((item) => "ownerOnly" in item)
                   .map(({ to, namespace, icon: Icon }) => (
-                    <DropdownMenuItem key={to} asChild className="min-h-10">
+                    <DropdownMenuItem
+                      key={to}
+                      asChild
+                      className={responsiveMenuItem}
+                    >
                       <Link to={to}>
                         <Icon aria-hidden="true" />
-                        {t("title", { ns: namespace })}
+                        <span className="min-w-0 wrap-anywhere">
+                          {t("title", { ns: namespace })}
+                        </span>
                       </Link>
                     </DropdownMenuItem>
                   ))}

@@ -213,6 +213,35 @@
 html {
   scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
 }
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(
+        in srgb,
+        var(--muted-foreground) 72%,
+        transparent
+      )
+      transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+
 .shell-top {
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -232,6 +261,16 @@ html {
   }
 }
 @media (forced-colors: active) {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  ::-webkit-scrollbar,
+  ::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb:hover {
+    all: revert;
+  }
+
   nav a[aria-current="page"] {
     outline: 2px solid Highlight;
   }

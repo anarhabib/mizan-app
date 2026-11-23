@@ -12,6 +12,7 @@ import type {
 } from "@mizan/contracts";
 import { Prisma, type createDatabase } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
+import { businessDateRange } from "../access/business-date.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import {
   lockGoldMarket,
@@ -397,7 +398,13 @@ export async function getSale(
 export async function listSales(
   db: SalesDatabase,
   { organizationId, storeId }: AccessContext,
-  filters: { q?: string; date?: string; after?: string },
+  filters: {
+    q?: string;
+    date?: string;
+    after?: string;
+    paymentDate?: string;
+    paymentStatus?: string;
+  },
 ): Promise<SaleList> {
   const scope = { organizationId, storeId };
   const { q, date, after } = filters;
@@ -406,17 +413,33 @@ export async function listSales(
     (typeof q !== "string" || q.length > 160 || q.includes("\0"))
   )
     throw new AccessError("INVALID_SALE", "q");
-  let createdAt: Prisma.DateTimeFilter | undefined;
-  if (date !== undefined) {
-    if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date))
-      throw new AccessError("INVALID_SALE", "date");
-    const utc = new Date(date + "T00:00:00Z");
-    if (!Number.isFinite(+utc) || utc.toISOString().slice(0, 10) !== date)
-      throw new AccessError("INVALID_SALE", "date");
-    createdAt = {
-      gte: new Date(+utc - 4 * 3600000),
-      lt: new Date(+utc + 20 * 3600000),
-    };
+  const createdAt = businessDateRange(date, "INVALID_SALE", "date");
+  const paymentDate = businessDateRange(
+    filters.paymentDate,
+    "INVALID_SALE",
+    "paymentDate",
+  );
+  const status = filters.paymentStatus;
+  let debt: Prisma.SaleWhereInput = {};
+  switch (status) {
+    case undefined:
+      break;
+    case "PAID":
+      debt = { outstandingDebt: 0 };
+      break;
+    case "UNPAID":
+      debt = {
+        outstandingDebt: { gt: 0, equals: db.sale.fields.defaultSettlement },
+      };
+      break;
+    case "PARTIALLY_PAID":
+      debt = {
+        outstandingDebt: { gt: 0 },
+        NOT: { outstandingDebt: { equals: db.sale.fields.defaultSettlement } },
+      };
+      break;
+    default:
+      throw new AccessError("INVALID_SALE", "paymentStatus");
   }
   const cursor =
     after && typeof after === "string" && uuidPattern.test(after)
@@ -441,7 +464,26 @@ export async function listSales(
     where: {
       ...scope,
       createdAt,
+      ...debt,
       AND: [
+        ...(paymentDate
+          ? [
+              {
+                OR: [
+                  { payments: { some: { createdAt: paymentDate } } },
+                  {
+                    // Legacy tender is recorded only against a positive checkout balance.
+                    createdAt: paymentDate,
+                    paymentCurrency: { not: null },
+                    paymentAmount: { gt: 0 },
+                    paymentExchangeRate: { gt: 0 },
+                    defaultSettlement: { gt: 0 },
+                    payments: { none: { position: { not: null } } },
+                  },
+                ],
+              },
+            ]
+          : []),
         ...(search
           ? [
               {

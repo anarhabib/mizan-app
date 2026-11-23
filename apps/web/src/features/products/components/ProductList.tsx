@@ -41,15 +41,23 @@ export function ProductList({
   scope,
   inspect,
   onlyInStock = false,
+  initialStatus = "IN_STOCK",
+  dashboardFilters,
+  clearDashboardFilters,
 }: {
   scope: ProductScope;
   inspect: (id: string, opener: HTMLElement) => void;
   onlyInStock?: boolean;
+  initialStatus?: ProductStatus | "all";
+  dashboardFilters?: Pick<Filters, "soldOn" | "receivedOn" | "agedDays">;
+  clearDashboardFilters?: () => void;
 }) {
+  const { t } = useTranslation("products");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Omit<Filters, "q">>({
-    status: "IN_STOCK",
+    status: initialStatus === "all" ? undefined : initialStatus,
   });
+  const { soldOn, receivedOn, agedDays } = dashboardFilters ?? {};
 
   return (
     <div className="space-y-4">
@@ -65,10 +73,28 @@ export function ProductList({
           </div>
         )}
       </div>
+      {(soldOn || receivedOn || agedDays) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+          {soldOn && <span>{t("soldOn", { date: soldOn })}</span>}
+          {receivedOn && <span>{t("receivedOn", { date: receivedOn })}</span>}
+          {agedDays && <span>{t("agedDays", { count: agedDays })}</span>}
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-11 lg:min-h-9"
+            onClick={clearDashboardFilters}
+          >
+            {t("clearDashboardFilters")}
+          </Button>
+        </div>
+      )}
       <ProductResults
         scope={scope}
         filters={{
           ...filters,
+          soldOn,
+          receivedOn,
+          agedDays,
           ...(onlyInStock && { status: "IN_STOCK" }),
           q: search || undefined,
         }}

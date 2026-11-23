@@ -20,6 +20,9 @@ export type ProductFilters = {
   status?: ProductStatus;
   category?: string;
   purity?: number;
+  soldOn?: string;
+  receivedOn?: string;
+  agedDays?: number;
 };
 
 // GET /products/options in docs/API_NOTES.md.
