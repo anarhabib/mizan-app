@@ -15,3 +15,10 @@ supabase/.temp/
 supabase/.branches/
 packages/database/src/generated/
 apps/web/.next
+
+# TanStack Router temporary files
+apps/web/.tanstack/
+
+# Debug logs
+debug.log
+*.log
