@@ -41,7 +41,15 @@ export function ProductStatusBadge({
   if (status === "SOLD" && hasOutstandingDebt)
     return <Badge variant="warning">{t("status.SOLD_ON_CREDIT")}</Badge>;
   return (
-    <Badge variant={status === "IN_STOCK" ? "success" : "outline"}>
+    <Badge
+      variant={
+        status === "IN_STOCK"
+          ? "success"
+          : status === "IN_REPAIR"
+            ? "warning"
+            : "outline"
+      }
+    >
       {t(`status.${status}`)}
     </Badge>
   );

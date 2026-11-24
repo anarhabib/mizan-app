@@ -13,6 +13,7 @@ import { registerSettingsRoutes } from "../modules/settings/settings.routes.js";
 import { registerGoldPriceRoutes } from "../modules/gold-prices/gold-prices.routes.js";
 import { registerProductRoutes } from "../modules/products/product.routes.js";
 import { registerJewelrySetRoutes } from "../modules/products/jewelry-set.routes.js";
+import { registerRepairRoutes } from "../modules/products/repair.routes.js";
 import { registerCategoryRoutes } from "../modules/products/category.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
 import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
@@ -103,6 +104,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerSettingsRoutes(app, access, settingsDb);
   registerProductRoutes(app, access, products);
   registerJewelrySetRoutes(app, access, products?.db);
+  registerRepairRoutes(app, access, products?.db);
   registerCategoryRoutes(app, access, settingsDb ?? products?.db);
   registerSaleRoutes(app, access, salesDb, products?.storage);
   registerCustomerRoutes(app, access, salesDb);

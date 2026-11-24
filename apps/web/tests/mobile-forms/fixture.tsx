@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   QueryClient,
@@ -9,6 +9,8 @@ import type {
   ProductCategory,
   ProductCreateInput,
   ProductDetail,
+  RepairCommand,
+  RepairDetail,
   SupplierOption,
 } from "@mizan/contracts";
 import { useForm } from "react-hook-form";
@@ -16,6 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProductPanel } from "@/features/products/components/ProductPanel";
+import {
+  RepairEditor,
+  RepairSubmit,
+} from "@/features/products/components/RepairEditor";
 import {
   productDefaults,
   ProductFields,
@@ -68,8 +74,7 @@ function WeightFields({
 }
 
 function Fixture() {
-  const opener = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const [opener, setOpener] = useState<HTMLButtonElement>();
   const [supplier, setSupplier] = useState<SupplierOption>();
   const [submissions, setSubmissions] = useState(0);
   const [rows, setRows] = useState(() =>
@@ -88,15 +93,15 @@ function Fixture() {
 
   return (
     <>
-      <Button ref={opener} onClick={() => setOpen(true)}>
+      <Button onClick={(event) => setOpener(event.currentTarget)}>
         Open intake
       </Button>
-      {open && opener.current && (
+      {opener && (
         <ProductPanel
           title="Intake"
           descriptionId="intake-help"
-          opener={opener.current}
-          close={() => setOpen(false)}
+          opener={opener}
+          close={() => setOpener(undefined)}
           mobileFooter={footer ? save : undefined}
         >
           <form
@@ -187,9 +192,79 @@ function Fixture() {
   );
 }
 
+function RepairFixture({ action }: { action: "send" | "complete" }) {
+  const [opener, setOpener] = useState<HTMLButtonElement>();
+  const [command, setCommand] = useState<RepairCommand>();
+  const product = {
+    ...savedProduct,
+    gemstones: [
+      { gemstoneType: "Ruby", stoneCount: 2, totalCarats: "0.34567" },
+    ],
+  };
+  const repair: RepairDetail = {
+    id: "00000000-0000-4000-8000-000000000001",
+    status: "ACTIVE",
+    repairerName: "Atlas Gold",
+    description: "Replace the setting",
+    sentDate: "2026-01-01",
+    expectedReturnDate: null,
+    completedDate: null,
+    before: {
+      weight: product.weight,
+      netGoldWeight: "1.500",
+      gemstones: product.gemstones,
+    },
+    after: null,
+    events: [],
+  };
+  return (
+    <>
+      <Button onClick={(event) => setOpener(event.currentTarget)}>
+        Open repair
+      </Button>
+      {command && (
+        <output aria-label="Saved command">{JSON.stringify(command)}</output>
+      )}
+      {opener && (
+        <ProductPanel
+          title="Repair form"
+          opener={opener}
+          close={() => setOpener(undefined)}
+          mobileFooter={
+            <RepairSubmit id="repair" action={action} pending={false} />
+          }
+        >
+          <RepairEditor
+            view={action === "send" ? { action } : { action, repair }}
+            product={product}
+            scope={{ organizationId: "fixture-org", storeId: "fixture-store" }}
+            id="repair"
+            defaultCurrency="AZN"
+            currencies={["AZN", "USD"]}
+            pending={false}
+            error={null}
+            onBack={() => setOpener(undefined)}
+            save={async (command) => {
+              setCommand(command);
+              setOpener(undefined);
+            }}
+          />
+        </ProductPanel>
+      )}
+    </>
+  );
+}
+
 await i18n.changeLanguage("en");
+const params = new URLSearchParams(location.search);
+const repairAction = params.get("repair");
+document.documentElement.classList.toggle("dark", params.has("dark"));
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>
-    <Fixture />
+    {repairAction === "send" || repairAction === "complete" ? (
+      <RepairFixture action={repairAction} />
+    ) : (
+      <Fixture />
+    )}
   </QueryClientProvider>,
 );

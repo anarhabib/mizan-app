@@ -19,6 +19,26 @@ type GemstoneValues = Omit<ProductGemstone, "stoneCount"> & {
   stoneCount: string;
 };
 
+export function gemstoneFormDefaults(group?: ProductGemstone): GemstoneValues {
+  // A reused field-array position can fall back to the original defaults.
+  return {
+    gemstoneType: "",
+    origin: "UNKNOWN",
+    totalCarats: "",
+    individualCarats: "",
+    shape: "",
+    color: "",
+    clarity: "",
+    cutGrade: "",
+    treatment: "",
+    laboratory: "",
+    reportNumber: "",
+    note: "",
+    ...group,
+    stoneCount: group ? String(group.stoneCount) : "",
+  };
+}
+
 export type ProductFormValues = Omit<
   ProductCreateInput,
   | "category"

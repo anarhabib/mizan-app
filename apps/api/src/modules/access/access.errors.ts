@@ -33,6 +33,10 @@ export type AccessFailure =
   | "SALE_CONFLICT"
   | "SALE_NOT_FOUND"
   | "INVALID_PRODUCT"
+  | "INVALID_REPAIR"
+  | "REPAIR_NOT_FOUND"
+  | "REPAIR_CONFLICT"
+  | "REPAIR_REQUEST_CONFLICT"
   | "INVALID_JEWELRY_SET"
   | "JEWELRY_SET_NOT_FOUND"
   | "JEWELRY_SET_CHANGED"
@@ -127,6 +131,17 @@ const details = {
   INVALID_PRODUCT: {
     statusCode: 400,
     message: "Məhsul məlumatlarını yoxlayın.",
+  },
+  INVALID_REPAIR: { statusCode: 400, message: "Təmir məlumatlarını yoxlayın." },
+  REPAIR_NOT_FOUND: { statusCode: 404, message: "Təmir qeydi tapılmadı." },
+  REPAIR_CONFLICT: {
+    statusCode: 409,
+    message:
+      "Məhsulun və ya təmirin hazırkı vəziyyəti bu əməliyyata icazə vermir.",
+  },
+  REPAIR_REQUEST_CONFLICT: {
+    statusCode: 409,
+    message: "Bu sorğu açarı fərqli əməliyyat üçün istifadə edilib.",
   },
   INVALID_JEWELRY_SET: {
     statusCode: 400,

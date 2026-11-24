@@ -12,11 +12,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   acquisitionComponents,
+  checkoutCurrencies,
   type ProductDetail as Detail,
   type SupplierOption,
 } from "@mizan/contracts";
 import { ShoppingCart } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/features/workspace";
@@ -34,11 +35,14 @@ import {
   useUploadProductPhoto,
 } from "../api/mutations";
 import { productDetailQuery, type ProductScope } from "../api/queries";
+import { useRepairCommand } from "../api/repairs";
 import { ProductForm } from "./ProductForm";
 import { categoryLabel } from "@mizan/contracts";
 import { ProductStatusBadge } from "./ProductList";
 import { ProductPanel } from "./ProductPanel";
 import { ProductPhoto } from "./ProductPhoto";
+import { ProductRepairs, type RepairEditorView } from "./ProductRepairs";
+import { RepairEditor, RepairSubmit } from "./RepairEditor";
 
 export function ProductDetail({
   scope,
@@ -54,12 +58,22 @@ export function ProductDetail({
   restoreFallbackFocus: () => void;
 }) {
   const { t } = useTranslation(["products", "sales", "errors"]);
-  const { canManageAsOwner: owner, canViewAcquisition } = useWorkspace();
+  const {
+    canManageAsOwner: owner,
+    canViewAcquisition,
+    settings,
+  } = useWorkspace();
   const detail = useQuery(productDetailQuery(scope, id));
   const upload = useUploadProductPhoto(scope, id);
   const edit = useEditProductAcquisition(scope, id);
   const removal = useDeleteProduct(scope, id);
   const linkSupplier = useLinkHistoricalSupplier(scope, id);
+  const repair = useRepairCommand(scope, id);
+  const repairFormId = useId();
+  const repairHeading = useRef<HTMLHeadingElement>(null);
+  const restoreRepairFocus = useRef(false);
+  const [repairView, setRepairView] = useState<RepairEditorView>();
+  const [selectedRepair, setSelectedRepair] = useState<string>();
   const [linkingSupplier, setLinkingSupplier] = useState(false);
   const [supplier, setSupplier] = useState<SupplierOption>();
   const [view, setView] = useState<"detail" | "edit">("detail");
@@ -67,10 +81,26 @@ export function ProductDetail({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const product = detail.data;
 
+  useEffect(() => {
+    if (!repairView && restoreRepairFocus.current && repairHeading.current) {
+      restoreRepairFocus.current = false;
+      repairHeading.current.focus();
+    }
+  }, [repairView]);
+
+  function backToRepairs() {
+    restoreRepairFocus.current = true;
+    setRepairView(undefined);
+  }
+
   return (
     <ProductPanel
       title={
-        view === "edit" ? t("editAcquisition") : (product?.name ?? t("detail"))
+        repairView
+          ? t(`repairs.actions.${repairView.action}`)
+          : view === "edit"
+            ? t("editAcquisition")
+            : (product?.name ?? t("detail"))
       }
       opener={opener}
       close={close}
@@ -79,11 +109,50 @@ export function ProductDetail({
         submittingEdit ||
         edit.isPending ||
         removal.isPending ||
-        linkSupplier.isPending
+        linkSupplier.isPending ||
+        repair.isPending
       }
       restoreFallbackFocus={restoreFallbackFocus}
+      mobileFooter={
+        repairView && (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              disabled={repair.isPending}
+              onClick={backToRepairs}
+            >
+              {t("repairs.back")}
+            </Button>
+            <RepairSubmit
+              id={repairFormId}
+              action={repairView.action}
+              pending={repair.isPending}
+            />
+          </div>
+        )
+      }
     >
-      {owner && view === "edit" && product ? (
+      {owner && repairView && product ? (
+        <RepairEditor
+          view={repairView}
+          product={product}
+          scope={scope}
+          id={repairFormId}
+          pending={repair.isPending}
+          error={repair.error}
+          defaultCurrency={settings.defaultCurrency}
+          currencies={checkoutCurrencies(settings)}
+          onBack={backToRepairs}
+          save={async (command) => {
+            const result = await repair.mutateAsync(command);
+            setSelectedRepair(result.id);
+            toast.success(t(`repairs.saved.${command.action}`));
+            backToRepairs();
+          }}
+        />
+      ) : owner && view === "edit" && product ? (
         <div className="grid gap-4">
           <ProductForm
             scope={scope}
@@ -129,6 +198,18 @@ export function ProductDetail({
                   </Link>
                 </Button>
               )}
+              <ProductRepairs
+                scope={scope}
+                product={detail.data}
+                owner={owner}
+                selected={selectedRepair}
+                onSelect={setSelectedRepair}
+                headingRef={repairHeading}
+                onEdit={(next) => {
+                  repair.reset();
+                  setRepairView(next);
+                }}
+              />
               <ProductPhoto
                 product={detail.data}
                 upload={upload}

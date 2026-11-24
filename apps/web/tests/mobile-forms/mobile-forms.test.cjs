@@ -5,7 +5,11 @@ const { chromium } = require("playwright");
 const origin = process.env.MIZAN_FORM_TEST_ORIGIN ?? "http://127.0.0.1:5191";
 let browser;
 before(async () => {
-  browser = await chromium.launch();
+  browser = await chromium.launch(
+    process.env.MIZAN_FORM_BROWSER_CHANNEL
+      ? { channel: process.env.MIZAN_FORM_BROWSER_CHANNEL }
+      : undefined,
+  );
 });
 after(async () => browser?.close());
 
@@ -18,6 +22,7 @@ async function openFixture(width, run, search = "") {
     reducedMotion: "reduce",
   });
   try {
+    const repair = new URLSearchParams(search).has("repair");
     const page = await context.newPage();
     page.setDefaultTimeout(5000);
     await page.route("**/api/v1/**", (route) => {
@@ -27,7 +32,12 @@ async function openFixture(width, run, search = "") {
         json: {
           items:
             url.searchParams.get("q") === "Atlas"
-              ? [{ id: "atlas", name: "Atlas Gold" }]
+              ? [
+                  {
+                    id: "00000000-0000-4000-8000-000000000002",
+                    name: "Atlas Gold",
+                  },
+                ]
               : [],
         },
       });
@@ -35,14 +45,129 @@ async function openFixture(width, run, search = "") {
     await page.goto(new URL(`/tests/mobile-forms/${search}`, origin).href, {
       timeout: 15000,
     });
-    const opener = page.getByRole("button", { name: "Open intake" });
+    const opener = page.getByRole("button", {
+      name: repair ? "Open repair" : "Open intake",
+    });
     await opener.click();
-    const dialog = page.getByRole("dialog", { name: "Intake" });
+    const dialog = page.getByRole("dialog", {
+      name: repair ? "Repair form" : "Intake",
+    });
     await dialog.waitFor();
     await run({ page, dialog, opener, mobile });
   } finally {
     await context.close();
   }
+}
+
+test("repair dispatch at 320px keeps dates, supplier search and the footer usable", async () => {
+  await openFixture(
+    320,
+    async ({ page, dialog, opener }) => {
+      assert.match(
+        await dialog.getByText("Before repair", { exact: true }).textContent(),
+        /Before repair/,
+      );
+      const sent = dialog.getByLabel("Date sent");
+      const expected = dialog.getByLabel("Expected return (optional)");
+      assert.equal(await expected.getAttribute("min"), await sent.inputValue());
+      await expected.fill("2000-01-01");
+      assert.equal(
+        await expected.evaluate((input) => input.validity.rangeUnderflow),
+        true,
+      );
+      await expected.fill("");
+      await dialog.getByLabel("Repair description").fill("Check the setting");
+      await dialog.getByLabel("Supplier (optional)").click();
+      await dialog.getByRole("searchbox").fill("Atlas");
+      await dialog
+        .getByRole("button", { name: "Atlas Gold", exact: true })
+        .click();
+      assert.equal(await dialog.getByLabel("Repairer name").count(), 0);
+      const submit = dialog.getByRole("button", {
+        name: "Send to repair",
+        exact: true,
+      });
+      assert.equal(await submit.getAttribute("form"), "repair");
+      await submit.click();
+      const saved = JSON.parse(
+        await page.getByLabel("Saved command").textContent(),
+      );
+      assert.equal(saved.action, "send");
+      assert.equal(saved.supplierId, "00000000-0000-4000-8000-000000000002");
+      await dialog.waitFor({ state: "hidden" });
+      assert.equal(
+        await opener.evaluate((node) => node === document.activeElement),
+        true,
+      );
+    },
+    "?repair=send",
+  );
+});
+
+for (const width of [390, 1280]) {
+  test(`repair completion at ${width}px validates weights and submits changed gemstones`, async () => {
+    await openFixture(
+      width,
+      async ({ page, dialog, mobile }) => {
+        const gross = grossWeight(dialog);
+        const net = dialog.getByLabel("Net gold alloy weight (g)", {
+          exact: true,
+        });
+        assert.equal(await gross.inputValue(), "2.001");
+        assert.equal(await net.inputValue(), "1.500");
+        assert.equal(
+          await dialog.getByLabel("Completion date").getAttribute("min"),
+          "2026-01-01",
+        );
+        assert.equal(
+          await dialog.getByLabel("Gemstone type").inputValue(),
+          "Ruby",
+        );
+        await gross.fill("1.400");
+        await dialog.getByLabel("Actual repair cost").fill("12.3456");
+        const submit = dialog.getByRole("button", {
+          name: "Complete repair",
+          exact: true,
+        });
+        await submit.click();
+        await dialog.getByText(/It must be at most the gross weight/).waitFor();
+        assert.equal(
+          await net.evaluate((node) => node === document.activeElement),
+          true,
+        );
+        await net.fill("1.300");
+        await dialog
+          .getByRole("button", { name: "Remove gemstone group 1" })
+          .click();
+        await dialog
+          .getByRole("button", { name: "Add gemstone group" })
+          .click();
+        await dialog.getByLabel("Gemstone type").fill("Sapphire");
+        await dialog.getByLabel("Stone count").fill("1");
+        const body = dialog.locator("[data-slot=form-panel-body]");
+        assert.equal(
+          await body.evaluate((node) => node.scrollWidth <= node.clientWidth),
+          true,
+        );
+        assert.equal(
+          await submit.evaluate((node) =>
+            Boolean(node.closest("[data-slot=drawer-footer]")),
+          ),
+          mobile,
+        );
+        await submit.click();
+        const saved = JSON.parse(
+          await page.getByLabel("Saved command").textContent(),
+        );
+        assert.equal(saved.action, "complete");
+        assert.deepEqual(saved.gemstones, [
+          { gemstoneType: "Sapphire", stoneCount: 1, origin: "UNKNOWN" },
+        ]);
+        assert.equal(saved.actualCost.amount, "12.3456");
+      },
+      "?repair=complete&dark",
+    );
+  });
 }
 
 const grossWeight = (row) =>
