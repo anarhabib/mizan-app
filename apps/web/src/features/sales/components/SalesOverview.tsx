@@ -62,7 +62,7 @@ export function SalesOverview({
         />
       )}
       {!invalidRange && data && (
-        <dl className="grid max-w-[68rem] grid-cols-[repeat(auto-fit,minmax(min(100%,8.5rem),1fr))] gap-x-3 gap-y-2">
+        <dl className="grid max-w-272 grid-cols-[repeat(auto-fit,minmax(min(100%,8.5rem),1fr))] gap-x-3 gap-y-2">
           <div className="relative min-w-0 rounded-md bg-muted/50 p-2">
             <dt className="text-xs text-muted-foreground">
               <a
