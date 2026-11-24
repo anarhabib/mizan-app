@@ -37,6 +37,14 @@ export function detailFields(access: AccessContext) {
   const owner = canManageAsOwner(access);
   return {
     ...listFields,
+    purchaseItem: {
+      select: {
+        purchaseId: true,
+        purchase: {
+          select: { supplierId: true, supplier: { select: { name: true } } },
+        },
+      },
+    },
     metalType: true,
     netGoldWeight: true,
     grade: { select: { active: true } },
@@ -144,7 +152,44 @@ export function canEditAcquisition(row: DetailRow) {
     row.status === "IN_STOCK" &&
     !row.sale &&
     !row.saleItem &&
+    !row.purchaseItem &&
     row.movements.every(({ kind }) => kind === "PRODUCT_ADDED")
+  );
+}
+
+export function presentGemstones(groups: DetailRow["gemstones"]) {
+  return groups.map(
+    ({
+      gemstoneType,
+      stoneCount,
+      origin,
+      totalCarats,
+      individualCarats,
+      shape,
+      color,
+      clarity,
+      cutGrade,
+      treatment,
+      laboratory,
+      reportNumber,
+      note,
+    }) => ({
+      gemstoneType,
+      stoneCount,
+      origin,
+      ...(totalCarats && { totalCarats: totalCarats.toFixed() }),
+      ...(individualCarats && {
+        individualCarats: individualCarats.toFixed(),
+      }),
+      ...(shape && { shape }),
+      ...(color && { color }),
+      ...(clarity && { clarity }),
+      ...(cutGrade && { cutGrade }),
+      ...(treatment && { treatment }),
+      ...(laboratory && { laboratory }),
+      ...(reportNumber && { reportNumber }),
+      ...(note && { note }),
+    }),
   );
 }
 
@@ -170,6 +215,8 @@ export function presentDetail(
     : legacySale;
   const breakdown: AcquisitionBreakdown = {};
   const owner = canManageAsOwner(access);
+  const showCost = owner || !row.purchaseItem;
+  const purchase = row.purchaseItem?.purchase;
   if (owner) {
     if (row.acquisitionMetal) breakdown.metal = row.acquisitionMetal.toFixed();
     if (row.acquisitionGemstones)
@@ -180,6 +227,15 @@ export function presentDetail(
   }
   return {
     ...presentListItem(row),
+    ...(owner &&
+      purchase &&
+      row.purchaseItem && {
+        purchase: {
+          id: row.purchaseItem.purchaseId,
+          supplierId: purchase.supplierId,
+          supplierName: purchase.supplier.name,
+        },
+      }),
     metalType: row.metalType,
     ...(row.netGoldWeight && {
       netGoldWeight: row.netGoldWeight.toFixed(3),
@@ -188,39 +244,7 @@ export function presentDetail(
       }),
     }),
     ...(row.gemstones.length > 0 && {
-      gemstones: row.gemstones.map(
-        ({
-          gemstoneType,
-          stoneCount,
-          origin,
-          totalCarats,
-          individualCarats,
-          shape,
-          color,
-          clarity,
-          cutGrade,
-          treatment,
-          laboratory,
-          reportNumber,
-          note,
-        }) => ({
-          gemstoneType,
-          stoneCount,
-          origin,
-          ...(totalCarats && { totalCarats: totalCarats.toFixed() }),
-          ...(individualCarats && {
-            individualCarats: individualCarats.toFixed(),
-          }),
-          ...(shape && { shape }),
-          ...(color && { color }),
-          ...(clarity && { clarity }),
-          ...(cutGrade && { cutGrade }),
-          ...(treatment && { treatment }),
-          ...(laboratory && { laboratory }),
-          ...(reportNumber && { reportNumber }),
-          ...(note && { note }),
-        }),
-      ),
+      gemstones: presentGemstones(row.gemstones),
     }),
     ...(row.fixedSellingAmount &&
       row.fixedSellingCurrency && {
@@ -232,12 +256,14 @@ export function presentDetail(
     ...(Object.keys(breakdown).length > 0 && {
       acquisitionBreakdown: breakdown,
     }),
-    ...((owner || acquisitionCostPerGram) &&
+    ...(showCost &&
+      (owner || acquisitionCostPerGram) &&
       acquisitionCost &&
       acquisitionCurrency && {
         acquisitionCost: presentMoney(acquisitionCost, acquisitionCurrency),
       }),
-    ...(acquisitionCostPerGram &&
+    ...(showCost &&
+      acquisitionCostPerGram &&
       acquisitionCurrency && {
         acquisitionCostPerGram: presentMoney(
           acquisitionCostPerGram,
@@ -246,7 +272,11 @@ export function presentDetail(
       }),
     ...(owner && {
       canEditAcquisition: canEditAcquisition(row),
-      canDelete: row.status === "IN_STOCK" && !sale && movements.length === 0,
+      canDelete:
+        row.status === "IN_STOCK" &&
+        !sale &&
+        !row.purchaseItem &&
+        movements.length === 0,
     }),
     note,
     createdAt: createdAt.toISOString(),

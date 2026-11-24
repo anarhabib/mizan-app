@@ -4,7 +4,13 @@ import { uuidPattern } from "./access.service.js";
 
 type Tx = Prisma.TransactionClient;
 export type OrganizationDatabase = Tx & {
-  $transaction<T>(callback: (tx: Tx) => Promise<T>): Promise<T>;
+  $transaction<T>(
+    callback: (tx: Tx) => Promise<T>,
+    options?: {
+      timeout?: number;
+      isolationLevel?: Prisma.TransactionIsolationLevel;
+    },
+  ): Promise<T>;
 };
 
 export async function lockOrganization(tx: Tx, organizationId: string) {

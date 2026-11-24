@@ -29,6 +29,8 @@ export type ProductFilters = {
   receivedOn?: string;
   agedDays?: number;
   credit?: true;
+  unpurchased?: true;
+  purchaseCurrency?: string;
 };
 
 // GET /products/options in docs/API_NOTES.md.
@@ -183,6 +185,28 @@ export async function invalidateProductInventory(
       productKeys.overview(scope, true),
     ].map((queryKey) => client.invalidateQueries({ queryKey, exact: true })),
   );
+}
+
+export function refreshPurchaseProducts(
+  client: QueryClient,
+  scope: ProductScope,
+  ids: string[],
+) {
+  const dashboard = client.getQueryCache().findAll({
+    queryKey: ["dashboard", scope.organizationId, scope.storeId],
+  });
+  return Promise.all([
+    invalidateProductInventory(client, scope),
+    ...ids.map((id) =>
+      client.invalidateQueries({
+        queryKey: productKeys.detail(scope, id),
+        exact: true,
+      }),
+    ),
+    ...dashboard.map(({ queryKey }) =>
+      client.invalidateQueries({ queryKey, exact: true }),
+    ),
+  ]);
 }
 
 export async function cacheSoldProduct(

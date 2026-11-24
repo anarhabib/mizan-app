@@ -7,6 +7,7 @@ export function readPageSize(
     | "INVALID_PRODUCT"
     | "INVALID_SALE"
     | "INVALID_CUSTOMER"
+    | "INVALID_SUPPLIER"
     | "INVALID_MEMBERSHIP"
     | "INVALID_SETTINGS",
   field = "limit",

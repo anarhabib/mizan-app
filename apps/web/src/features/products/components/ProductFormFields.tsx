@@ -62,6 +62,7 @@ export function ProductTextField({
   numeric,
   currency,
   multiline,
+  readOnly,
 }: {
   form: ProductFormState;
   name: FieldPath<ProductFormValues>;
@@ -72,6 +73,7 @@ export function ProductTextField({
   numeric?: boolean;
   currency?: boolean;
   multiline?: boolean;
+  readOnly?: boolean;
 }) {
   const id = `create-product-${name}`;
   const registration = form.register(name, {
@@ -99,14 +101,14 @@ export function ProductTextField({
           {...registration}
           {...accessibility}
           rows={3}
-          readOnly={busy}
+          readOnly={busy || readOnly}
           className="min-h-20"
         />
       ) : (
         <Input
           {...registration}
           {...accessibility}
-          readOnly={busy}
+          readOnly={busy || readOnly}
           inputMode={decimal ? "decimal" : numeric ? "numeric" : "text"}
           enterKeyHint="next"
           autoComplete="off"

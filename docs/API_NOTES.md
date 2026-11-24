@@ -182,6 +182,30 @@ Movements are nested in product detail, and old-gold trade-ins and payment histo
 - Each purchase contains `id,createdAt,productName,itemCount,total:Money,tradeInCredit:Money,paidAmount:Money,outstandingDebt:Money,payment:Money|null`. Settlement totals use the sale currency. The legacy `payment` field contains single checkout tender when present. The linked receipt shows checkout and repayment history under the existing receipt permissions.
 - Both assigned roles can read, add and edit store contacts. Deletion requires Owner mode. Any linked receipt blocks deletion with `CUSTOMER_DELETE_CONFLICT`. Apply migration `202611220001_customers` before starting the updated API. Existing unlinked receipts remain anonymous.
 
+### Suppliers and purchase payables
+
+All supplier endpoints are under `/organizations/:organizationId/stores/:storeId` and require Owner mode. Inactive suppliers retain their history and may receive payments on existing purchases. New purchases require an active supplier. Supplier profiles do not require a tax ID.
+
+| Endpoint | Behavior |
+| --- | --- |
+| `GET /suppliers` | Supplier directory. Filters are `q` (name, contact or phone), `active=true\|false` and `outstanding=true`. |
+| `POST /suppliers`, `PATCH /suppliers/:id` | Save contact fields. Patch `isActive` to deactivate or reactivate. |
+| `GET /suppliers/:id` | Profile and server-calculated purchase and payment totals by currency, document and physical product counts, and latest dates. |
+| `GET /purchases` | Purchase history with totals, outstanding balance, status and product count. Filters are `supplierId`, `currency`, `status`, `from` and `through`. |
+| `POST /purchases` | Register `supplierId,purchaseDate,currency,documentNumber?,note?,items`. Each of 1–100 items is `{productId}` for an existing product or `{product}` with the existing product-create body. The response is `{id,supplierId,productIds}` in line order. |
+| `GET /purchases/:id` | Purchase document, derived amounts, actor name and individual products with recorded acquisition and gemstone details. |
+| `POST /purchases/:id/payments` | Record `amount,currency,method,paymentDate,referenceNumber?,note?`. Methods are `CASH`, `CARD` and `TRANSFER`. The amount must exceed zero and fit the remaining amount. |
+| `GET /suppliers/:id/products` | Product history with acquisition amount, purchase date and current inventory status. Filters are `q`, `categoryId`, `purity` and `status`. |
+| `GET /suppliers/:id/payments` | Payment ledger with actor names. Filters are `purchaseId`, `method`, `from` and `through`. Use `purchaseId` for the ledger on a purchase detail. |
+| `GET /suppliers/:id/activity` | Recorded profile, purchase, stock receipt, payment and payment status events with actor names. |
+
+- Lists default to 10 entries and support `limit=10|25|50|100` with opaque `nextCursor` / `after`. Filters apply before pagination. Purchase and payment dates are ISO calendar dates, with inclusive `from` and `through` bounds. A payment date must be on or after its purchase date.
+- Purchase and payment POSTs require `Idempotency-Key`. Retry an uncertain write with the same body and key. Keys are scoped to the store, actor and write type. A changed payload on a used key returns `SUPPLIER_REQUEST_CONFLICT`.
+- Each purchase and its payments use one ISO currency. The ledger retains up to four decimal places from product acquisition costs and can settle that exact amount. Balances are calculated from saved allocations and classified as `UNPAID`, `PARTIALLY_PAID` or `PAID`. Supplier payments leave inventory, sales and customer balances alone.
+- A product can appear on one purchase. Linking an existing product reuses its recorded cost and inventory movement history. New products and their stock movements are written in the same transaction as the purchase. The dashboard continues to count actual intake movements. The purchase's calendar date records the original document date.
+- Owners receive `purchase:{id,supplierId,supplierName}` on linked product details. Acquisition values for linked products require Owner mode. The existing acquisition edit and delete actions are unavailable after linking. The owner-only existing product picker uses `GET /products?unpurchased=true&purchaseCurrency=<ISO code>` with the standard workspace scope.
+- Apply `202611240002_supplier_purchases_payables` before using these endpoints.
+
 ### Operational dashboard
 
 All dashboard endpoints require an active store assignment. Paths below start with `O/stores/:storeId`. Response types are in `packages/contracts/src/dashboard.ts`.

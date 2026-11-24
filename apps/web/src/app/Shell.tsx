@@ -6,6 +6,7 @@ import {
   Package,
   Receipt,
   Settings,
+  Truck,
   Users,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -39,6 +40,7 @@ const items = [
   { to: "/products", namespace: "products", icon: Package },
   { to: "/sales", namespace: "sales", icon: Receipt },
   { to: "/customers", namespace: "customers", icon: ContactRound },
+  { to: "/suppliers", namespace: "suppliers", icon: Truck, ownerOnly: true },
   settingsItem,
   { to: "/team", namespace: "team", icon: Users, ownerOnly: true },
 ] as const;
@@ -66,6 +68,7 @@ function ShellContent() {
     "products",
     "sales",
     "customers",
+    "suppliers",
     "settings",
     "team",
   ]);
@@ -137,7 +140,9 @@ function ShellContent() {
           <SidebarMenuItem className="col-start-5">
             <AccountMenu
               mobile
-              active={pathname === "/settings" || pathname === "/team"}
+              active={items.some(
+                (item) => "ownerOnly" in item && item.to === pathname,
+              )}
               concealWorkspace={concealWorkspace}
             >
               {owner &&

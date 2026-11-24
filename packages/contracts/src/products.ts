@@ -87,6 +87,7 @@ export interface ProductListItem {
 }
 
 export interface ProductDetail extends ProductListItem {
+  purchase?: { id: string; supplierId: string; supplierName: string };
   metalType?: ProductMetal;
   netGoldWeight?: string;
   fineGoldWeight?: string;
