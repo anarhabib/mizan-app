@@ -1,5 +1,7 @@
 {
   "sets": {
+    "sellComplete": "Dəsti bütöv sat",
+    "sellSelected": "Seçilmiş mövcud məhsulları sat",
     "title": "Zinət əşyası dəstləri",
     "create": "Dəst yarat",
     "detail": "Dəst məlumatları",

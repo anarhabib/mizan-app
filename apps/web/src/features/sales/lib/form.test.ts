@@ -22,6 +22,38 @@ const build = (form: SaleFormValues) =>
   buildSalePayload(form, "product-1", options);
 
 describe("sale payload", () => {
+  it("binds set previews and checkout to the same ordered item prices and revision", () => {
+    const jewelrySet = { id: "set-1", revision: 3, mode: "selected" } as const;
+    const target = { productId: "product-1", jewelrySet };
+    const form = {
+      ...values,
+      items: [
+        { productId: "product-2", label: "Earrings", saleAmount: "55.25" },
+      ],
+    };
+    const preview = buildSalePreviewInput(form, options, target);
+    expect(preview).toMatchObject({
+      jewelrySet,
+      items: [
+        { productId: "product-1", saleAmount: "210.00" },
+        { productId: "product-2", saleAmount: "55.25" },
+      ],
+    });
+    expect(
+      buildSalePayload(form, target.productId, options, jewelrySet),
+    ).toMatchObject({
+      input: { jewelrySet, items: preview?.items },
+    });
+    expect(
+      buildSalePayload(values, target.productId, options, jewelrySet),
+    ).toMatchObject({
+      input: {
+        jewelrySet,
+        items: [{ productId: "product-1", saleAmount: "210.00" }],
+      },
+    });
+  });
+
   it("keeps the agreed amount when the buying rule changes or becomes unavailable", () => {
     const form = {
       ...values,

@@ -4,6 +4,7 @@ import {
   maxSalePayments,
   parseDecimal,
   salePaymentMethods,
+  type SaleJewelrySetSelection,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { uuidPattern } from "../access/access.service.js";
@@ -128,9 +129,50 @@ function parseTradeIns(value: unknown, currency: string) {
   });
 }
 
+function parseJewelrySet(value: unknown): SaleJewelrySetSelection | undefined {
+  if (value === undefined) return;
+  const { id: setId, revision, mode } = object(value, "jewelrySet");
+  if (
+    typeof revision !== "number" ||
+    !Number.isInteger(revision) ||
+    revision < 1 ||
+    revision > 2_147_483_647 ||
+    (mode !== "complete" && mode !== "selected")
+  )
+    throw new AccessError("INVALID_SALE", "jewelrySet");
+  return { id: id(setId, "jewelrySet.id"), revision, mode };
+}
+
+function parseItem(line: Record<string, unknown>, scale: number) {
+  return {
+    productId: id(line.productId, "productId"),
+    saleAmount: decimal(line.saleAmount, scale, 16, "saleAmount", true),
+  };
+}
+
+function parseItems(value: unknown, scale: number) {
+  if (!Array.isArray(value) || !value.length || value.length > maxSaleItems)
+    throw new AccessError("INVALID_SALE", "items");
+  const items = value.map((item: unknown) =>
+    parseItem(object(item, "items"), scale),
+  );
+  if (new Set(items.map(({ productId }) => productId)).size !== items.length)
+    throw new AccessError("INVALID_SALE", "items");
+  return items;
+}
+
 export function parseSalePreview(body: unknown, currency: string) {
   const input = object(body, "sale");
   checkCurrency(input, currency);
+  const jewelrySet = parseJewelrySet(input.jewelrySet);
+  if (
+    (jewelrySet && input.saleAmounts !== undefined) ||
+    (!jewelrySet && input.items !== undefined)
+  )
+    throw new AccessError("INVALID_SALE", "items");
+  const items = jewelrySet
+    ? parseItems(input.items, currencyMinorUnits(currency))
+    : undefined;
   let saleAmounts: string[] | undefined;
   if (input.saleAmounts !== undefined) {
     if (
@@ -147,7 +189,9 @@ export function parseSalePreview(body: unknown, currency: string) {
   const payments = parsePayments(input.payments);
   return {
     tradeIns: parseTradeIns(input.tradeIns, currency),
-    saleAmounts,
+    saleAmounts: items?.map(({ saleAmount }) => saleAmount) ?? saleAmounts,
+    items,
+    jewelrySet,
     payments,
     reportingRate: reportingRate(
       input.customerReportingRate,
@@ -161,27 +205,15 @@ export function parseSaleInput(body: unknown, currency: string) {
   const input = object(body, "sale");
   checkCurrency(input, currency);
   const scale = currencyMinorUnits(currency);
-  const parseItem = (line: Record<string, unknown>) => ({
-    productId: id(line.productId, "productId"),
-    saleAmount: decimal(line.saleAmount, scale, 16, "saleAmount", true),
-  });
+  const jewelrySet = parseJewelrySet(input.jewelrySet);
   let items;
   if (input.items === undefined) {
-    items = [parseItem(input)];
+    if (jewelrySet) throw new AccessError("INVALID_SALE", "items");
+    items = [parseItem(input, scale)];
   } else {
-    if (
-      input.productId !== undefined ||
-      input.saleAmount !== undefined ||
-      !Array.isArray(input.items) ||
-      !input.items.length ||
-      input.items.length > maxSaleItems
-    )
+    if (input.productId !== undefined || input.saleAmount !== undefined)
       throw new AccessError("INVALID_SALE", "items");
-    items = input.items.map((item: unknown) =>
-      parseItem(object(item, "items")),
-    );
-    if (new Set(items.map(({ productId }) => productId)).size !== items.length)
-      throw new AccessError("INVALID_SALE", "items");
+    items = parseItems(input.items, scale);
   }
   const tradeIns = parseTradeIns(input.tradeIns, currency);
   const customerId =
@@ -232,6 +264,7 @@ export function parseSaleInput(body: unknown, currency: string) {
   }
   return {
     items,
+    jewelrySet,
     tradeIns,
     tender,
     payments,

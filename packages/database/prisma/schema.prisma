@@ -590,6 +590,8 @@ model Sale {
   productCategoryCode         String?
   productPurity               Int
   productWeight               Decimal             @db.Decimal(15, 3)
+  jewelrySetId                String?             @db.Uuid
+  jewelrySetName              String?
   createdAt                   DateTime            @default(now())
   product                     Product             @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
   customer                    Customer?           @relation(fields: [organizationId, storeId, customerId], references: [organizationId, storeId, id], onDelete: Restrict)

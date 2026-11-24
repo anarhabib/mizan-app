@@ -8,13 +8,20 @@ import {
 type ProductPricing = Pick<
   ProductDetail,
   "weight" | "netGoldWeight" | "gemstones" | "fixedSellingPrice"
->;
+> & { hasGemstones?: boolean };
+
+export function hasSeparateSellingPrice(product: ProductPricing | undefined) {
+  return Boolean(
+    product?.hasGemstones ||
+    product?.gemstones?.length ||
+    product?.fixedSellingPrice,
+  );
+}
 
 export function isMetalOnlySuggestion(product: ProductPricing | undefined) {
   if (!product) return false;
   return Boolean(
-    product.gemstones?.length ||
-    product.fixedSellingPrice ||
+    hasSeparateSellingPrice(product) ||
     (product.netGoldWeight &&
       roundMoneyHalfUp(product.netGoldWeight, 3) !==
         roundMoneyHalfUp(product.weight, 3)),

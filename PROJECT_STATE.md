@@ -1,5 +1,13 @@
 # Misqal project state
 
+## Task 18 — jewelry set sales (November 24, 2026)
+
+- Set details offer complete and selected-component checkout in AZ, EN and RU. Sales has a searchable complete-set picker. `SaleCreate.tsx` and `SaleForm.tsx` reuse per-item pricing, settlement and confirmation. The selected products and set revision stay fixed throughout the attempt, and a lost response can be retried with the same payload, key and confirmation token.
+- `sale.service.ts` validates the store-scoped set, revision and selected stock under the existing organization lock, then records one receipt and one sale movement per sold product. Set membership remains available in Products with current inventory status. The existing Sales Overview, Dashboard and customer history use the receipt and its items.
+- Migration `202611240005_jewelry_set_sales` adds nullable sale-time set ID and name snapshots. Prisma validation, migration deploy and status, schema parity, and 4 database tests passed on disposable PostgreSQL. Twelve targeted API tests, 30 contracts tests, 181 web tests, TypeScript, changed-source lint and package builds passed.
+- Chromium verified five checkout flows at 320, 390 and 1280px in AZ, EN and RU, including light and dark, partial selection, settlement confirmation and recovery after a lost response. Nine mobile form regression checks passed. Physical iOS and Android verification remains open.
+- Branch is `task/18-jewelry-set-sales`. Apply the migration to the intended environment before running the updated API there. Task 24 scope is unspecified in the repository. Task 25 needs a return-to-stock and resale model that preserves the original sale items and receipt snapshots.
+
 ## Task 17 — jewelry set management (November 24, 2026)
 
 - Products now has a Jewelry sets view in AZ, EN and RU. Store members can search and filter sets and inspect their individually tracked components. Owner mode can create, edit and dissolve sets in the existing drawer or sheet. The picker shows eligible stock and the API calculates draft and saved totals.

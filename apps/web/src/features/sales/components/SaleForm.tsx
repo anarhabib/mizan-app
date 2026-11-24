@@ -17,6 +17,8 @@ import {
   maxSalePayments,
   salePaymentMethods,
   type CustomerContact,
+  type JewelrySetProduct,
+  type SaleJewelrySetSelection,
   type SaleCreateInput,
   type SaleOptions,
 } from "@mizan/contracts";
@@ -26,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WeightText } from "@/shared/ui/WeightText";
 import {
+  hasSeparateSellingPrice,
   initialProductSaleAmount,
   isMetalOnlySuggestion,
   suggestedItemAmount,
@@ -59,6 +62,7 @@ function SalePriceField({
   name,
   scope,
   productId,
+  component,
   currency,
   retailRates,
   id,
@@ -69,6 +73,7 @@ function SalePriceField({
   name: "saleAmount" | `items.${number}.saleAmount`;
   scope: SaleScope;
   productId: string;
+  component?: JewelrySetProduct;
   currency: string;
   retailRates: SaleOptions["retailRates"];
   id: string;
@@ -79,17 +84,17 @@ function SalePriceField({
   const [enteredRate, setEnteredRate] = useState<string>();
   const [finalOverridden, setFinalOverridden] = useState(false);
   const [useMetalSuggestion, setUseMetalSuggestion] = useState(false);
-  const { data: product, isPending } = useQuery(
-    productDetailQuery(scope, productId),
-  );
+  const productQuery = useQuery({
+    ...productDetailQuery(scope, productId),
+    enabled: !component,
+  });
+  const product = component ?? productQuery.data;
   const weight = product?.netGoldWeight;
   const eligible = Boolean(
     weight && suggestedItemAmount("0", weight, currency) !== undefined,
   );
   const metalOnly = isMetalOnlySuggestion(product);
-  const fullPriceIsSeparate = Boolean(
-    product?.gemstones?.length || product?.fixedSellingPrice,
-  );
+  const fullPriceIsSeparate = hasSeparateSellingPrice(product);
   const fixedPrice = product?.fixedSellingPrice;
   const fixedInCurrency =
     fixedPrice?.currency === currency ? fixedPrice : undefined;
@@ -135,7 +140,7 @@ function SalePriceField({
     <div className="grid min-w-0 gap-3">
       {product && (
         <div className="text-sm wrap-anywhere">
-          {name !== "saleAmount" && (
+          {(component || name !== "saleAmount") && (
             <p className="font-medium">
               {product.code} · {product.name}
             </p>
@@ -162,7 +167,7 @@ function SalePriceField({
           {t("itemPricing.fixedCurrencyMismatch")}
         </p>
       )}
-      {!isPending &&
+      {(component || !productQuery.isPending) &&
         !fixedInCurrency &&
         (!eligible || storeRate === undefined) && (
           <p className="text-xs text-muted-foreground">
@@ -280,6 +285,7 @@ function SalePriceField({
 
 export function SaleForm({
   productId,
+  setCheckout,
   scope,
   options,
   disabled,
@@ -287,6 +293,10 @@ export function SaleForm({
   onSubmittingChange,
 }: {
   productId: string;
+  setCheckout?: {
+    selection: SaleJewelrySetSelection;
+    products: JewelrySetProduct[];
+  };
   scope: SaleScope;
   options: SaleOptions;
   disabled: boolean;
@@ -337,14 +347,19 @@ export function SaleForm({
       customerReportingRate: "",
       noPayment: false,
       saleAmount: "",
-      items: [],
+      items:
+        setCheckout?.products.slice(1).map(({ id, code, name }) => ({
+          productId: id,
+          label: `${code} · ${name}`,
+          saleAmount: "",
+        })) ?? [],
       tradeIns: [],
       payments: [],
     },
     mode: "onSubmit",
     // Keep inline errors in place while a submit click moves focus off an input.
     reValidateMode: "onSubmit",
-    resolver: saleResolver(productId, options),
+    resolver: saleResolver(productId, options, setCheckout?.selection),
   });
   const tradeIns = useFieldArray({ control: form.control, name: "tradeIns" });
   const items = useFieldArray({ control: form.control, name: "items" });
@@ -403,6 +418,7 @@ export function SaleForm({
       customerReportingRate,
     },
     options,
+    setCheckout && { productId, jewelrySet: setCheckout.selection },
   );
   const previewKey = previewInput ? JSON.stringify(previewInput) : undefined;
   const [debouncedPreview, setDebouncedPreview] = useState<{
@@ -424,6 +440,14 @@ export function SaleForm({
       ? debouncedPreview.input
       : undefined;
   const previewQuery = useQuery(salePreviewQuery(scope, activePreview));
+  const setPreviewError =
+    previewQuery.error?.code === "JEWELRY_SET_CHANGED"
+      ? "setChanged"
+      : previewQuery.error?.code === "JEWELRY_SET_PRODUCT_UNAVAILABLE"
+        ? "setUnavailable"
+        : previewQuery.error?.code === "JEWELRY_SET_NOT_FOUND"
+          ? "setMissing"
+          : undefined;
   const pricingPreviewError =
     previewQuery.error?.code === "GOLD_PRICE_UNAVAILABLE"
       ? "errors.rateUnavailable"
@@ -467,7 +491,7 @@ export function SaleForm({
   );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting.current || disabled) return;
+    if (submitting.current || disabled || setPreviewError) return;
     submitting.current = true;
     onSubmittingChange(true);
     try {
@@ -568,6 +592,7 @@ export function SaleForm({
           name="saleAmount"
           scope={scope}
           productId={productId}
+          component={setCheckout?.products[0]}
           currency={currency}
           retailRates={options.retailRates}
           disabled={disabled}
@@ -584,56 +609,60 @@ export function SaleForm({
               name={`items.${index}.saleAmount`}
               scope={scope}
               productId={item.productId}
+              component={setCheckout?.products[index + 1]}
               currency={currency}
               retailRates={options.retailRates}
               disabled={disabled}
               id={`sale-item-amount-${item.id}`}
               error={errors.items?.[index]?.saleAmount}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-11 justify-self-start lg:min-h-9"
-              onClick={() => items.remove(index)}
-            >
-              <Trash2 aria-hidden="true" />
-              {t("removeProduct")}
-            </Button>
+            {!setCheckout && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 justify-self-start lg:min-h-9"
+                onClick={() => items.remove(index)}
+              >
+                <Trash2 aria-hidden="true" />
+                {t("removeProduct")}
+              </Button>
+            )}
           </div>
         ))}
-        {picking ? (
-          <ProductPicker
-            scope={scope}
-            excluded={[
-              productId,
-              ...items.fields.map((item) => item.productId),
-            ]}
-            close={() => setPicking(false)}
-            select={(product) => {
-              items.append(
-                {
-                  productId: product.id,
-                  label: `${product.code} · ${product.name}`,
-                  saleAmount: "",
-                },
-                { focusName: `items.${items.fields.length}.saleAmount` },
-              );
-              setPicking(false);
-            }}
-          />
-        ) : (
-          items.fields.length + 1 < maxSaleItems && (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11 justify-self-start lg:min-h-9"
-              onClick={() => setPicking(true)}
-            >
-              <Plus aria-hidden="true" />
-              {t("addProduct")}
-            </Button>
-          )
-        )}
+        {!setCheckout &&
+          (picking ? (
+            <ProductPicker
+              scope={scope}
+              excluded={[
+                productId,
+                ...items.fields.map((item) => item.productId),
+              ]}
+              close={() => setPicking(false)}
+              select={(product) => {
+                items.append(
+                  {
+                    productId: product.id,
+                    label: `${product.code} · ${product.name}`,
+                    saleAmount: "",
+                  },
+                  { focusName: `items.${items.fields.length}.saleAmount` },
+                );
+                setPicking(false);
+              }}
+            />
+          ) : (
+            items.fields.length + 1 < maxSaleItems && (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 justify-self-start lg:min-h-9"
+                onClick={() => setPicking(true)}
+              >
+                <Plus aria-hidden="true" />
+                {t("addProduct")}
+              </Button>
+            )
+          ))}
         <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
           <h3 className="font-medium">{t("tradeIns")}</h3>
           {!rates.length && (
@@ -755,7 +784,7 @@ export function SaleForm({
               {t("previewLoading")}
             </p>
           )}
-          {activePreview && previewQuery.isError && (
+          {activePreview && previewQuery.isError && !setPreviewError && (
             <div className="flex flex-wrap items-center gap-3">
               <p role="alert" className="text-destructive">
                 {t(pricingPreviewError ?? "previewFailed")}
@@ -998,7 +1027,13 @@ export function SaleForm({
             </p>
           )}
         </section>
+        {setPreviewError && (
+          <p role="alert" className="text-destructive">
+            {t(`errors.${setPreviewError}`)}
+          </p>
+        )}
         {message &&
+          message !== setPreviewError &&
           message !== "unknownOutcome" &&
           message !== "customerRequired" &&
           message !== "customerMissing" && (
@@ -1014,7 +1049,9 @@ export function SaleForm({
           ref={saveButton}
           type="submit"
           className="min-h-11 justify-self-start lg:min-h-9"
-          disabled={form.formState.isSubmitting || disabled}
+          disabled={
+            form.formState.isSubmitting || disabled || !!setPreviewError
+          }
         >
           {t(submission.busy ? "saving" : "save")}
         </PendingButton>

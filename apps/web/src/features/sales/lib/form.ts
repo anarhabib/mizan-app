@@ -8,6 +8,7 @@ import {
   type SalePaymentInput,
   type SalePreviewInput,
   type SaleCreateInput,
+  type SaleJewelrySetSelection,
 } from "@mizan/contracts";
 import type { FieldErrors, FieldPath, Resolver } from "react-hook-form";
 import type { ApiError } from "@/shared/lib/api";
@@ -160,6 +161,7 @@ export function buildSalePayload(
   values: SaleFormValues,
   productId: string,
   { currency, rates }: SaleOptions,
+  jewelrySet?: SaleJewelrySetSelection,
 ): { input: SaleCreateInput } | Invalid {
   const saleAmount = amount(values.saleAmount, currency, true);
   if (saleAmount === undefined) return { field: "saleAmount" };
@@ -180,8 +182,8 @@ export function buildSalePayload(
   if ("field" in parsed) return parsed;
   const tradeIns = parsed.lines;
   const input: SaleCreateInput =
-    items.length > 1
-      ? { items, expectedCurrency: currency }
+    items.length > 1 || jewelrySet
+      ? { items, expectedCurrency: currency, ...(jewelrySet && { jewelrySet }) }
       : { productId, saleAmount, expectedCurrency: currency };
   if (tradeIns.length) input.tradeIns = tradeIns;
   if (values.customerId) input.customerId = values.customerId;
@@ -199,6 +201,7 @@ export function buildSalePreviewInput(
       >
     >,
   { currency, rates }: SaleOptions,
+  setCheckout?: { productId: string; jewelrySet: SaleJewelrySetSelection },
 ): SalePreviewInput | undefined {
   const { tradeIns: rows } = values;
   if (rows.length > maxTradeIns) return undefined;
@@ -230,20 +233,35 @@ export function buildSalePreviewInput(
     },
     currency,
   );
-  return {
+  const terms = {
     expectedCurrency: currency,
     tradeIns,
-    ...(saleAmounts && { saleAmounts }),
     ...("input" in payments && payments.input),
   };
+  if (setCheckout && saleAmounts) {
+    const productIds = [
+      setCheckout.productId,
+      ...(values.items ?? []).map(({ productId }) => productId),
+    ];
+    return {
+      ...terms,
+      jewelrySet: setCheckout.jewelrySet,
+      items: saleAmounts.map((saleAmount, index) => ({
+        productId: productIds[index],
+        saleAmount,
+      })),
+    };
+  }
+  return { ...terms, ...(saleAmounts && { saleAmounts }) };
 }
 
 export function saleResolver(
   productId: string,
   options: SaleOptions,
+  jewelrySet?: SaleJewelrySetSelection,
 ): Resolver<SaleFormValues, unknown, SaleCreateInput> {
   return (values) => {
-    const built = buildSalePayload(values, productId, options);
+    const built = buildSalePayload(values, productId, options, jewelrySet);
     if ("input" in built) return { values: built.input, errors: {} };
     const error = { type: "validate" };
     const [group, index, field] = built.field.split(".");
@@ -330,5 +348,11 @@ export function saleError(error: ApiError, tradeInCount: number) {
     return { message: "productMissing" } as const;
   if (error.code === "SALE_NOT_FOUND")
     return { message: "saleMissing" } as const;
+  if (error.code === "JEWELRY_SET_NOT_FOUND")
+    return { message: "setMissing" } as const;
+  if (error.code === "JEWELRY_SET_CHANGED")
+    return { message: "setChanged" } as const;
+  if (error.code === "JEWELRY_SET_PRODUCT_UNAVAILABLE")
+    return { message: "setUnavailable" } as const;
   return { message: "generic" } as const;
 }

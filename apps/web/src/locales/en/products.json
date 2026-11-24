@@ -1,5 +1,7 @@
 {
   "sets": {
+    "sellComplete": "Sell entire set",
+    "sellSelected": "Sell selected available components",
     "title": "Jewelry sets",
     "create": "Create set",
     "detail": "Set details",

@@ -29,10 +29,11 @@ export type JewelrySetProduct = Pick<
   Pick<
     ProductDetail,
     | "netGoldWeight"
+    | "fixedSellingPrice"
     | "acquisitionCost"
     | "acquisitionCostPerGram"
     | "acquisitionBreakdown"
-  >;
+  > & { hasGemstones?: boolean };
 
 export type JewelrySetTotals = {
   itemCount: number;

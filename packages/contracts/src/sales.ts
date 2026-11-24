@@ -2,9 +2,25 @@ import type { MoneyInput } from "./money.js";
 
 export type SaleCreateInput = SaleTerms &
   (
-    | { productId: string; saleAmount: string; items?: never }
-    | { items: SaleItemInput[]; productId?: never; saleAmount?: never }
+    | {
+        productId: string;
+        saleAmount: string;
+        items?: never;
+        jewelrySet?: never;
+      }
+    | {
+        items: SaleItemInput[];
+        productId?: never;
+        saleAmount?: never;
+        jewelrySet?: SaleJewelrySetSelection;
+      }
   );
+
+export interface SaleJewelrySetSelection {
+  id: string;
+  revision: number;
+  mode: "complete" | "selected";
+}
 
 export interface SaleItemInput {
   productId: string;
@@ -20,13 +36,19 @@ export interface SaleTradeInInput {
   overrideAmount?: string;
 }
 
-export interface SalePreviewInput {
+export type SalePreviewInput = {
   expectedCurrency?: string;
-  saleAmounts?: string[];
   tradeIns: SaleTradeInInput[];
   payments?: SalePaymentInput[];
   customerReportingRate?: string;
-}
+} & (
+  | { saleAmounts?: string[]; items?: never; jewelrySet?: never }
+  | {
+      items: SaleItemInput[];
+      jewelrySet: SaleJewelrySetSelection;
+      saleAmounts?: never;
+    }
+);
 
 export interface SaleTradeInPreview {
   purity: number;
@@ -159,6 +181,7 @@ export interface SaleList {
 
 export interface SaleResult {
   id: string;
+  jewelrySet?: { id: string; name: string };
   customerId?: string;
   customerName?: string;
   outstandingDebt: string;

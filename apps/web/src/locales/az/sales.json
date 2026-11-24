@@ -1,4 +1,18 @@
 {
+  "sellJewelrySet": "Zinət əşyası dəsti sat",
+  "chooseCompleteSet": "Tam dəsti seçin",
+  "searchSets": "Dəstləri axtar",
+  "noAvailableSets": "Satış üçün tam dəst yoxdur.",
+  "selectSetComponents": "Bu satışa daxil etmək istədiyiniz məhsulları seçin.",
+  "continueWithComponents_one": "{{count}} məhsulla davam et",
+  "continueWithComponents_other": "{{count}} məhsulla davam et",
+  "completeSetCount_one": "Tam dəst · {{count}} məhsul",
+  "completeSetCount_other": "Tam dəst · {{count}} məhsul",
+  "selectedSetCount_one": "{{count}} seçilmiş məhsul",
+  "selectedSetCount_other": "{{count}} seçilmiş məhsul",
+  "setReceipt": "Zinət əşyası dəsti: {{name}}",
+  "setRetryRequired": "Satışın nəticəsini yoxlamaq mümkün olmadı. Qəbzi bərpa etmək və ya satışı tamamlamaq üçün eyni satışı yenidən yoxlayın.",
+  "retrySetSale": "Bu satışı yenidən göndər",
   "dateFrom": "Satışın başlanğıc tarixi",
   "dateTo": "Satışın bitmə tarixi",
   "invalidDateRange": "Bitmə tarixi başlanğıc tarixindən əvvəl ola bilməz.",
@@ -130,6 +144,9 @@
     "outstandingDebt": "Qalıq borc"
   },
   "errors": {
+    "setMissing": "Bu dəst artıq mövcud deyil. Satışa başlamaq üçün başqa dəst açın.",
+    "setChanged": "Dəst dəyişib. Satışdan əvvəl dəsti yenidən açıb məhsullarını yoxlayın.",
+    "setUnavailable": "Bir və ya bir neçə məhsul satışda yoxdur. Mövcud məhsulları seçmək üçün dəsti yenidən açın.",
     "currencyChanged": "Satış valyutası dəyişib. Yenidən göndərməzdən əvvəl yeni valyutanı, məbləğləri və tarifləri yoxlayın.",
     "conflict": "Məhsul və ya satış məlumatları dəyişdiyi üçün satış qeydə alınmadı. Cari vəziyyəti yoxlayın.",
     "productMissing": "Məhsul tapılmadı.",

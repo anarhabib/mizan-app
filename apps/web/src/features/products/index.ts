@@ -4,6 +4,7 @@ export { ProductPicker } from "./components/ProductPicker";
 export { ProductThumbnail } from "./components/ProductThumbnail";
 export { ProductStatusBadge } from "./components/ProductList";
 export { ProductForm } from "./components/ProductForm";
+export { jewelrySetDetailQuery, jewelrySetListQuery } from "./api/jewelry-sets";
 export {
   cacheSoldProduct,
   invalidateProductInventory,

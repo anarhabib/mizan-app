@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Plus, X } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -194,6 +195,32 @@ export function JewelrySetPanel({
                 <SetAvailability totals={set.totals} />
               </div>
               <SetTotals totals={set.totals} />
+              {set.totals.unavailableCount < set.totals.itemCount && (
+                <div className="flex flex-wrap gap-2">
+                  {set.totals.unavailableCount === 0 && (
+                    <Button asChild className="min-h-11 lg:min-h-9">
+                      <Link
+                        to="/sales"
+                        search={{ jewelrySet: set.id, setMode: "complete" }}
+                      >
+                        {t("sets.sellComplete")}
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-auto min-h-11 max-w-full whitespace-normal lg:min-h-9"
+                  >
+                    <Link
+                      to="/sales"
+                      search={{ jewelrySet: set.id, setMode: "selected" }}
+                    >
+                      {t("sets.sellSelected")}
+                    </Link>
+                  </Button>
+                </div>
+              )}
               <section className="grid gap-2">
                 <h3 className="font-semibold">{t("sets.components")}</h3>
                 <ul className="divide-y rounded-lg border">

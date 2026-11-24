@@ -1,4 +1,18 @@
 {
+  "sellJewelrySet": "Sell a jewelry set",
+  "chooseCompleteSet": "Choose a complete set",
+  "searchSets": "Search jewelry sets",
+  "noAvailableSets": "No complete sets are available.",
+  "selectSetComponents": "Select the components to include in this sale.",
+  "continueWithComponents_one": "Continue with {{count}} component",
+  "continueWithComponents_other": "Continue with {{count}} components",
+  "completeSetCount_one": "Entire set · {{count}} component",
+  "completeSetCount_other": "Entire set · {{count}} components",
+  "selectedSetCount_one": "{{count}} selected component",
+  "selectedSetCount_other": "{{count}} selected components",
+  "setReceipt": "Jewelry set: {{name}}",
+  "setRetryRequired": "The sale result could not be verified. Retry the same checkout to recover the receipt or finish recording the sale.",
+  "retrySetSale": "Retry this checkout",
   "dateFrom": "Sale date from",
   "dateTo": "Sale date to",
   "invalidDateRange": "The end date must be on or after the start date.",
@@ -130,6 +144,9 @@
     "outstandingDebt": "Outstanding debt"
   },
   "errors": {
+    "setMissing": "This jewelry set no longer exists. Open another set to start a sale.",
+    "setChanged": "The set has changed. Reopen it and review its components before selling.",
+    "setUnavailable": "One or more components are unavailable. Reopen the set to select available components.",
     "currencyChanged": "The sale currency changed. Review the updated currency, amounts, and rates before submitting again.",
     "conflict": "The sale could not be recorded because the product or sale data changed. Check its current status.",
     "productMissing": "The product could not be found.",
