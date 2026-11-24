@@ -29,6 +29,7 @@ import {
 } from "../api/queries";
 import { SaleDate } from "./SaleResult";
 import { SalePaymentStatusBadge } from "./SalePaymentStatusBadge";
+import { SalesOverview } from "./SalesOverview";
 
 export function SaleList({
   scope,
@@ -55,18 +56,45 @@ export function SaleList({
     );
     return () => window.clearTimeout(timer);
   }, [search]);
-  const requestFilters = { ...active, q: q || undefined };
+  const { date, dateFrom, dateTo, ...otherFilters } = active;
+  const period = {
+    dateFrom: dateFrom ?? (dateTo ? undefined : date),
+    dateTo: dateTo ?? (dateFrom ? undefined : date),
+  };
+  const invalidRange = Boolean(
+    period.dateFrom && period.dateTo && period.dateFrom > period.dateTo,
+  );
+  const requestFilters = { ...otherFilters, ...period, q: q || undefined };
   const pagination = useCursorPagination(JSON.stringify(requestFilters));
   const query = useQuery(
-    saleListQuery(scope, requestFilters, pagination.request),
+    saleListQuery(scope, requestFilters, pagination.request, !invalidRange),
   );
   const rows = query.data?.items ?? [];
   const filtered = Boolean(
-    q || active.date || active.paymentDate || active.paymentStatus,
+    q ||
+    period.dateFrom ||
+    period.dateTo ||
+    active.paymentDate ||
+    active.paymentStatus,
   );
+  const clearFilters = () => {
+    setSearch("");
+    setQuery("");
+    changeFilters({});
+  };
 
   return (
     <div className="space-y-4">
+      <SalesOverview
+        scope={scope}
+        period={period}
+        invalidRange={invalidRange}
+        showPeriodSales={() => {
+          setSearch("");
+          setQuery("");
+          changeFilters(period);
+        }}
+      />
       <div
         role="search"
         className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-end"
@@ -85,19 +113,39 @@ export function SaleList({
           />
         </div>
         <div className="grid min-w-0 gap-2">
-          <Label htmlFor="sale-date">{t("date")}</Label>
-          <Input
-            id="sale-date"
-            type="date"
-            value={active.date ?? ""}
-            onChange={(event) =>
-              changeFilters({
-                ...active,
-                date: event.target.value || undefined,
-              })
-            }
-            className="min-h-11 lg:min-h-9"
-          />
+          <div className="grid min-w-0 grid-cols-2 gap-2">
+            {(["dateFrom", "dateTo"] as const).map((bound) => (
+              <div key={bound} className="grid min-w-0 gap-2">
+                <Label htmlFor={`sale-${bound}`}>{t(bound)}</Label>
+                <Input
+                  id={`sale-${bound}`}
+                  type="date"
+                  value={period[bound] ?? ""}
+                  aria-invalid={invalidRange}
+                  aria-describedby={
+                    invalidRange ? "sales-range-error" : undefined
+                  }
+                  onChange={(event) =>
+                    changeFilters({
+                      ...otherFilters,
+                      ...period,
+                      [bound]: event.target.value || undefined,
+                    })
+                  }
+                  className="min-h-11 lg:min-h-9"
+                />
+              </div>
+            ))}
+          </div>
+          {invalidRange && (
+            <p
+              id="sales-range-error"
+              role="alert"
+              className="text-sm text-destructive"
+            >
+              {t("invalidDateRange")}
+            </p>
+          )}
         </div>
         <div className="grid min-w-0 gap-2">
           <Label htmlFor="payment-status">{t("paymentStatusLabel")}</Label>
@@ -148,17 +196,15 @@ export function SaleList({
             type="button"
             variant="ghost"
             className="min-h-11 justify-self-start lg:min-h-9"
-            onClick={() => {
-              setSearch("");
-              setQuery("");
-              changeFilters({});
-            }}
+            onClick={clearFilters}
           >
             {t("clearFilters")}
           </Button>
         )}
       </div>
       <section
+        id="sales-results"
+        hidden={invalidRange}
         aria-label={t("title")}
         aria-busy={query.isFetching}
         className="space-y-3"

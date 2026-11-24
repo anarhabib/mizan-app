@@ -1,8 +1,10 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import type {
   SaleList,
+  SaleDateFilter,
   SalePaymentStatus,
   SaleOptions,
+  SaleOverview,
   MoneyInput,
   SalePaymentInput,
   SalePreview,
@@ -14,18 +16,19 @@ import { apiRequest, type ApiError } from "@/shared/lib/api";
 import type { CursorPage } from "@/shared/hooks/useCursorPagination";
 
 export type SaleScope = Pick<StoreContext, "organizationId" | "storeId">;
-export type SaleFilters = {
+export type SaleFilters = SaleDateFilter & {
   q?: string;
-  date?: string;
   paymentDate?: string;
   paymentStatus?: SalePaymentStatus;
 };
+export type SalePeriod = Pick<SaleDateFilter, "dateFrom" | "dateTo">;
 
 const scopeKey = ({ organizationId, storeId }: SaleScope) =>
   ["sales", organizationId, storeId] as const;
 
 export const saleKeys = {
   lists: (scope: SaleScope) => [...scopeKey(scope), "list"] as const,
+  overview: (scope: SaleScope) => [...scopeKey(scope), "overview"] as const,
   list: (scope: SaleScope, filters: SaleFilters) =>
     [...saleKeys.lists(scope), filters] as const,
   detail: (scope: SaleScope, id: string) =>
@@ -69,6 +72,7 @@ export function saleListQuery(
   scope: SaleScope,
   filters: SaleFilters,
   page: CursorPage,
+  enabled = true,
 ) {
   return queryOptions<SaleList, ApiError>({
     queryKey: [...saleKeys.list(scope, filters), page] as const,
@@ -79,9 +83,45 @@ export function saleListQuery(
           signal,
         },
       ),
-    placeholderData: keepPreviousData,
+    enabled,
+    placeholderData: (previous, query) => {
+      const previousFilters = query?.queryKey[4] as SaleFilters | undefined;
+      if (
+        previousFilters?.date === filters.date &&
+        previousFilters?.dateFrom === filters.dateFrom &&
+        previousFilters?.dateTo === filters.dateTo
+      )
+        return previous;
+    },
     staleTime: 15_000,
   });
+}
+
+export function saleOverviewQuery(
+  scope: SaleScope,
+  period: SalePeriod,
+  enabled = true,
+) {
+  return queryOptions<SaleOverview, ApiError>({
+    queryKey: [...saleKeys.overview(scope), period],
+    queryFn: ({ signal }) =>
+      apiRequest<SaleOverview>(salePath(scope, "/overview", period), {
+        signal,
+      }),
+    enabled,
+    staleTime: 15_000,
+  });
+}
+
+export function invalidateSaleOverviews(client: QueryClient, scope: SaleScope) {
+  return Promise.all(
+    client
+      .getQueryCache()
+      .findAll({ queryKey: saleKeys.overview(scope) })
+      .map(({ queryKey }) =>
+        client.invalidateQueries({ queryKey, exact: true }),
+      ),
+  );
 }
 
 export function saleDetailQuery(scope: SaleScope, id: string) {

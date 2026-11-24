@@ -1,4 +1,20 @@
 {
+  "dateFrom": "Дата продажи с",
+  "dateTo": "Дата продажи по",
+  "invalidDateRange": "Дата окончания не может быть раньше даты начала.",
+  "overview": {
+    "periodAll": "Все даты продаж",
+    "periodFrom": "С {{from}}",
+    "periodTo": "По {{to}}",
+    "periodRange": "{{from}} – {{to}}",
+    "title": "Обзор продаж",
+    "completedSales": "Завершённые продажи",
+    "salesAmount": "Сумма продаж",
+    "amountReceived": "Полученные платежи",
+    "outstandingDebt": "Остаток долга",
+    "productsSold": "Проданные изделия",
+    "noAmounts": "—"
+  },
   "recordedBy": "Оформил(а): {{name}}",
   "paymentRecordedBy": "Принял(а) оплату",
   "itemPricing": {

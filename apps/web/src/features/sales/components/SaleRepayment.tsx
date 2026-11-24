@@ -17,7 +17,12 @@ import { invalidateProductInventory, productKeys } from "@/features/products";
 import { apiRequest, ApiError } from "@/shared/lib/api";
 import { MoneyText } from "@/shared/ui/MoneyText";
 import { useWorkspace } from "@/features/workspace";
-import { saleKeys, salePath, type SaleScope } from "../api/queries";
+import {
+  invalidateSaleOverviews,
+  saleKeys,
+  salePath,
+  type SaleScope,
+} from "../api/queries";
 import { buildPayment, saleError, type PaymentValues } from "../lib/form";
 import { PaymentFields } from "./PaymentFields";
 
@@ -90,6 +95,7 @@ export function SaleRepayment({
       await Promise.all([
         invalidateCustomers(client, scope, customerId),
         invalidateProductInventory(client, scope),
+        invalidateSaleOverviews(client, scope),
         ...[
           detailKey,
           ...details,

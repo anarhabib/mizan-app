@@ -194,3 +194,16 @@ export interface SaleResult {
   };
   tradeIns: Array<SaleTradeInPreview & { id: string }>;
 }
+export interface SaleDateFilter {
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface SaleOverview {
+  completedSales: number;
+  productsSold: number;
+  salesAmount: MoneyInput[];
+  amountReceived: MoneyInput[];
+  outstandingDebt: MoneyInput[];
+}
