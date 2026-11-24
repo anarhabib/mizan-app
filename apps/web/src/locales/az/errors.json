@@ -1,4 +1,8 @@
 {
+  "INVALID_REPAIR": "Təmir məlumatlarını yoxlayın.",
+  "REPAIR_NOT_FOUND": "Təmir qeydi tapılmadı.",
+  "REPAIR_CONFLICT": "Məhsulun və ya təmirin hazırkı vəziyyəti bu əməliyyata icazə vermir. Məhsul məlumatlarını yeniləyib yenidən cəhd edin.",
+  "REPAIR_REQUEST_CONFLICT": "Bu sorğu açarı fərqli təmir əməliyyatı üçün istifadə edilib.",
   "INVALID_JEWELRY_SET": "Dəst məlumatlarını yoxlayın.",
   "JEWELRY_SET_NOT_FOUND": "Dəst tapılmadı.",
   "JEWELRY_SET_CHANGED": "Dəst dəyişdirilib. Son vəziyyəti görmək üçün formanı bağlayıb yenidən açın.",

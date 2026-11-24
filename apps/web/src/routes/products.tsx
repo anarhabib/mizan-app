@@ -21,11 +21,17 @@ export const Route = createFileRoute("/products")({
         ? search.product || undefined
         : undefined,
     status:
-      search.status === "IN_STOCK" || search.status === "SOLD"
+      search.status === "IN_STOCK" ||
+      search.status === "SOLD" ||
+      search.status === "IN_REPAIR"
         ? search.status
         : undefined,
     credit:
-      search.credit === true && search.status !== "IN_STOCK" ? true : undefined,
+      search.credit === true &&
+      search.status !== "IN_STOCK" &&
+      search.status !== "IN_REPAIR"
+        ? true
+        : undefined,
     soldOn: isBusinessDate(search.soldOn) ? search.soldOn : undefined,
     receivedOn: isBusinessDate(search.receivedOn)
       ? search.receivedOn

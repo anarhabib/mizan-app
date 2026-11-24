@@ -1,4 +1,8 @@
 {
+  "INVALID_REPAIR": "Check the repair details.",
+  "REPAIR_NOT_FOUND": "Repair record was not found.",
+  "REPAIR_CONFLICT": "The current product or repair status prevents this action. Refresh the product and try again.",
+  "REPAIR_REQUEST_CONFLICT": "This request key was used for a different repair action.",
   "INVALID_JEWELRY_SET": "Check the set information.",
   "JEWELRY_SET_NOT_FOUND": "The jewelry set could not be found.",
   "JEWELRY_SET_CHANGED": "This set has changed. Close and reopen the form to review the latest version.",

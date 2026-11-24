@@ -4,6 +4,7 @@ import {
   purchasePaymentStatuses,
   supplierPaymentMethods,
   type MoneyInput,
+  type ProductGemstone,
   type PurchaseDetail,
   type PurchasePaymentStatus,
   type PurchaseSummary,
@@ -97,9 +98,17 @@ const paymentAmounts = Prisma.sql`
   WHERE (t."organizationId", t."storeId", t."purchaseId") = (p."organizationId", p."storeId", p.id)
 `;
 const itemTotals = Prisma.sql`
-  SELECT COUNT(*)::int AS "productCount", COALESCE(SUM(r.weight), 0) AS "grossWeight"
+  SELECT COUNT(*)::int AS "productCount", COALESCE(SUM(COALESCE(original.weight, r.weight)), 0) AS "grossWeight"
   FROM "mizan"."PurchaseItem" i
   JOIN "mizan"."Product" r ON (r."organizationId", r."storeId", r.id) = (i."organizationId", i."storeId", i."productId")
+  LEFT JOIN LATERAL (
+    SELECT repair."beforeWeight" AS weight
+    FROM "mizan"."Repair" repair
+    WHERE (repair."organizationId", repair."storeId", repair."productId") = (i."organizationId", i."storeId", i."productId")
+      AND repair.status = 'COMPLETED'
+    ORDER BY repair."createdAt", repair.id
+    LIMIT 1
+  ) original ON TRUE
   WHERE (i."organizationId", i."storeId", i."purchaseId") = (p."organizationId", p."storeId", p.id)
 `;
 const itemCount = Prisma.sql`
@@ -397,6 +406,16 @@ export async function getPurchase(
               metalType: true,
               netGoldWeight: true,
               gemstones: detailFields(access).gemstones,
+              repairs: {
+                where: { status: "COMPLETED" },
+                orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                take: 1,
+                select: {
+                  beforeWeight: true,
+                  beforeNetWeight: true,
+                  beforeGemstones: true,
+                },
+              },
               acquisitionCostPerGram: true,
               acquisitionMetal: true,
               acquisitionGemstones: true,
@@ -415,10 +434,18 @@ export async function getPurchase(
     actorName: row.actor.membership.user.fullName,
     products: row.items.map(({ acquisitionCost, product }) => ({
       ...presentListItem(product),
+      ...(product.repairs[0] && {
+        weight: product.repairs[0].beforeWeight.toFixed(3),
+      }),
       category: product.category,
       metalType: product.metalType,
-      netGoldWeight: product.netGoldWeight?.toFixed(),
-      gemstones: presentGemstones(product.gemstones),
+      netGoldWeight: (product.repairs[0]
+        ? product.repairs[0].beforeNetWeight
+        : product.netGoldWeight
+      )?.toFixed(),
+      gemstones: product.repairs[0]
+        ? (product.repairs[0].beforeGemstones as unknown as ProductGemstone[])
+        : presentGemstones(product.gemstones),
       acquisitionCost: money(acquisitionCost, amounts.currency),
       acquisitionCostPerGram: product.acquisitionCostPerGram
         ? money(product.acquisitionCostPerGram, amounts.currency)
@@ -443,7 +470,12 @@ export async function listSupplierProducts(
   await getSupplierRow(db, scope, supplierId);
   const limit = readPageSize(filters.limit ?? "10", "INVALID_SUPPLIER");
   const { status, categoryId, purity, after } = filters;
-  if (status !== undefined && status !== "IN_STOCK" && status !== "SOLD")
+  if (
+    status !== undefined &&
+    status !== "IN_STOCK" &&
+    status !== "SOLD" &&
+    status !== "IN_REPAIR"
+  )
     bad("status");
   if (categoryId !== undefined && !uuidPattern.test(categoryId))
     bad("categoryId");

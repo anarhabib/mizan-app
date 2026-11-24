@@ -7,7 +7,7 @@ import {
   type ProductCategory,
 } from "./product-categories.js";
 
-export type ProductStatus = "IN_STOCK" | "SOLD";
+export type ProductStatus = "IN_STOCK" | "SOLD" | "IN_REPAIR";
 export type ProductMetal = "GOLD";
 export const productRegistrationSources = [
   "OPENING_STOCK",
@@ -121,7 +121,13 @@ export interface ProductDetail extends ProductListItem {
   photo: { url: string; contentType: string; size: number } | null;
   movements: {
     id: string;
-    kind: "PRODUCT_ADDED" | "PRODUCT_SOLD" | "OLD_GOLD_RECEIVED";
+    kind:
+      | "PRODUCT_ADDED"
+      | "PRODUCT_SOLD"
+      | "OLD_GOLD_RECEIVED"
+      | "REPAIR_SENT"
+      | "REPAIR_COMPLETED"
+      | "REPAIR_CANCELED";
     actorId: string;
     actorName?: string | null;
     registrationSource?: ProductRegistrationSource;
@@ -248,19 +254,12 @@ export function parseProductCreate(
     return { field: "metalType" };
   const acquisition = parseProductAcquisition(raw);
   if ("field" in acquisition) return acquisition;
-  const gemstones: ProductGemstone[] = [];
+  const groups = parseProductGemstones(
+    raw.gemstones === undefined ? [] : raw.gemstones,
+  );
+  if ("field" in groups) return groups;
   if (raw.gemstones !== undefined) {
-    if (
-      !Array.isArray(raw.gemstones) ||
-      raw.gemstones.length > maxGemstoneGroups
-    )
-      return { field: "gemstones" };
-    for (const [index, value] of raw.gemstones.entries()) {
-      const group = parseGemstone(value, index);
-      if ("field" in group) return { field: group.field };
-      gemstones.push(group.gemstone);
-    }
-    if (gemstones.length && !acquisition.input.acquisitionCost)
+    if (groups.gemstones.length && !acquisition.input.acquisitionCost)
       return { field: "acquisitionCost" };
   }
   const note =
@@ -277,7 +276,7 @@ export function parseProductCreate(
       purity,
       note,
       ...(raw.metalType && { metalType: raw.metalType }),
-      ...(raw.gemstones !== undefined && { gemstones }),
+      ...(raw.gemstones !== undefined && groups),
     },
     total: acquisition.total,
   };
@@ -287,6 +286,20 @@ const weightScale = 3;
 const rateScale = 16;
 const totalScale = 4;
 const productScale = weightScale + rateScale;
+
+export function parseProductGemstones(
+  value: unknown,
+): { gemstones: ProductGemstone[] } | { field: ProductField } {
+  if (!Array.isArray(value) || value.length > maxGemstoneGroups)
+    return { field: "gemstones" };
+  const gemstones: ProductGemstone[] = [];
+  for (const [index, raw] of value.entries()) {
+    const group = parseGemstone(raw, index);
+    if ("field" in group) return group;
+    gemstones.push(group.gemstone);
+  }
+  return { gemstones };
+}
 
 function isPositiveDecimal(
   value: unknown,
@@ -341,6 +354,23 @@ function readMoney(
   }
 }
 
+export function parseProductWeights(
+  weight: unknown,
+  netGoldWeight: unknown,
+):
+  | { weight: string; netGoldWeight?: string | null }
+  | { field: "weight" | "netGoldWeight" } {
+  if (!isPositiveDecimal(weight, 12, weightScale)) return { field: "weight" };
+  if (
+    netGoldWeight != null &&
+    (!isPositiveDecimal(netGoldWeight, 12, weightScale) ||
+      decimalUnits(netGoldWeight, weightScale) >
+        decimalUnits(weight, weightScale))
+  )
+    return { field: "netGoldWeight" };
+  return { weight, ...(netGoldWeight !== undefined && { netGoldWeight }) };
+}
+
 export function parseProductAcquisition(value: unknown):
   | { input: ProductAcquisitionInput; total: MoneyInput }
   | {
@@ -349,16 +379,8 @@ export function parseProductAcquisition(value: unknown):
         | `acquisitionBreakdown.${keyof AcquisitionBreakdown}`;
     } {
   const raw = value as Partial<ProductAcquisitionInput> | undefined;
-  const weight = raw?.weight;
-  if (!isPositiveDecimal(weight, 12, weightScale)) return { field: "weight" };
-  const netGoldWeight = raw?.netGoldWeight;
-  if (
-    netGoldWeight != null &&
-    (!isPositiveDecimal(netGoldWeight, 12, weightScale) ||
-      decimalUnits(netGoldWeight, weightScale) >
-        decimalUnits(weight, weightScale))
-  )
-    return { field: "netGoldWeight" };
+  const weights = parseProductWeights(raw?.weight, raw?.netGoldWeight);
+  if ("field" in weights) return weights;
   const fixedSellingPrice =
     raw?.fixedSellingPrice == null
       ? raw?.fixedSellingPrice
@@ -366,8 +388,7 @@ export function parseProductAcquisition(value: unknown):
   if (raw?.fixedSellingPrice != null && !fixedSellingPrice)
     return { field: "fixedSellingPrice" };
   const weightsAndPrice = {
-    weight,
-    ...(netGoldWeight !== undefined && { netGoldWeight }),
+    ...weights,
     ...(fixedSellingPrice !== undefined && { fixedSellingPrice }),
   };
   if (raw?.acquisitionCost !== undefined) {
@@ -411,7 +432,7 @@ export function parseProductAcquisition(value: unknown):
     return { field: "acquisitionBreakdown" };
   const rate = readMoney(raw?.acquisitionCostPerGram, 19, rateScale);
   if (!rate) return { field: "acquisitionCostPerGram" };
-  const grams = decimalUnits(weight, weightScale);
+  const grams = decimalUnits(weights.weight, weightScale);
   const perGram = decimalUnits(rate.amount, rateScale);
   const digits = (grams * perGram).toString().padStart(productScale + 1, "0");
   const amount = roundMoneyHalfUp(

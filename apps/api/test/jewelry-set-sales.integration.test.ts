@@ -46,7 +46,7 @@ function send(
   method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   payload?: object,
-  key = randomUUID(),
+  key: string = randomUUID(),
   token?: string,
 ) {
   return app.inject({

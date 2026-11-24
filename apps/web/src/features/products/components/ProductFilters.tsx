@@ -27,7 +27,7 @@ import {
 
 type FacetFilters = Omit<Filters, "q">;
 const all = "all";
-const statuses = ["IN_STOCK", "SOLD", "SOLD_ON_CREDIT"] as const;
+const statuses = ["IN_STOCK", "IN_REPAIR", "SOLD", "SOLD_ON_CREDIT"] as const;
 
 export function ProductFilters({
   scope,

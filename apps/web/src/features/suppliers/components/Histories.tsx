@@ -262,10 +262,12 @@ export function SupplierProducts({
           label={t("status")}
           value={status}
           set={setStatus}
-          options={(["IN_STOCK", "SOLD"] as const).map((value) => ({
-            value,
-            label: t(`status.${value}`, { ns: "products" }),
-          }))}
+          options={(["IN_STOCK", "IN_REPAIR", "SOLD"] as const).map(
+            (value) => ({
+              value,
+              label: t(`status.${value}`, { ns: "products" }),
+            }),
+          )}
         />
       </div>
       <Listing

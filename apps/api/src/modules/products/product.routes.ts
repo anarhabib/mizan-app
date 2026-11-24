@@ -202,14 +202,24 @@ export function registerProductRoutes(
       (typeof q !== "string" || q.length > 160 || q.includes("\0"))
     )
       throw new AccessError("INVALID_PRODUCT", "q");
-    if (status !== undefined && status !== "IN_STOCK" && status !== "SOLD")
+    if (
+      status !== undefined &&
+      status !== "IN_STOCK" &&
+      status !== "SOLD" &&
+      status !== "IN_REPAIR"
+    )
       throw new AccessError("INVALID_PRODUCT", "status");
     if (
       setEligible !== undefined &&
-      (setEligible !== "true" || status === "SOLD" || credit !== undefined)
+      (setEligible !== "true" ||
+        (status && status !== "IN_STOCK") ||
+        credit !== undefined)
     )
       throw new AccessError("INVALID_PRODUCT", "setEligible");
-    if (credit !== undefined && (credit !== "true" || status === "IN_STOCK"))
+    if (
+      credit !== undefined &&
+      (credit !== "true" || (status && status !== "SOLD"))
+    )
       throw new AccessError("INVALID_PRODUCT", "credit");
     if (
       after !== undefined &&

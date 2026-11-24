@@ -6,6 +6,7 @@ export function readPageSize(
   code:
     | "INVALID_PRODUCT"
     | "INVALID_JEWELRY_SET"
+    | "INVALID_REPAIR"
     | "INVALID_SALE"
     | "INVALID_CUSTOMER"
     | "INVALID_SUPPLIER"

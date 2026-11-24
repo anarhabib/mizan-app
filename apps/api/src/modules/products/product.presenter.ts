@@ -32,6 +32,25 @@ export const listFields = {
   saleItem: { select: { sale: { select: { outstandingDebt: true } } } },
 } as const satisfies Prisma.ProductSelect;
 
+export const gemstoneFields = {
+  orderBy: { position: "asc" },
+  select: {
+    gemstoneType: true,
+    stoneCount: true,
+    origin: true,
+    totalCarats: true,
+    individualCarats: true,
+    shape: true,
+    color: true,
+    clarity: true,
+    cutGrade: true,
+    treatment: true,
+    laboratory: true,
+    reportNumber: true,
+    note: true,
+  },
+} as const;
+
 export function detailFields(access: AccessContext) {
   const owner = canManageAsOwner(access);
   return {
@@ -59,24 +78,7 @@ export function detailFields(access: AccessContext) {
     setMembership: { select: { setId: true } },
     fixedSellingAmount: true,
     fixedSellingCurrency: true,
-    gemstones: {
-      orderBy: { position: "asc" },
-      select: {
-        gemstoneType: true,
-        stoneCount: true,
-        origin: true,
-        totalCarats: true,
-        individualCarats: true,
-        shape: true,
-        color: true,
-        clarity: true,
-        cutGrade: true,
-        treatment: true,
-        laboratory: true,
-        reportNumber: true,
-        note: true,
-      },
-    },
+    gemstones: gemstoneFields,
     note: true,
     createdAt: true,
     photoObjectKey: true,
@@ -155,7 +157,7 @@ export function presentListItem(
   };
 }
 
-function presentMoney(value: Prisma.Decimal, currency: string) {
+export function presentMoney(value: Prisma.Decimal, currency: string) {
   return {
     amount: value.toFixed(
       Math.max(value.decimalPlaces(), currencyMinorUnits(currency)),
@@ -223,7 +225,12 @@ export function canEditAcquisition(row: DetailRow) {
     !row.sale &&
     !row.saleItem &&
     !row.purchaseItem &&
-    row.movements.every(({ kind }) => kind === "PRODUCT_ADDED")
+    row.movements.every(
+      ({ kind }) =>
+        kind === "PRODUCT_ADDED" ||
+        kind === "REPAIR_SENT" ||
+        kind === "REPAIR_CANCELED",
+    )
   );
 }
 

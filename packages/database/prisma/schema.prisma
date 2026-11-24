@@ -18,6 +18,7 @@ enum Role {
 enum ProductStatus {
   IN_STOCK
   SOLD
+  IN_REPAIR
 
   @@schema("mizan")
 }
@@ -41,6 +42,9 @@ enum MovementKind {
   PRODUCT_ADDED
   PRODUCT_SOLD
   OLD_GOLD_RECEIVED
+  REPAIR_SENT
+  REPAIR_COMPLETED
+  REPAIR_CANCELED
 
   @@schema("mizan")
 }
@@ -155,6 +159,7 @@ model StoreAssignment {
   supplierActivities SupplierActivity[]
   movements      InventoryMovement[]
   productRegistrations ProductRegistration[]
+  repairEvents     RepairEvent[]
 
   @@id([organizationId, storeId, userId])
   @@index([organizationId, userId])
@@ -329,6 +334,7 @@ model Product {
   historicalSupplier     Supplier?           @relation(fields: [organizationId, storeId, historicalSupplierId], references: [organizationId, storeId, id], onDelete: Restrict)
   supplierActivities     SupplierActivity[]
   setMembership          JewelrySetMember?
+  repairs                Repair[]
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, code])
@@ -461,6 +467,7 @@ model Supplier {
   purchases      Purchase[]
   activities     SupplierActivity[]
   historicalProducts Product[]
+  repairs        Repair[]
 
   @@id([organizationId, storeId, id])
   @@index([organizationId, storeId, createdAt, id])
@@ -697,6 +704,79 @@ model ReceivedOldGold {
   @@schema("mizan")
 }
 
+enum RepairStatus {
+  ACTIVE
+  COMPLETED
+  CANCELED
+
+  @@schema("mizan")
+}
+
+enum RepairEventKind {
+  SENT
+  PROGRESS
+  COMPLETED
+  CANCELED
+  PAID
+
+  @@schema("mizan")
+}
+
+model Repair {
+  organizationId     String       @db.Uuid
+  storeId            String       @db.Uuid
+  id                 String       @default(uuid()) @db.Uuid
+  productId          String       @db.Uuid
+  supplierId         String?      @db.Uuid
+  repairerName       String
+  description        String
+  status             RepairStatus @default(ACTIVE)
+  sentDate           DateTime     @db.Date
+  expectedReturnDate DateTime?    @db.Date
+  completedDate      DateTime?    @db.Date
+  beforeWeight       Decimal      @db.Decimal(15, 3)
+  beforeNetWeight    Decimal?     @db.Decimal(15, 3)
+  beforeGemstones    Json
+  afterWeight        Decimal?     @db.Decimal(15, 3)
+  afterNetWeight     Decimal?     @db.Decimal(15, 3)
+  afterGemstones     Json?
+  estimatedCost      Decimal?     @db.Decimal(20, 4)
+  estimatedCurrency  String?      @db.Char(3)
+  actualCost         Decimal?     @db.Decimal(20, 4)
+  actualCurrency     String?      @db.Char(3)
+  paidDate           DateTime?    @db.Date
+  paymentMethod      String?
+  createdAt          DateTime     @default(now())
+  product            Product      @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+  supplier           Supplier?    @relation(fields: [organizationId, storeId, supplierId], references: [organizationId, storeId, id], onDelete: Restrict)
+  events             RepairEvent[]
+  movements          InventoryMovement[]
+
+  @@id([organizationId, storeId, id])
+  @@index([organizationId, storeId, productId, createdAt, id])
+  @@index([organizationId, storeId, supplierId])
+  @@schema("mizan")
+}
+
+model RepairEvent {
+  organizationId String          @db.Uuid
+  storeId        String          @db.Uuid
+  repairId       String          @db.Uuid
+  actorId        String          @db.Uuid
+  id             Int             @default(autoincrement())
+  kind           RepairEventKind
+  note           String?
+  createdAt      DateTime        @default(now())
+  idempotencyKey String
+  requestDigest  String
+  repair         Repair          @relation(fields: [organizationId, storeId, repairId], references: [organizationId, storeId, id], onDelete: Restrict)
+  actor          StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+
+  @@id([organizationId, storeId, repairId, id])
+  @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@schema("mizan")
+}
+
 model InventoryMovement {
   organizationId String          @db.Uuid
   storeId        String          @db.Uuid
@@ -707,14 +787,17 @@ model InventoryMovement {
   productId      String?         @db.Uuid
   saleId         String?         @db.Uuid
   tradeInId      String?         @db.Uuid
+  repairId       String?         @db.Uuid
   createdAt      DateTime        @default(now())
   actor          StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
   product        Product?        @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
   sale           Sale?           @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
   tradeIn        TradeIn?        @relation(fields: [organizationId, storeId, tradeInId], references: [organizationId, storeId, id], onDelete: Restrict)
+  repair         Repair?         @relation(fields: [organizationId, storeId, repairId], references: [organizationId, storeId, id], onDelete: Restrict)
 
   @@id([organizationId, storeId, id])
   @@index([organizationId, storeId, productId])
+  @@index([organizationId, storeId, repairId])
   @@index([organizationId, storeId, kind, createdAt, id], map: "InventoryMovement_dashboard_date_idx")
   @@schema("mizan")
 }

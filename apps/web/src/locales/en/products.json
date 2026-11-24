@@ -1,4 +1,75 @@
 {
+  "repairs": {
+    "title": "Repairs",
+    "active": "Active repair",
+    "history": "Repair history",
+    "empty": "No repairs recorded.",
+    "before": "Before repair",
+    "after": "After repair",
+    "netGoldWeight": "Net gold alloy weight (g)",
+    "repairer": "Repairer name",
+    "supplier": "Supplier (optional)",
+    "description": "Repair description",
+    "sentDate": "Date sent",
+    "expectedReturnDate": "Expected return (optional)",
+    "completedDate": "Completion date",
+    "paymentDate": "Payment date",
+    "method": "Payment method",
+    "currency": "Currency",
+    "estimatedCost": "Estimated cost",
+    "estimatedCostOptional": "Estimated cost (optional)",
+    "actualCost": "Actual repair cost",
+    "paymentStatus": "Payment status",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "noCharge": "No charge",
+    "note": "Notes (optional)",
+    "progressNote": "Progress note",
+    "back": "Back",
+    "cancelDescription": "Cancel this repair and return the product to available stock with its current measurements.",
+    "fullPayment": "Record a full payment of {{amount}}.",
+    "actions": {
+      "send": "Send to repair",
+      "complete": "Complete repair",
+      "progress": "Add progress note",
+      "cancel": "Cancel repair",
+      "pay": "Record payment"
+    },
+    "saved": {
+      "send": "Product sent to repair.",
+      "complete": "Repair completed. The product is available.",
+      "progress": "Progress note added.",
+      "cancel": "Repair canceled. The product is available.",
+      "pay": "Repair payment recorded."
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "CANCELED": "Canceled"
+    },
+    "events": {
+      "SENT": "Sent to repair",
+      "PROGRESS": "Progress recorded",
+      "COMPLETED": "Repair completed",
+      "CANCELED": "Repair canceled",
+      "PAID": "Payment recorded"
+    },
+    "validation": {
+      "generic": "Check the repair details.",
+      "description": "Enter a repair description.",
+      "repairerName": "Select a supplier or enter the repairer’s name.",
+      "sentDate": "Enter a valid date sent.",
+      "expectedReturnDate": "Use an expected return date on or after the date sent.",
+      "completedDate": "Use a completion date between the date sent and today.",
+      "paymentDate": "Use a payment date between the date sent and today.",
+      "weight": "Enter a positive gross weight with up to three decimal places.",
+      "netGoldWeight": "Enter a positive net alloy weight with up to three decimal places. It must be at most the gross weight.",
+      "note": "Enter a note of up to 2,000 characters.",
+      "amount": "Enter a nonnegative amount with up to four decimal places in a configured currency.",
+      "estimatedCost": "Enter a nonnegative amount with up to four decimal places in a configured currency.",
+      "actualCost": "Enter a nonnegative amount with up to four decimal places in a configured currency."
+    }
+  },
   "sets": {
     "sellComplete": "Sell entire set",
     "sellSelected": "Sell selected available components",
@@ -182,6 +253,7 @@
     "note": "Enter a shorter note."
   },
   "status": {
+    "IN_REPAIR": "In repair",
     "IN_STOCK": "In stock",
     "SOLD": "Sold",
     "SOLD_ON_CREDIT": "Sold on credit"
@@ -192,6 +264,9 @@
     "date": "Sale date"
   },
   "movements": {
+    "REPAIR_SENT": "Sent to repair",
+    "REPAIR_COMPLETED": "Repair completed",
+    "REPAIR_CANCELED": "Repair canceled",
     "title": "Inventory history",
     "empty": "No inventory movements.",
     "PRODUCT_ADDED": "Added to inventory",

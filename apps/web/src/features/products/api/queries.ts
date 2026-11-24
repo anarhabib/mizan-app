@@ -258,7 +258,8 @@ export async function cacheSoldProduct(
     const update = (page: ProductList): ProductList => ({
       ...page,
       items:
-        filters.status === "IN_STOCK" || (filters.credit && !hasOutstandingDebt)
+        (filters.status !== undefined && filters.status !== "SOLD") ||
+        (filters.credit && !hasOutstandingDebt)
           ? page.items.filter((item) => item.id !== id)
           : page.items.map((item) =>
               item.id === id

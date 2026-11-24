@@ -27,6 +27,7 @@ import { useWorkspace } from "@/features/workspace";
 import { Button } from "@/components/ui/button";
 import type { ProductScope } from "../api/queries";
 import {
+  gemstoneFormDefaults,
   productErrorField,
   productAcquisitionValues,
   resolveProductForm,
@@ -86,11 +87,7 @@ export function productDefaults(
     acquisitionCost: product?.acquisitionCost ?? { amount: "", currency },
     acquisitionBreakdown: product?.acquisitionBreakdown ?? {},
     fixedSellingPrice: product?.fixedSellingPrice ?? { amount: "", currency },
-    gemstones:
-      product?.gemstones?.map((group) => ({
-        ...group,
-        stoneCount: String(group.stoneCount),
-      })) ?? [],
+    gemstones: product?.gemstones?.map(gemstoneFormDefaults) ?? [],
     note: product?.note ?? "",
   };
 }

@@ -1,5 +1,13 @@
 # Misqal project state
 
+## Task 24 — jewelry repair management (November 24, 2026)
+
+- Products has an In repair status filter and a repair section in the product drawer or sheet. Owners can send a product to a supplier or named repairer, append progress, complete or cancel the repair, and record full payment. Assigned staff can read operational history. Repairs use AZ, EN and RU strings and the existing light and dark tokens.
+- `apps/api/src/modules/products/repair.service.ts` uses the sales organization lock and idempotent transactions. A set component remains in its set while unavailable. Completion preserves before and after weight and gemstone snapshots, updates current measurements, and restores availability. Supplier purchase details use acquisition-time measurements. Repair expenses leave acquisition values, supplier payables and sale receipts unchanged.
+- Migration `202611240006_jewelry_repairs` adds the repair and event tables, stock status and movement types, and one-active-repair enforcement. Prisma validation, all 23 migrations, migration status and schema parity passed on disposable PostgreSQL. Fifteen targeted API tests, four schema integration tests, 30 contracts tests, 181 web tests and 12 Chromium form checks at 320px, 390px and 1280px passed. Workspace TypeScript, changed-source lint and formatting, and package builds passed. Live Storage and physical iOS and Android remain unverified.
+- Branch `task/24-jewelry-repair-management` is based on `da2c4ea`. With approval, the Task 18 and Task 24 migrations were applied to the hosted development database. Prisma reports all 23 migrations applied. Read-only Fastify checks with fixture authentication returned HTTP 200 for repair history, the in-repair inventory filter, and the sales list.
+- Task 25 still needs return and resale linkage that preserves original sale items and receipt snapshots and respects active repair availability.
+
 ## Task 18 — jewelry set sales (November 24, 2026)
 
 - Set details offer complete and selected-component checkout in AZ, EN and RU. Sales has a searchable complete-set picker. `SaleCreate.tsx` and `SaleForm.tsx` reuse per-item pricing, settlement and confirmation. The selected products and set revision stay fixed throughout the attempt, and a lost response can be retried with the same payload, key and confirmation token.

@@ -1,4 +1,75 @@
 {
+  "repairs": {
+    "title": "Təmirlər",
+    "active": "Aktiv təmir",
+    "history": "Təmir tarixçəsi",
+    "empty": "Təmir qeydi yoxdur.",
+    "before": "Təmirdən əvvəl",
+    "after": "Təmirdən sonra",
+    "netGoldWeight": "Xalis qızıl ərintisinin çəkisi (q)",
+    "repairer": "Ustanın adı",
+    "supplier": "Təchizatçı (istəyə görə)",
+    "description": "Təmirin təsviri",
+    "sentDate": "Göndərilmə tarixi",
+    "expectedReturnDate": "Gözlənilən qayıdış (istəyə görə)",
+    "completedDate": "Tamamlanma tarixi",
+    "paymentDate": "Ödəniş tarixi",
+    "method": "Ödəniş üsulu",
+    "currency": "Valyuta",
+    "estimatedCost": "Təxmini xərc",
+    "estimatedCostOptional": "Təxmini xərc (istəyə görə)",
+    "actualCost": "Faktiki təmir xərci",
+    "paymentStatus": "Ödəniş vəziyyəti",
+    "paid": "Ödənilib",
+    "unpaid": "Ödənilməyib",
+    "noCharge": "Ödənişsiz",
+    "note": "Qeydlər (istəyə görə)",
+    "progressNote": "Təmirin gedişi haqqında qeyd",
+    "back": "Geri",
+    "cancelDescription": "Təmiri ləğv edin və məhsulu cari ölçüləri ilə satış üçün mövcud ehtiyata qaytarın.",
+    "fullPayment": "{{amount}} məbləğində tam ödənişi qeyd edin.",
+    "actions": {
+      "send": "Təmirə göndər",
+      "complete": "Təmiri tamamla",
+      "progress": "Gedişat qeydi əlavə et",
+      "cancel": "Təmiri ləğv et",
+      "pay": "Ödənişi qeyd et"
+    },
+    "saved": {
+      "send": "Məhsul təmirə göndərildi.",
+      "complete": "Təmir tamamlandı. Məhsul satışa hazırdır.",
+      "progress": "Gedişat qeydi əlavə edildi.",
+      "cancel": "Təmir ləğv edildi. Məhsul satışa hazırdır.",
+      "pay": "Təmir ödənişi qeyd edildi."
+    },
+    "status": {
+      "ACTIVE": "Aktiv",
+      "COMPLETED": "Tamamlanıb",
+      "CANCELED": "Ləğv edilib"
+    },
+    "events": {
+      "SENT": "Təmirə göndərildi",
+      "PROGRESS": "Gedişat qeyd edildi",
+      "COMPLETED": "Təmir tamamlandı",
+      "CANCELED": "Təmir ləğv edildi",
+      "PAID": "Ödəniş qeyd edildi"
+    },
+    "validation": {
+      "generic": "Təmir məlumatlarını yoxlayın.",
+      "description": "Təmirin təsvirini daxil edin.",
+      "repairerName": "Təchizatçı seçin və ya ustanın adını daxil edin.",
+      "sentDate": "Düzgün göndərilmə tarixi daxil edin.",
+      "expectedReturnDate": "Gözlənilən qayıdış tarixi göndərilmə tarixindən əvvəl ola bilməz.",
+      "completedDate": "Göndərilmə tarixi ilə bu gün arasında tarix seçin.",
+      "paymentDate": "Göndərilmə tarixi ilə bu gün arasında ödəniş tarixi seçin.",
+      "weight": "Üç onluq mərtəbəyədək müsbət ümumi çəki daxil edin.",
+      "netGoldWeight": "Üç onluq mərtəbəyədək müsbət xalis ərinti çəkisi daxil edin. Ümumi çəkini keçə bilməz.",
+      "note": "2 000 simvoladək qeyd daxil edin.",
+      "amount": "Mövcud valyutada dörd onluq mərtəbəyədək mənfi olmayan məbləğ daxil edin.",
+      "estimatedCost": "Mövcud valyutada dörd onluq mərtəbəyədək mənfi olmayan məbləğ daxil edin.",
+      "actualCost": "Mövcud valyutada dörd onluq mərtəbəyədək mənfi olmayan məbləğ daxil edin."
+    }
+  },
   "sets": {
     "sellComplete": "Dəsti bütöv sat",
     "sellSelected": "Seçilmiş mövcud məhsulları sat",
@@ -182,6 +253,7 @@
     "note": "Daha qısa qeyd daxil edin."
   },
   "status": {
+    "IN_REPAIR": "Təmirdə",
     "IN_STOCK": "Stokda",
     "SOLD": "Satılıb",
     "SOLD_ON_CREDIT": "Nisyə satılıb"
@@ -192,6 +264,9 @@
     "date": "Satış tarixi"
   },
   "movements": {
+    "REPAIR_SENT": "Təmirə göndərildi",
+    "REPAIR_COMPLETED": "Təmir tamamlandı",
+    "REPAIR_CANCELED": "Təmir ləğv edildi",
     "title": "Stok tarixçəsi",
     "empty": "Stok əməliyyatı yoxdur.",
     "PRODUCT_ADDED": "Stoka əlavə edilib",

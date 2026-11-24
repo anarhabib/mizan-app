@@ -154,6 +154,7 @@ function ScopedProducts({
       )}
       {current?.kind === "detail" && (
         <ProductDetail
+          key={current.id}
           scope={scope}
           id={current.id}
           restoreFallbackFocus={() => createButton?.focus()}
