@@ -122,6 +122,7 @@ test.skipIf(!db)(
           "POST",
           "/onboarding",
           {
+            fullName: "Inventory Test Owner",
             organizationName: "Jewelry",
             storeName: "Main store",
             defaultCurrency: "AZN",

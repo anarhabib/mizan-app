@@ -9,7 +9,7 @@ import {
 const valid: ProductFormValues = {
   code: "  A-001  ",
   name: "Ring",
-  category: "Jewelry",
+  categoryId: "00000000-0000-0000-0000-000000000001",
   purity: "585",
   weight: "1.025",
   acquisitionCostPerGram: { amount: "120.05", currency: " eur " },
@@ -23,7 +23,7 @@ describe("product creation validation", () => {
       values: {
         code: "A-001",
         name: "Ring",
-        category: "Jewelry",
+        categoryId: valid.categoryId,
         purity: 585,
         weight: "1.025",
         acquisitionCostPerGram: { amount: "120.05", currency: "EUR" },
@@ -32,6 +32,9 @@ describe("product creation validation", () => {
   });
 
   it("maps invalid weight and unselected purity to their form fields", () => {
+    expect(resolveProductForm({ ...valid, categoryId: "" }).errors).toEqual({
+      categoryId: { type: "validate" },
+    });
     expect(resolveProductForm({ ...valid, weight: "1.0001" }).errors).toEqual({
       weight: { type: "validate" },
     });

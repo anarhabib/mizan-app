@@ -36,11 +36,13 @@ Check `src/components/ui` before building an interactive control. Compose instal
 - The API client normalizes every failure into one `ApiError` (status, code, message, optional field, isNetwork). It must handle `{code,message,field?}`, Fastify's default `{statusCode,error,message}`, and network failures.
 - Server messages are Azerbaijani. Map known `code`s to i18n strings. Show a server `message` only for 4xx codes listed in `API_NOTES.md`; 5xx and unknown errors show a generic localized message.
 - On 401: try one session refresh, then sign out and redirect to `/login`. 503 `AUTH_UNAVAILABLE` is a retryable "try again" state, not a logout.
+- Google and Apple reuse `/auth/callback` and the local return-path validator. Confirm the profile name in Misqal before entering a workspace. Provider metadata only prefills the form. [Provider setup](LOCAL_SETUP.md#google-and-apple-sign-in)
 
 ## Workspace scope and roles
 
 - Every product, sale, settings and membership request needs `organizationId` (store routes also `storeId`). `useWorkspace()` is the only source of these ids; features never read storage themselves.
 - Both ids are part of every query key (key factories take `{organizationId, storeId}`), so switching store never shows stale data from another store.
+- Product categories are organization-scoped. Settings, product forms and inventory filters share the category query for the current organization and role. Use category IDs for selection and localized labels for display.
 - Roles are `OWNER` and `SALESPERSON`. Hide owner-only UI (settings, team) for salespeople as a convenience; the server enforces access.
 - Use the permission flags from `useWorkspace()` for owner actions and acquisition visibility. Display mode is verified by the API and switching it clears query data and reloads the workspace across tabs.
 - `acquisitionCost` can be absent for salespeople. Render nothing when it is missing; never show `0` or a placeholder amount.

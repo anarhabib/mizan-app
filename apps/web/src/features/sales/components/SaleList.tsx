@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { categoryLabel } from "@mizan/contracts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +41,7 @@ export function SaleList({
   filters?: Omit<SaleFilters, "q">;
   setFilters?: (filters: Omit<SaleFilters, "q">) => void;
 }) {
-  const { t } = useTranslation("sales");
+  const { t, i18n } = useTranslation("sales");
   const { t: productLabel } = useTranslation("products");
   const [search, setSearch] = useState("");
   const [q, setQuery] = useState("");
@@ -221,7 +222,13 @@ export function SaleList({
                       </div>
                     </TableCell>
                     <TableCell className="min-w-24 max-w-40 wrap-anywhere whitespace-normal text-muted-foreground">
-                      {sale.product.category}
+                      {categoryLabel(
+                        {
+                          code: sale.product.categoryCode ?? null,
+                          name: sale.product.category,
+                        },
+                        i18n.resolvedLanguage,
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       <SaleDate value={sale.createdAt} />

@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { StoreContext } from "@mizan/contracts";
-import { AuthPanel, SignOutButton } from "@/features/auth";
+import {
+  AuthPanel,
+  ProfileCompletion,
+  profileQuery,
+  SignOutButton,
+} from "@/features/auth";
 import { Spinner } from "@/components/ui/spinner";
 import { ApiError } from "@/shared/lib/api";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -44,6 +49,7 @@ export function WorkspaceProvider({
   }, [pendingMode, resumeRestriction]);
 
   const contexts = useQuery(contextsQuery(userId));
+  const profile = useQuery(profileQuery(userId));
   const active = contexts.data && resolveSelection(contexts.data, selection);
   useEffect(
     () =>
@@ -77,12 +83,36 @@ export function WorkspaceProvider({
       />
     );
   }
-  if (!contexts.data) return <WorkspaceLoading />;
+  if (profile.isError)
+    return (
+      <WorkspaceError
+        error={profile.error}
+        retry={() => void profile.refetch()}
+        pending={profile.isFetching}
+      />
+    );
+  if (!contexts.data || !profile.data) return <WorkspaceLoading />;
+  if ((active || profile.data.hasMembership) && !profile.data.fullName)
+    return <ProfileCompletion userId={userId} />;
   if (!active) {
+    if (profile.data.hasMembership)
+      return (
+        <WorkspaceError
+          error={new ApiError(403, "ACCESS_DENIED", "")}
+          retry={() => {
+            void contexts.refetch();
+            void profile.refetch();
+          }}
+          pending={contexts.isFetching || profile.isFetching}
+        />
+      );
     return (
       <OnboardingForm
+        fullName={profile.data.fullName}
         onCreated={selectStore}
-        reloadContexts={() => contexts.refetch()}
+        reloadContexts={() =>
+          Promise.all([contexts.refetch(), profile.refetch()])
+        }
       />
     );
   }
@@ -90,6 +120,7 @@ export function WorkspaceProvider({
     <SelectedWorkspace
       userId={userId}
       active={active}
+      fullName={profile.data.fullName!}
       contexts={contexts.data}
       selectStore={selectStore}
       reloadContexts={async () => {
@@ -104,6 +135,7 @@ export function WorkspaceProvider({
 function SelectedWorkspace({
   userId,
   active,
+  fullName,
   contexts,
   children,
   selectStore,
@@ -111,6 +143,7 @@ function SelectedWorkspace({
 }: {
   userId: string;
   active: StoreContext;
+  fullName: string;
   contexts: StoreContext[];
   children: ReactNode;
   selectStore: (scope: StoreScope) => void;
@@ -147,6 +180,7 @@ function SelectedWorkspace({
     <WorkspaceContext
       value={{
         ...active,
+        fullName,
         role: access.data.role,
         salespersonDisplay: access.data.salespersonDisplay,
         settings: access.data.settings,

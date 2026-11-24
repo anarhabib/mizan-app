@@ -91,11 +91,22 @@ pnpm.cmd --filter @mizan/database exec prisma migrate status
 | Mailpit captured email | http://127.0.0.1:54324 |
 | Mailpit SMTP | `127.0.0.1:54325` |
 
-Open `/login`, create an account, and enter the organization, first store, and default currency. The local Supabase configuration disables email confirmation. Password reset emails appear in Mailpit and use the allowed redirect `http://127.0.0.1:3000/auth/callback`.
+Open `/login`, create an account, and confirm your full name, organization, first store, and default currency. The local Supabase configuration disables email confirmation. Password reset emails appear in Mailpit and use the allowed redirect `http://127.0.0.1:3000/auth/callback`.
 
 Create a salesperson invitation through the API with an owner session. Follow the Mailpit link in a separate browser profile so the owner session stays available. Invitations expire after 48 hours and support new and existing Auth accounts. The application starts in Azerbaijani and offers Azerbaijani, English, and Russian in the header language menu.
 
 Use `/products/new` to add inventory, `/products` to find items, and `/sales/new` to record an ordinary sale or old-gold trade-in. Keep money and weights as explicit decimal inputs with currency, grams, and purity. Sale confirmation saves the selected rate and financial snapshots for later history.
+
+### Google and Apple sign-in
+
+1. In Supabase Auth URL Configuration, set the Site URL to the web app origin. Allow the web app's `/auth/callback` for password recovery and OAuth, including its OAuth query parameters. Use an allowlist entry for each exact origin, such as `http://127.0.0.1:3000/auth/callback**` for development and `https://misqal.az/auth/callback**` for the public web origin. Configure both provider credentials in Supabase Auth.
+2. In Google Cloud, configure the OAuth consent screen and create a **Web application** client. Register the Supabase provider callback shown in the dashboard as a redirect URI, typically `https://<project-ref>.supabase.co/auth/v1/callback`. Add the authorized app origin and any test users required by the consent configuration. Enter the Google client ID and secret in Supabase. [Supabase Google setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google)
+3. In Apple Developer, enable Sign in with Apple on a primary App ID, associate a **Services ID**, and register the Supabase callback domain and HTTPS return URL. Generate a client-secret JWT with the Apple signing key, Team ID, Key ID, and Services ID. Enter the Services ID and JWT in Supabase. Keep the signing key private and rotate the JWT before its six-month expiry. [Supabase Apple setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-apple)
+4. Test Google, Apple with Hide My Email, cancellation, password sign-in and invitation acceptance. Apple web OAuth may omit the name, in which case the user enters it during profile completion. An invitation requires the exact verified Supabase email. For relay accounts, use an invitation addressed to that verified relay address with the sending domain registered for Apple relay delivery, or sign in with the verified address on the invitation. An invitation opens OAuth in a separate tab so the original tab can retain the link in memory.
+
+OAuth secrets stay in the provider and Supabase configuration. Misqal identifies accounts by the verified Supabase subject UUID. Supabase can link verified same-email identities under its own rules. For intentional linking across different addresses, use the supported signed-in Supabase identity-linking flow with manual linking enabled. [Supabase identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
+
+An OAuth-only owner can return from Salesperson display mode by signing out and signing back in with Google or Apple. The existing password confirmation continues to work for accounts with a password.
 
 ## Verification
 

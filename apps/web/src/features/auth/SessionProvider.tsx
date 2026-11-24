@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { parseFullName } from "@mizan/contracts";
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState, type ReactNode } from "react";
 import {
@@ -14,6 +15,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(!auth);
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [suggestedName, setSuggestedName] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       current = session;
       setUserId(session?.user.id ?? null);
       setEmail(session?.user.email ?? null);
+      const metadata = session?.user.user_metadata;
+      setSuggestedName(
+        parseFullName(metadata?.full_name) ?? parseFullName(metadata?.name),
+      );
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
       if (event === "SIGNED_OUT") setRecovery(false);
       setReady(true);
@@ -98,6 +104,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       value={{
         userId,
         email,
+        suggestedName,
         ready,
         recovery,
         finishRecovery: () => setRecovery(false),

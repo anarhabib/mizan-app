@@ -5,7 +5,7 @@ import {
   type ProductListItem,
 } from "@mizan/contracts";
 import type { Prisma } from "@mizan/database";
-import type { AccessContext } from "../access/access.service.js";
+import { actorProfile, type AccessContext } from "../access/access.service.js";
 import {
   canManageAsOwner,
   canViewAcquisition,
@@ -16,6 +16,15 @@ export const listFields = {
   code: true,
   name: true,
   category: true,
+  productCategory: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      isActive: true,
+      sortOrder: true,
+    },
+  },
   purity: true,
   weight: true,
   status: true,
@@ -64,7 +73,13 @@ export function detailFields(access: AccessContext) {
     photoContentType: true,
     photoSize: true,
     movements: {
-      select: { id: true, kind: true, actorId: true, createdAt: true },
+      select: {
+        id: true,
+        kind: true,
+        actorId: true,
+        actor: actorProfile,
+        createdAt: true,
+      },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     },
     sale: {
@@ -105,7 +120,8 @@ export function presentListItem(
     id,
     code,
     name,
-    category,
+    category: row.productCategory?.name ?? category,
+    ...(row.productCategory && { productCategory: row.productCategory }),
     purity,
     weight: weight.toFixed(3),
     status,
@@ -238,8 +254,9 @@ export function presentDetail(
       photoUrl && photoContentType && photoSize !== null
         ? { url: photoUrl, contentType: photoContentType, size: photoSize }
         : null,
-    movements: movements.map((movement) => ({
+    movements: movements.map(({ actor, ...movement }) => ({
       ...movement,
+      actorName: actor.membership.user.fullName,
       createdAt: movement.createdAt.toISOString(),
     })),
     sale: sale

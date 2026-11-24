@@ -26,6 +26,14 @@ export interface AccessContext extends Pick<
 export const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export const actorProfile = {
+  select: { membership: { select: { user: { select: { fullName: true } } } } },
+} as const;
+
+export async function lockUser(tx: Prisma.TransactionClient, userId: string) {
+  await tx.$queryRaw`SELECT "id" FROM "mizan"."User" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+}
+
 export async function ensureApplicationUser(
   db: AccessDatabase,
   identity: AuthIdentity,

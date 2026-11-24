@@ -1,4 +1,19 @@
 {
+  "categories": {
+    "title": "Məhsul kateqoriyaları",
+    "empty": "Hələ məhsul kateqoriyası yoxdur.",
+    "name": "Kateqoriyanın adı",
+    "order": "Sıradakı mövqe",
+    "invalidName": "80 simvoladək ad daxil edin.",
+    "invalidOrder": "Müsbət tam ədəd daxil edin.",
+    "add": "Kateqoriya əlavə et",
+    "edit": "Redaktə et",
+    "editNamed": "{{name}} kateqoriyasını redaktə et",
+    "deactivateNamed": "{{name}} kateqoriyasını deaktiv et",
+    "reactivateNamed": "{{name}} kateqoriyasını aktiv et",
+    "save": "Kateqoriyanı yadda saxla",
+    "saved": "Məhsul kateqoriyaları yeniləndi."
+  },
   "currencies": {
     "title": "Valyutalar",
     "default": "Standart satış valyutası",

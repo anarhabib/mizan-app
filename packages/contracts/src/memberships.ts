@@ -15,6 +15,7 @@ export interface InvitationSummary {
 }
 export interface SalespersonSummary {
   userId: string;
+  fullName?: string | null;
   email: string | null;
   status: MembershipStatus;
   storeIds: string[];

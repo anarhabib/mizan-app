@@ -92,7 +92,7 @@ export function ProductTextField({
     "aria-describedby": error ? `${id}-error` : undefined,
   };
   return (
-    <div className="grid min-w-0 content-start gap-2">
+    <div data-form-field className="grid min-w-0 content-start gap-2">
       <Label htmlFor={id}>{label}</Label>
       {multiline ? (
         <Textarea
@@ -229,7 +229,7 @@ export function GemstoneFields({
                 get(errors, `${index}.${field}`),
               )}
             >
-              <div className="mt-2 grid grid-cols-2 gap-3">
+              <div className="align-form-fields mt-2 grid grid-cols-2 gap-2">
                 {advancedGemstoneFields.map(renderGemstoneText)}
               </div>
             </ProductDisclosure>

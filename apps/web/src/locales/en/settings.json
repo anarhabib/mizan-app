@@ -1,4 +1,19 @@
 {
+  "categories": {
+    "title": "Product categories",
+    "empty": "No product categories yet.",
+    "name": "Category name",
+    "order": "Position",
+    "invalidName": "Enter a name of up to 80 characters.",
+    "invalidOrder": "Enter a positive whole number.",
+    "add": "Add category",
+    "edit": "Edit",
+    "editNamed": "Edit {{name}}",
+    "deactivateNamed": "Deactivate {{name}}",
+    "reactivateNamed": "Reactivate {{name}}",
+    "save": "Save category",
+    "saved": "Product categories updated."
+  },
   "currencies": {
     "title": "Currencies",
     "default": "Default sale currency",

@@ -165,7 +165,13 @@ export function PriceChart({
   );
 }
 
-export function DistributionChart({ rows }: { rows: DashboardCount[] }) {
+export function DistributionChart({
+  rows,
+  formatLabel,
+}: {
+  rows: DashboardCount[];
+  formatLabel?: (row: DashboardCount) => string;
+}) {
   const { t, i18n } = useTranslation("dashboard");
   if (!rows.length || rows.every(({ count }) => count === 0))
     return <p className="text-muted-foreground">{t("empty")}</p>;
@@ -176,22 +182,30 @@ export function DistributionChart({ rows }: { rows: DashboardCount[] }) {
       tabIndex={0}
       aria-label={t("distributionList")}
     >
-      {rows.map(({ label, count }) => (
-        <li key={label} className="grid gap-1">
-          <div className="flex justify-between gap-2 text-sm">
-            <span className="wrap-anywhere">{label}</span>
-            <span className="tabular-nums">
-              {count.toLocaleString(i18n.resolvedLanguage)}
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted" aria-hidden="true">
-            <div
-              className="h-full rounded-full bg-chart-4"
-              style={{ width: `${(count / max) * 100}%` }}
-            />
-          </div>
-        </li>
-      ))}
+      {rows.map((row) => {
+        const { label, categoryCode, count } = row;
+        return (
+          <li
+            key={JSON.stringify([categoryCode, label])}
+            className="grid gap-1"
+          >
+            <div className="flex justify-between gap-2 text-sm">
+              <span className="wrap-anywhere">
+                {formatLabel?.(row) ?? label}
+              </span>
+              <span className="tabular-nums">
+                {count.toLocaleString(i18n.resolvedLanguage)}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-muted" aria-hidden="true">
+              <div
+                className="h-full rounded-full bg-chart-4"
+                style={{ width: `${(count / max) * 100}%` }}
+              />
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

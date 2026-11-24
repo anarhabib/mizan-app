@@ -90,6 +90,7 @@ test.skipIf(!db)(
       });
     try {
       const onboarding = await send("POST", "/onboarding", owner, {
+        fullName: "Gold Pricing Test Owner",
         organizationName: "Gold pricing fixture",
         storeName: "Test store",
         defaultCurrency: "AZN",
@@ -431,7 +432,7 @@ test.skipIf(!db)(
       const intake = {
         code: randomUUID(),
         name: "Ring",
-        category: "Jewellery",
+        category: "Ring",
         purity: 585,
         weight: "2",
         acquisitionCostPerGram: { amount: "30", currency: "AZN" },

@@ -2,7 +2,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RotateCcw, RotateCw } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { settingsErrorKey } from "../lib/form";
 import { DeactivatePurity } from "./DeactivatePurity";
 import { CurrencySettingsForm } from "./CurrencySettingsForm";
 import { PurityForm } from "./SettingsForms";
+import { ProductCategoriesSection } from "./ProductCategoriesSection";
 
 export function SettingsPage() {
   const workspace = useWorkspace();
@@ -195,51 +196,51 @@ function OwnerSettings({
             {purities.map(({ value, active }) => (
               <li
                 key={value}
-                className="flex min-h-12 flex-wrap items-center justify-between gap-2 py-2"
+                className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 py-2"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-2">
                   <span className="font-medium tabular-nums">{value}</span>
                   <Badge variant={active ? "success" : "danger"}>
                     {t(active ? "active" : "inactive")}
                   </Badge>
                 </div>
-                {active ? (
-                  <DeactivatePurity
-                    value={value}
-                    busy={busy}
-                    error={
-                      change?.action === "deactivate" && change.value === value
-                        ? error
-                        : undefined
-                    }
-                    save={() => save({ action: "deactivate", value })}
-                  />
-                ) : (
-                  <PendingButton
-                    pending={
-                      busy &&
-                      change?.action === "reactivate" &&
-                      change.value === value
-                    }
-                    variant="success"
-                    className="min-h-10 lg:min-h-8"
-                    disabled={busy}
-                    aria-label={t("reactivatePurity", { value })}
-                    onClick={() => void save({ action: "reactivate", value })}
-                  >
-                    {!(
-                      busy &&
-                      change?.action === "reactivate" &&
-                      change.value === value
-                    ) && <RotateCcw aria-hidden="true" />}
-                    {t("reactivate")}
-                  </PendingButton>
-                )}
+                <div className="flex items-center justify-end gap-2">
+                  {active ? (
+                    <DeactivatePurity
+                      value={value}
+                      busy={busy}
+                      error={
+                        change?.action === "deactivate" &&
+                        change.value === value
+                          ? error
+                          : undefined
+                      }
+                      save={() => save({ action: "deactivate", value })}
+                    />
+                  ) : (
+                    <PendingButton
+                      pending={
+                        busy &&
+                        change?.action === "reactivate" &&
+                        change.value === value
+                      }
+                      variant="outline"
+                      className="min-h-10 lg:min-h-8"
+                      disabled={busy}
+                      aria-label={t("reactivatePurity", { value })}
+                      onClick={() => void save({ action: "reactivate", value })}
+                    >
+                      {t("reactivate")}
+                    </PendingButton>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      <ProductCategoriesSection organizationId={scope.organizationId} />
 
       <GoldPricingSection
         scope={scope}

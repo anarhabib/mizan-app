@@ -1,6 +1,8 @@
 import { currencyMinorUnits } from "./money.js";
+import { parseFullName } from "./profile.js";
 
 export interface OnboardingRequest {
+  fullName: string;
   organizationName: string;
   storeName: string;
   defaultCurrency: string;
@@ -22,9 +24,15 @@ export interface StoreContext {
 
 export function parseOnboarding(input: unknown): OnboardingRequest | null {
   if (!input || typeof input !== "object") return null;
-  const { organizationName, storeName, defaultCurrency } =
-    input as Partial<OnboardingRequest>;
+  const {
+    fullName: rawName,
+    organizationName,
+    storeName,
+    defaultCurrency,
+  } = input as Partial<OnboardingRequest>;
+  const fullName = parseFullName(rawName);
   if (
+    !fullName ||
     typeof organizationName !== "string" ||
     typeof storeName !== "string" ||
     typeof defaultCurrency !== "string"
@@ -48,5 +56,10 @@ export function parseOnboarding(input: unknown): OnboardingRequest | null {
   } catch {
     return null;
   }
-  return { organizationName: organization, storeName: store, defaultCurrency };
+  return {
+    fullName,
+    organizationName: organization,
+    storeName: store,
+    defaultCurrency,
+  };
 }

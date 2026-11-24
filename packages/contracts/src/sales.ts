@@ -75,6 +75,8 @@ export interface SalePaymentInput extends MoneyInput {
 
 export interface SalePayment extends Omit<SalePaymentInput, "method"> {
   id: string;
+  actorId?: string;
+  actorName?: string | null;
   createdAt: string;
   kind: "CHECKOUT" | "REPAYMENT";
   method: SalePaymentInput["method"] | null;
@@ -139,6 +141,7 @@ export interface SaleList {
       | "id"
       | "createdAt"
       | "actorId"
+      | "actorName"
       | "currency"
       | "saleAmount"
       | "product"
@@ -163,6 +166,7 @@ export interface SaleResult {
   paidAmount: string;
   payments: SalePayment[];
   actorId: string;
+  actorName?: string | null;
   createdAt: string;
   currency: string;
   saleAmount: string;
@@ -183,6 +187,7 @@ export interface SaleResult {
     code: string;
     name: string;
     category: string;
+    categoryCode?: string;
     purity: number;
     weight: string;
     status: "SOLD";

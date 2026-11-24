@@ -89,6 +89,9 @@ export interface GoldPriceHistory {
 }
 
 export interface GoldPriceRuleHistory {
-  items: (StoreGoldPriceRule & { previous: GoldRuleConfiguration | null })[];
+  items: (StoreGoldPriceRule & {
+    previous: GoldRuleConfiguration | null;
+    actorName?: string | null;
+  })[];
   nextCursor?: string;
 }

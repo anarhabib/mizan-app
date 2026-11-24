@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { SaleProfit, SaleResult as Result } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { categoryLabel } from "@mizan/contracts";
 import { useWorkspace } from "@/features/workspace";
 import { formatDateTime } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
@@ -59,7 +60,7 @@ function SaleRecord({
   scope: SaleScope;
   onRepaymentSubmittingChange: (submitting: boolean) => void;
 }) {
-  const { t } = useTranslation("sales");
+  const { t, i18n } = useTranslation(["sales", "auth", "products"]);
   const { canManageAsOwner } = useWorkspace();
   const money = (amount: string, currency = sale.currency) => (
     <MoneyText value={{ amount, currency }} />
@@ -82,6 +83,11 @@ function SaleRecord({
           </Link>
         )}
       </div>
+      <p className="text-sm wrap-anywhere text-muted-foreground">
+        {t("recordedBy", {
+          name: sale.actorName ?? t("unknownActor", { ns: "auth" }),
+        })}
+      </p>
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>
@@ -95,6 +101,15 @@ function SaleRecord({
                 </p>
               </div>
               <dl className="grid grid-cols-2 gap-3">
+                <Fact label={t("fields.category", { ns: "products" })}>
+                  {categoryLabel(
+                    {
+                      code: product.categoryCode ?? null,
+                      name: product.category,
+                    },
+                    i18n.resolvedLanguage,
+                  )}
+                </Fact>
                 <Fact label={t("fields.saleAmount")}>{money(saleAmount)}</Fact>
                 {canManageAsOwner && profit && (
                   <>
@@ -201,6 +216,9 @@ function SaleRecord({
                 <dl className="grid grid-cols-2 gap-3">
                   <Fact label={t("fields.paymentAmount")}>
                     {money(payment.amount, payment.currency)}
+                  </Fact>
+                  <Fact label={t("paymentRecordedBy")}>
+                    {payment.actorName ?? t("unknownActor", { ns: "auth" })}
                   </Fact>
                   {payment.method && (
                     <Fact label={t("fields.paymentMethod")}>

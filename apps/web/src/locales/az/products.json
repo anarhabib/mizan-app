@@ -1,4 +1,8 @@
 {
+  "chooseCategory": "Kateqoriya seçin",
+  "loadingCategories": "Kateqoriyalar yüklənir…",
+  "categoryLoadError": "Məhsul kateqoriyalarını yükləmək alınmadı.",
+  "noCategories": "Aktiv məhsul kateqoriyası yoxdur.",
   "soldOn": "Satış tarixi: {{date}} (Bakı)",
   "receivedOn": "Qəbul tarixi: {{date}} (Bakı)",
   "agedDays": "Ən azı {{count}} gündür stokda",

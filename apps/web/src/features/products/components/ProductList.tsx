@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
-import type { ProductStatus } from "@mizan/contracts";
+import { categoryLabel, type ProductStatus } from "@mizan/contracts";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,7 +162,7 @@ function ProductResults({
   filters: Filters;
   inspect: (id: string, opener: HTMLElement) => void;
 }) {
-  const { t } = useTranslation("products");
+  const { t, i18n } = useTranslation("products");
   const pagination = useCursorPagination(JSON.stringify(filters));
   const query = useQuery(productPageQuery(scope, filters, pagination.request));
   const products = query.data?.items ?? [];
@@ -220,7 +220,12 @@ function ProductResults({
                     </div>
                   </TableCell>
                   <TableCell className="min-w-24 max-w-40 wrap-anywhere whitespace-normal text-muted-foreground">
-                    {product.category}
+                    {product.productCategory
+                      ? categoryLabel(
+                          product.productCategory,
+                          i18n.resolvedLanguage,
+                        )
+                      : product.category}
                   </TableCell>
                   <TableCell className="text-right">
                     <WeightText value={product.weight} />

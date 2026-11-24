@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 export interface SessionState {
   userId: string | null;
   email: string | null;
+  suggestedName?: string | null;
   ready: boolean;
   recovery: boolean;
   finishRecovery: () => void;

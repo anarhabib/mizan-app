@@ -39,6 +39,7 @@ test.skipIf(!db)(
         url: "/api/v1/onboarding",
         headers: headers("owner"),
         payload: {
+          fullName: "Customer Test Owner",
           organizationName: "Customer test",
           storeName: "Main",
           defaultCurrency: "AZN",
@@ -50,7 +51,9 @@ test.skipIf(!db)(
       const otherStore = await db.store.create({
         data: { organizationId, name: "Branch" },
       });
-      await db.user.create({ data: { id: staffId } });
+      await db.user.create({
+        data: { id: staffId, fullName: "Nigar Əsədova" },
+      });
       await db.organizationMembership.create({
         data: { organizationId, userId: staffId, role: "SALESPERSON" },
       });
@@ -406,11 +409,16 @@ test.skipIf(!db)(
           hasOutstandingDebt: true,
         }),
       );
-      const repay = (key: string, payment: object, saleId = receipt.id) =>
+      const repay = (
+        key: string,
+        payment: object,
+        saleId = receipt.id,
+        role = "staff",
+      ) =>
         app.inject({
           method: "POST",
           url: `/api/v1/sales/${saleId}/payments?${query}`,
-          headers: { ...headers("staff"), "idempotency-key": key },
+          headers: { ...headers(role), "idempotency-key": key },
           payload: payment,
         });
       const firstRepayment = {
@@ -426,11 +434,27 @@ test.skipIf(!db)(
       for (const repayment of repayments) {
         expect(repayment.statusCode).toBe(201);
         expect(repayment.json()).toMatchObject({
+          actorId: staffId,
+          actorName: "Nigar Əsədova",
           customerName: updated.json().name,
           outstandingDebt: "53.03",
           paidAmount: "127.02",
           paymentStatus: "PARTIALLY_PAID",
         });
+        expect(repayment.json().payments).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: "CHECKOUT",
+              actorId: staffId,
+              actorName: "Nigar Əsədova",
+            }),
+            expect.objectContaining({
+              kind: "REPAYMENT",
+              actorId: staffId,
+              actorName: "Nigar Əsədova",
+            }),
+          ]),
+        );
         expect(repayment.json().payments).toHaveLength(4);
         expect(repayment.json().payments[3]).toMatchObject({
           kind: "REPAYMENT",
@@ -473,7 +497,7 @@ test.skipIf(!db)(
         await db.$executeRaw`DROP TRIGGER IF EXISTS test_task11_repayment_rollback ON "mizan"."SalePayment"`;
         await db.$executeRaw`DROP FUNCTION "mizan".test_task11_repayment_rollback()`;
       }
-      const settled = await repay("final", final);
+      const settled = await repay("final", final, receipt.id, "owner");
       expect(settled.statusCode).toBe(201);
       expect(settled.json()).toMatchObject({
         paymentStatus: "PAID",
@@ -482,7 +506,18 @@ test.skipIf(!db)(
         paidAmount: "180.05",
       });
       expect(settled.json().payments).toHaveLength(6);
-      expect((await repay("final", final)).json()).toEqual(settled.json());
+      expect(settled.json().payments[5]).toMatchObject({
+        kind: "REPAYMENT",
+        actorId: ownerId,
+        actorName: "Customer Test Owner",
+      });
+      expect(settled.json()).toMatchObject({
+        actorId: staffId,
+        actorName: "Nigar Əsədova",
+      });
+      expect((await repay("final", final, receipt.id, "owner")).json()).toEqual(
+        settled.json(),
+      );
       expect((await repay("already-paid", final)).json()).toMatchObject({
         code: "SALE_PAYMENT_NOT_DUE",
       });
@@ -562,6 +597,7 @@ test.skipIf(!db)(
         url: "/api/v1/onboarding",
         headers,
         payload: {
+          fullName: "Directory Test Owner",
           organizationName: "Directory test",
           storeName: "Main",
           defaultCurrency: "AZN",

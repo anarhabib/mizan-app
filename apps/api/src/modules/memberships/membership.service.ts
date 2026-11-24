@@ -3,7 +3,7 @@ import type { InvitationSummary, MembershipDirectory } from "@mizan/contracts";
 import type { Prisma } from "@mizan/database";
 import { AccessError } from "../access/access.errors.js";
 import { readPageSize } from "../access/page-size.js";
-import { uuidPattern } from "../access/access.service.js";
+import { lockUser, uuidPattern } from "../access/access.service.js";
 import {
   assertOwner,
   lockOrganization,
@@ -133,6 +133,7 @@ export async function listMemberships(
       select: {
         userId: true,
         active: true,
+        user: { select: { fullName: true } },
         assignments: { where: { active: true }, select: { storeId: true } },
         acceptedInvitations: {
           orderBy: { acceptedAt: "desc" },
@@ -147,6 +148,7 @@ export async function listMemberships(
     invitations: invitations.slice(0, invitationSize).map(summarize),
     members: memberships.slice(0, memberSize).map((member) => ({
       userId: member.userId,
+      fullName: member.user.fullName,
       status: member.active ? "active" : "inactive",
       email: member.acceptedInvitations[0]?.email ?? null,
       storeIds: member.assignments.map((assignment) => assignment.storeId),
@@ -245,6 +247,7 @@ export function acceptInvitation(
 ) {
   const digest = tokenDigest(token);
   return db.$transaction(async (tx) => {
+    await lockUser(tx, userId);
     const found = await tx.invitation.findUnique({
       where: { tokenDigest: digest },
       select: { organizationId: true },

@@ -1,4 +1,5 @@
 {
+  "greeting": "Welcome, {{name}}",
   "moveGroupUp": "Move {{name}} group up",
   "moveGroupDown": "Move {{name}} group down",
   "showGroup": "Show {{name}} group",

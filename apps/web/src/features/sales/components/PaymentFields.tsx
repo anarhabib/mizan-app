@@ -64,7 +64,7 @@ export function PaymentFields({
     paymentPreviewQuery(scope, active ? serialized : undefined),
   );
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-2 sm:align-form-fields sm:grid-cols-2">
       <FormField
         id={`${id}-method`}
         label={t("fields.paymentMethod")}

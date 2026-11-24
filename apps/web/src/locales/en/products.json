@@ -1,4 +1,8 @@
 {
+  "chooseCategory": "Select a category",
+  "loadingCategories": "Loading categories…",
+  "categoryLoadError": "Couldn’t load product categories.",
+  "noCategories": "No active product categories.",
   "soldOn": "Sold on {{date}} (Baku)",
   "receivedOn": "Received on {{date}} (Baku)",
   "agedDays": "In stock for at least {{count}} days",
