@@ -1,5 +1,8 @@
 {
   "registration": {
+    "discardRow": "Bu saxlanılmamış məhsul silinsin?",
+    "summaryCount_one": "{{count}} məhsul",
+    "summaryCount_other": "{{count}} məhsul",
     "mode": "Qeydiyyat rejimi",
     "single": "Bir məhsul",
     "bulk": "Bir neçə məhsul",

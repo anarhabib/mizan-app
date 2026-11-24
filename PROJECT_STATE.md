@@ -1,5 +1,17 @@
 # Misqal project state
 
+## Mobile product registration sheet (November 24, 2026)
+
+- `ProductCreate.tsx` and `ProductPanel.tsx` place the compact totals and save action in a safe-area-aware mobile drawer footer. Single non-purchase registration has only the save action. Bulk totals and purchase amounts remain available in the expandable summary. The desktop sheet retains its layout.
+- `ProductRegistrationRow.tsx` keeps one mobile bulk item open at a time, displays its identity and weight in the heading, preserves values and errors on collapse, and confirms removal. Add Product Row remains reachable from the footer.
+- All 177 web tests, changed-file lint and TypeScript passed. Fixture-backed Chromium covered 360px, 390px and 1280px, including scrolling, loading, single and bulk submission, collapsed-row validation, a focused-input viewport resize, a simulated 34px bottom inset and a repeated submission attempt. Physical iOS Safari and its native keyboard remain unverified.
+
+## Mobile account menu (November 24, 2026)
+
+- `apps/web/src/app/Shell.tsx` places the account avatar beside the mobile store switcher. More retains the existing business links and shows a translated empty state when the current role has no additional destinations. Bottom tab order and desktop sidebar placement are unchanged.
+- `apps/web/src/app/AccountMenu.tsx` derives initials from the workspace profile, provides an icon fallback, and shares account handlers across both layouts. Mobile presents the three language choices directly in the dropdown. Desktop retains the language submenu.
+- All 177 web tests, changed-source formatting and lint, TypeScript and the production build passed. Fixture-backed Chromium checks at 360px, 390px and 1280px in both themes covered account actions, permissions, avatar fallback and menu overflow. Changes remain local on `task/mobile-account-menu`.
+
 ## Task 23 — unified product registration (November 24, 2026)
 
 - `apps/web/src/features/products/components/ProductCreate.tsx` uses the existing Add Product panel for single and bulk intake. Other is the default source. Bulk rows retain individual codes, measurements, gemstone groups, costs and photos. Shared defaults and duplicate-row controls preserve editable values, and the summary keeps amounts exact and grouped by currency.

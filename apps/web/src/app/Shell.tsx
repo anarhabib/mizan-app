@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
   ContactRound,
+  Ellipsis,
   LayoutDashboard,
   Package,
   Receipt,
@@ -23,10 +24,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { PageContainer } from "@/shared/ui/PageContainer";
-import { responsiveMenuItem } from "@/shared/ui/responsive-menu";
+import {
+  responsiveMenuItem,
+  responsiveMenuWidth,
+} from "@/shared/ui/responsive-menu";
 import { AccountMenu } from "./AccountMenu";
 import { StoreSwitcher, useWorkspace } from "@/features/workspace";
 const settingsItem = {
@@ -138,32 +148,49 @@ function ShellContent() {
             .map(navigationItem)}
         {isMobile && (
           <SidebarMenuItem className="col-start-5">
-            <AccountMenu
-              mobile
-              active={items.some(
-                (item) => "ownerOnly" in item && item.to === pathname,
-              )}
-              concealWorkspace={concealWorkspace}
-            >
-              {owner &&
-                !concealed &&
-                items
-                  .filter((item) => "ownerOnly" in item)
-                  .map(({ to, namespace, icon: Icon }) => (
-                    <DropdownMenuItem
-                      key={to}
-                      asChild
-                      className={responsiveMenuItem}
-                    >
-                      <Link to={to} activeProps={{ "aria-current": "page" }}>
-                        <Icon aria-hidden="true" />
-                        <span className="min-w-0 wrap-anywhere">
-                          {t("title", { ns: namespace })}
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-            </AccountMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  isActive={items.some(
+                    (item) => "ownerOnly" in item && item.to === pathname,
+                  )}
+                  className="h-auto min-h-14 flex-col justify-center gap-1 px-0.5 py-2 text-center text-xs leading-tight text-muted-foreground data-active:inset-shadow-[0_-2px_0_var(--brand-accent)]"
+                >
+                  <Ellipsis aria-hidden="true" />
+                  {t("more")}
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                align="end"
+                sideOffset={8}
+                collisionPadding={8}
+                className={responsiveMenuWidth}
+              >
+                {owner && !concealed ? (
+                  items
+                    .filter((item) => "ownerOnly" in item)
+                    .map(({ to, namespace, icon: Icon }) => (
+                      <DropdownMenuItem
+                        key={to}
+                        asChild
+                        className={responsiveMenuItem}
+                      >
+                        <Link to={to} activeProps={{ "aria-current": "page" }}>
+                          <Icon aria-hidden="true" />
+                          <span className="min-w-0 wrap-anywhere">
+                            {t("title", { ns: namespace })}
+                          </span>
+                        </Link>
+                      </DropdownMenuItem>
+                    ))
+                ) : (
+                  <DropdownMenuLabel className="wrap-anywhere font-normal text-muted-foreground">
+                    {t("noMoreNavigation")}
+                  </DropdownMenuLabel>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         )}
       </SidebarMenu>
@@ -218,6 +245,9 @@ function ShellContent() {
                 />
               )}
             </div>
+            {isMobile && (
+              <AccountMenu mobile concealWorkspace={concealWorkspace} />
+            )}
           </PageContainer>
         </header>
         {isMobile && navigation}

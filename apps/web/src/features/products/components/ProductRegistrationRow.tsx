@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/shared/lib/api";
+import { WeightText } from "@/shared/ui/WeightText";
 import {
   productErrorField,
   productWithCurrency,
@@ -46,6 +47,8 @@ export function ProductRegistrationRow({
   onUseDefaults,
   canAdd,
   canRemove,
+  mobileOpen,
+  onMobileToggle,
 }: {
   ref: Ref<RowHandle>;
   rowId: string;
@@ -62,17 +65,21 @@ export function ProductRegistrationRow({
   onUseDefaults: (draft: ProductFormValues) => void;
   canAdd: boolean;
   canRemove: boolean;
+  mobileOpen?: boolean;
+  onMobileToggle: () => void;
 }) {
   const { t } = useTranslation(["products", "errors"]);
   const photoId = useId();
   const [open, setOpen] = useState(true);
   const [photo, setPhoto] = useState<File>();
   const [rowError, setRowError] = useState<string>();
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
   const form = useForm<ProductFormValues, unknown, ProductCreateInput>({
     defaultValues: defaults,
     resolver: (values) =>
       resolveProductForm(productWithCurrency(values, sharedCurrency)),
     mode: "onBlur",
+    shouldFocusError: mobileOpen === undefined,
   });
   const values = useWatch({ control: form.control }) as ProductFormValues;
   const { cost, gross, net } = previewProduct(values, sharedCurrency);
@@ -127,13 +134,22 @@ export function ProductRegistrationRow({
 
   return (
     <details
-      open={!bulk || open}
+      open={!bulk || (mobileOpen ?? open)}
       onToggle={(event) => {
-        if (bulk) setOpen(event.currentTarget.open);
+        if (bulk && mobileOpen === undefined) setOpen(event.currentTarget.open);
       }}
       className={bulk ? "min-w-0 rounded-md border px-3" : "min-w-0"}
     >
       <summary
+        id={`registration-row-${rowId}`}
+        onClick={(event) => {
+          if (mobileOpen === undefined) return;
+          event.preventDefault();
+          if (!busy) {
+            setConfirmRemoval(false);
+            onMobileToggle();
+          }
+        }}
         className={
           bulk
             ? "min-h-11 cursor-pointer content-center wrap-anywhere font-medium lg:min-h-9"
@@ -141,8 +157,19 @@ export function ProductRegistrationRow({
         }
       >
         {t("registration.productRow", { number })}
-        {values.code && (
-          <span className="text-muted-foreground"> · {values.code}</span>
+        {(values.code || (mobileOpen !== undefined && values.name)) && (
+          <span className="text-muted-foreground">
+            {" · "}
+            {mobileOpen !== undefined && values.name
+              ? [values.name, values.code].filter(Boolean).join(" / ")
+              : values.code}
+          </span>
+        )}
+        {mobileOpen !== undefined && gross && (
+          <span className="text-muted-foreground">
+            {" "}
+            · <WeightText value={values.weight} />
+          </span>
         )}
         {rowError && (
           <span className="text-destructive">
@@ -174,10 +201,37 @@ export function ProductRegistrationRow({
               type="button"
               variant="ghost"
               disabled={busy || !canRemove}
-              onClick={onRemove}
+              onClick={
+                mobileOpen === undefined
+                  ? onRemove
+                  : () => setConfirmRemoval(true)
+              }
             >
               <Trash2 aria-hidden="true" /> {t("registration.remove")}
             </Button>
+          </div>
+        )}
+        {confirmRemoval && (
+          <div className="grid gap-2 rounded-md border p-2">
+            <p role="status">{t("registration.discardRow")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setConfirmRemoval(false)}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={busy}
+                onClick={onRemove}
+              >
+                {t("registration.remove")}
+              </Button>
+            </div>
           </div>
         )}
         {rowError && (
