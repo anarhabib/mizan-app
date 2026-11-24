@@ -26,12 +26,14 @@ export function SupplierPicker({
   onChange,
   onlyActive = true,
   disabled,
+  label,
 }: {
   scope: SupplierScope;
   value?: SupplierOption;
   onChange: (option?: SupplierOption) => void;
   onlyActive?: boolean;
   disabled?: boolean;
+  label?: string;
 }) {
   const { t } = useTranslation(["suppliers", "shell"]);
   const [open, setOpen] = useState(false);
@@ -69,7 +71,7 @@ export function SupplierPicker({
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
     >
-      <Label htmlFor={id}>{t("supplier")}</Label>
+      <Label htmlFor={id}>{label ?? t("supplier")}</Label>
       <div className="flex min-w-0 gap-2">
         <Button
           id={id}

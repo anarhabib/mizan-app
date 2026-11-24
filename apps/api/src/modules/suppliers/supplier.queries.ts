@@ -96,6 +96,12 @@ const paymentAmounts = Prisma.sql`
   FROM "mizan"."SupplierPayment" t
   WHERE (t."organizationId", t."storeId", t."purchaseId") = (p."organizationId", p."storeId", p.id)
 `;
+const itemTotals = Prisma.sql`
+  SELECT COUNT(*)::int AS "productCount", COALESCE(SUM(r.weight), 0) AS "grossWeight"
+  FROM "mizan"."PurchaseItem" i
+  JOIN "mizan"."Product" r ON (r."organizationId", r."storeId", r.id) = (i."organizationId", i."storeId", i."productId")
+  WHERE (i."organizationId", i."storeId", i."purchaseId") = (p."organizationId", p."storeId", p.id)
+`;
 const itemCount = Prisma.sql`
   (SELECT COUNT(*)::int FROM "mizan"."PurchaseItem" i
    WHERE (i."organizationId", i."storeId", i."purchaseId") = (p."organizationId", p."storeId", p.id))
@@ -114,6 +120,7 @@ type LedgerRow = AmountRow & {
   purchaseDate: Date;
   currency: string;
   productCount: number;
+  grossWeight: Prisma.Decimal;
   note: string | null;
   createdAt: Date;
 };
@@ -138,6 +145,7 @@ function purchaseSummary(row: LedgerRow): PurchaseSummary {
     documentNumber: row.documentNumber,
     purchaseDate: calendarDate(row.purchaseDate),
     productCount: row.productCount,
+    grossWeight: row.grossWeight.toFixed(3),
     total: money(row.totalAmount, row.currency),
     paid: money(row.paid, row.currency),
     outstanding: money(row.outstanding, row.currency),
@@ -295,12 +303,13 @@ function readLedger(
   limit: number,
 ) {
   return db.$queryRaw<LedgerRow[]>(Prisma.sql`
-    SELECT p.id, p."supplierId", s.name AS "supplierName", p."documentNumber", p."purchaseDate",
+    SELECT p.id, p."supplierId", COALESCE(p."supplierName", s.name) AS "supplierName", p."documentNumber", p."purchaseDate",
       p.currency, p."totalAmount", a.paid, p."totalAmount" - a.paid AS outstanding,
-      p.note, p."createdAt", ${itemCount} AS "productCount"
+      p.note, p."createdAt", i."productCount", i."grossWeight"
     FROM "mizan"."Purchase" p
     JOIN "mizan"."Supplier" s ON (s."organizationId", s."storeId", s.id) = (p."organizationId", p."storeId", p."supplierId")
     CROSS JOIN LATERAL (${paymentAmounts}) a
+    CROSS JOIN LATERAL (${itemTotals}) i
     WHERE ${scopeWhere(scope, "p")} ${filters}
     ORDER BY p."purchaseDate" DESC, p.id DESC
     LIMIT ${limit}
@@ -494,6 +503,7 @@ export const paymentFields = {
   amount: true,
   currency: true,
   method: true,
+  isInitial: true,
   paymentDate: true,
   referenceNumber: true,
   note: true,
@@ -510,6 +520,7 @@ export function presentPayment(
     id: row.id,
     ...money(row.amount, row.currency),
     method: row.method as SupplierPaymentMethod,
+    isInitial: row.isInitial,
     paymentDate: calendarDate(row.paymentDate),
     referenceNumber: row.referenceNumber,
     note: row.note,
@@ -615,6 +626,7 @@ export async function listActivity(
       createdAt: true,
       purchaseId: true,
       productCount: true,
+      productId: true,
     },
   });
   return page(
@@ -625,6 +637,7 @@ export async function listActivity(
       id: row.id.toString(),
       kind: row.kind,
       purchaseId: row.purchaseId,
+      ...(row.productId && { productId: row.productId }),
       productCount: row.productCount,
       actorName: row.actor.membership.user.fullName,
       createdAt: row.createdAt.toISOString(),

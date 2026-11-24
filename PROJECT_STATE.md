@@ -1,5 +1,14 @@
 # Misqal project state
 
+## Task 23 — unified product registration (November 24, 2026)
+
+- `apps/web/src/features/products/components/ProductCreate.tsx` uses the existing Add Product panel for single and bulk intake. Other is the default source. Bulk rows retain individual codes, measurements, gemstone groups, costs and photos. Shared defaults and duplicate-row controls preserve editable values, and the summary keeps amounts exact and grouped by currency.
+- `apps/api/src/modules/products/product-registration.service.ts` and `packages/contracts/src/product-registration.ts` add atomic, idempotent intake. Supplier purchases reuse Task 22's receipt and payment allocation services. The optional initial payment uses the purchase date and currency. Opening stock, other intake and historical supplier links create no payable. Owners see purchase dates, references, gross weights, initial payments and historical links in the existing Products and Suppliers features.
+- `packages/database/prisma/migrations/202611240003_product_registration/migration.sql` adds registration receipts, movement sources, historical supplier links and initial-payment metadata. Source remains unknown for legacy intake. Purchase history stays protected from inventory edits. Photos attach through the existing signed flow after the transaction and can be retried separately.
+- Prisma validation, schema parity, clean migration and comparison of 13 legacy rows passed on disposable PostgreSQL. The final API suite passed 77 tests on a fresh database with two Vitest workers and a 20-second timeout after the default parallel run timed out. A separate live local Storage test passed. Database (4), contracts (30), web (177), changed-source formatting and lint, TypeScript and production builds passed.
+- Chromium verified bulk registration, row validation, totals and purchase history at 390px and 1280px in light and dark. Single opening stock and invalid currency handling passed on mobile and desktop. Azerbaijani and Russian rendering and photo confirmation retry passed. Browser authentication used fixtures and writes used the real API against disposable PostgreSQL.
+- The Task 23 migration was applied to the configured hosted development database. Prisma reports all 20 migrations applied. Read-only Fastify smoke checks with fixture authentication returned HTTP 200 for the purchase list and product detail. Task 17 is absent from the approved base. Branch is `task/23-unified-product-registration`.
+
 ## Task 22 — suppliers, purchases and payables (November 24, 2026)
 
 - `apps/api/src/modules/suppliers` and `packages/contracts/src/suppliers.ts` implement Owner-mode supplier profiles, purchase documents, payment allocations and audit events. Directory and history filters run before cursor pagination. Balances are derived by currency at recorded precision. Purchase and payment writes are idempotent, and competing payments cannot exceed the remaining payable amount.

@@ -176,6 +176,7 @@ export function Purchases({
                 t("purchaseDate"),
                 ...(!supplierId ? [t("supplier")] : []),
                 t("products"),
+                t("purchaseWeight"),
                 t("purchased"),
                 t("paid"),
                 t("outstanding"),
@@ -188,6 +189,7 @@ export function Purchases({
                   <CalendarDate value={purchase.purchaseDate} />,
                   ...(!supplierId ? [purchase.supplier.name] : []),
                   purchase.productCount,
+                  <WeightText value={purchase.grossWeight} />,
                   <Payable value={purchase.total} />,
                   <Payable value={purchase.paid} />,
                   <Payable value={purchase.outstanding} />,
@@ -489,7 +491,14 @@ export function Payments({
                 cells: [
                   <CalendarDate value={payment.paymentDate} />,
                   <Payable value={payment} />,
-                  t(`methods.${payment.method}`, { ns: "sales" }),
+                  <span>
+                    {t(`methods.${payment.method}`, { ns: "sales" })}
+                    {payment.isInitial && (
+                      <span className="block text-xs text-muted-foreground">
+                        {t("initialPayment")}
+                      </span>
+                    )}
+                  </span>,
                   ...(!purchaseId
                     ? [
                         <PurchaseLink
@@ -544,7 +553,7 @@ export function Activity({
             t("event"),
             t("recordedAt"),
             t("actor"),
-            t("relatedPurchase"),
+            t("relatedRecord"),
           ]}
           rows={items.map((activity) => ({
             id: activity.id,
@@ -573,6 +582,14 @@ export function Activity({
                   }}
                 >
                   {t("openPurchase")}
+                </Link>
+              ) : activity.productId ? (
+                <Link
+                  to="/products"
+                  className={linkClass}
+                  search={{ product: activity.productId }}
+                >
+                  {t("openProduct")}
                 </Link>
               ) : null,
             ],

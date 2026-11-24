@@ -86,6 +86,7 @@ export interface PurchaseSummary {
   documentNumber: string | null;
   purchaseDate: string;
   productCount: number;
+  grossWeight: string;
   total: MoneyInput;
   paid: MoneyInput;
   outstanding: MoneyInput;
@@ -123,6 +124,7 @@ export interface SupplierPaymentInput extends MoneyInput {
 
 export interface SupplierPayment extends SupplierPaymentInput {
   id: string;
+  isInitial: boolean;
   purchaseId: string;
   documentNumber: string | null;
   purchaseDate: string;
@@ -141,8 +143,10 @@ export interface SupplierActivity {
     | "PRODUCTS_RECEIVED"
     | "PAYMENT_RECORDED"
     | "PARTIALLY_PAID"
-    | "PAID";
+    | "PAID"
+    | "HISTORICAL_PRODUCT_LINKED";
   purchaseId: string | null;
+  productId?: string;
   productCount: number | null;
   actorName: string | null;
   createdAt: string;

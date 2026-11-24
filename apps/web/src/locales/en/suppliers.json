@@ -1,4 +1,8 @@
 {
+  "relatedRecord": "Related record",
+  "openProduct": "Open product",
+  "purchaseWeight": "Total gross weight",
+  "initialPayment": "Initial payment",
   "title": "Suppliers",
   "supplier": "Supplier",
   "addSupplier": "Add supplier",
@@ -30,7 +34,6 @@
   "invalidPurchaseDate": "Enter a valid purchase date.",
   "documentNumber": "Document number",
   "noPurchases": "No purchases found",
-  "productPurchaseHint": "Saving registers this product as a purchase with an outstanding balance.",
   "acquisitionDetails": "Acquisition details",
   "searchProducts": "Search products",
   "newProduct": "New product",
@@ -107,6 +110,7 @@
     "PAID": "Paid"
   },
   "events": {
+    "HISTORICAL_PRODUCT_LINKED": "Historical supplier linked",
     "CREATED": "Supplier created",
     "UPDATED": "Supplier details updated",
     "DEACTIVATED": "Supplier deactivated",
