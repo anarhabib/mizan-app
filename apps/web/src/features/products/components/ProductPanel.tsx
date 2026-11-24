@@ -16,6 +16,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { bindFormDrawerViewport } from "./form-drawer-viewport";
 
 export function ProductPanel({
   title,
@@ -43,8 +44,17 @@ export function ProductPanel({
   };
   const restoreFocus = (event: Event) => {
     event.preventDefault();
-    if (opener.isConnected) opener.focus();
+    if (opener.isConnected) opener.focus({ preventScroll: true });
     else restoreFallbackFocus?.();
+  };
+  const handleEscape = (event: KeyboardEvent) => {
+    if (
+      busy ||
+      (event.target instanceof Element &&
+        event.target.closest("[data-form-panel-escape]"))
+    ) {
+      event.preventDefault();
+    }
   };
 
   const closeButton = (
@@ -62,10 +72,12 @@ export function ProductPanel({
   );
   const body = (
     <div
+      data-slot="form-panel-body"
+      data-vaul-no-drag={mobile ? "" : undefined}
       className={
         mobileFooter
-          ? "min-h-0 flex-auto overflow-y-auto overscroll-contain px-4 pb-3"
-          : "min-h-0 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:px-6"
+          ? "min-h-12 flex-auto overflow-y-auto overscroll-contain px-4 pb-3"
+          : "min-h-0 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-lg:min-h-12 max-lg:overscroll-contain lg:px-6"
       }
     >
       {children}
@@ -78,9 +90,7 @@ export function ProductPanel({
         <SheetContent
           showCloseButton={false}
           aria-describedby={descriptionId}
-          onEscapeKeyDown={(event) => {
-            if (busy) event.preventDefault();
-          }}
+          onEscapeKeyDown={handleEscape}
           onInteractOutside={(event) => {
             if (busy) event.preventDefault();
           }}
@@ -97,13 +107,21 @@ export function ProductPanel({
     );
   }
   return (
-    <Drawer open onOpenChange={dismiss} dismissible={!busy} autoFocus>
+    <Drawer
+      open
+      onOpenChange={dismiss}
+      dismissible={!busy}
+      repositionInputs={false}
+      autoFocus
+    >
       <DrawerContent
+        ref={bindFormDrawerViewport}
         aria-describedby={descriptionId}
+        onEscapeKeyDown={handleEscape}
         onCloseAutoFocus={restoreFocus}
-        className="data-[vaul-drawer-direction=bottom]:max-h-[85dvh] motion-reduce:animate-none motion-reduce:transition-none"
+        className="overflow-y-auto overscroll-contain [touch-action:pan-y_pinch-zoom]! after:hidden data-[vaul-drawer-direction=bottom]:bottom-[var(--form-drawer-bottom,0px)] data-[vaul-drawer-direction=bottom]:max-h-[min(85dvh,calc(var(--form-drawer-height,100dvh)-max(0.5rem,env(safe-area-inset-top))))] motion-reduce:animate-none motion-reduce:transition-none"
       >
-        <DrawerHeader className="shrink-0 flex-row items-center justify-between">
+        <DrawerHeader className="shrink-0 touch-none flex-row items-center justify-between">
           <DrawerTitle>{title}</DrawerTitle>
           {closeButton}
         </DrawerHeader>

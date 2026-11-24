@@ -39,11 +39,25 @@ export function SupplierPicker({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const id = useId();
+  const picker = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (open) input.current?.focus();
-  }, [open]);
+    if (!open || disabled) return;
+    input.current?.focus();
+
+    function dismissOutside(event: MouseEvent) {
+      if (
+        event.target instanceof Node &&
+        !picker.current?.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("click", dismissOutside, true);
+    return () => document.removeEventListener("click", dismissOutside, true);
+  }, [open, disabled]);
   const q = useSupplierSearch(search);
   const pagination = useCursorPagination(q);
   const query = useQuery({
@@ -56,19 +70,19 @@ export function SupplierPicker({
   });
   function close() {
     setOpen(false);
-    trigger.current?.focus();
+    trigger.current?.focus({ preventScroll: true });
   }
   return (
     <div
-      className="relative grid min-w-0 gap-2"
+      ref={picker}
+      className="grid min-w-0 gap-2"
+      data-form-panel-escape={open && !disabled ? "" : undefined}
       onKeyDown={(event) => {
         if (event.key === "Escape" && open) {
+          event.preventDefault();
           event.stopPropagation();
           close();
         }
-      }}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
     >
       <Label htmlFor={id}>{label ?? t("supplier")}</Label>
@@ -113,7 +127,7 @@ export function SupplierPicker({
       {open && !disabled && (
         <div
           id={`${id}-options`}
-          className="absolute inset-x-0 top-full z-10 mt-1 grid gap-2 rounded-lg border bg-popover p-2 shadow-md"
+          className="grid min-w-0 gap-2 rounded-lg border bg-popover p-2"
         >
           <Label htmlFor={`${id}-search`}>{t("searchSuppliers")}</Label>
           <Input
