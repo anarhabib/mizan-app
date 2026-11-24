@@ -373,6 +373,8 @@ test.skipIf(!db)(
         id: first.id,
         supplierId: supplier.id,
         supplierName: supplier.name,
+        documentNumber: "NJ-22",
+        purchaseDate: "2026-11-20",
       });
       expect(
         (

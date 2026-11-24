@@ -9,6 +9,13 @@ import {
 
 export type ProductStatus = "IN_STOCK" | "SOLD";
 export type ProductMetal = "GOLD";
+export const productRegistrationSources = [
+  "OPENING_STOCK",
+  "SUPPLIER_PURCHASE",
+  "OTHER",
+] as const;
+export type ProductRegistrationSource =
+  (typeof productRegistrationSources)[number];
 export type ProductGemstoneFilter = "recorded" | "none";
 
 export const gemstoneOrigins = [
@@ -87,7 +94,15 @@ export interface ProductListItem {
 }
 
 export interface ProductDetail extends ProductListItem {
-  purchase?: { id: string; supplierId: string; supplierName: string };
+  registrationSource?: ProductRegistrationSource;
+  historicalSupplier?: { id: string; name: string };
+  purchase?: {
+    id: string;
+    supplierId: string;
+    supplierName: string;
+    documentNumber: string | null;
+    purchaseDate: string;
+  };
   metalType?: ProductMetal;
   netGoldWeight?: string;
   fineGoldWeight?: string;
@@ -109,6 +124,7 @@ export interface ProductDetail extends ProductListItem {
     kind: "PRODUCT_ADDED" | "PRODUCT_SOLD" | "OLD_GOLD_RECEIVED";
     actorId: string;
     actorName?: string | null;
+    registrationSource?: ProductRegistrationSource;
     createdAt: string;
   }[];
   sale: { id: string; total: MoneyInput; createdAt: string } | null;

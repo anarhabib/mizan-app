@@ -6,6 +6,7 @@ export * from "./product-categories.js";
 export * from "./memberships.js";
 export * from "./settings.js";
 export * from "./products.js";
+export * from "./product-registration.js";
 export * from "./sales.js";
 export * from "./customers.js";
 export * from "./suppliers.js";

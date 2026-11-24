@@ -4,7 +4,8 @@ import {
   requireStoreAccess,
   type AccessOptions,
 } from "../../plugins/request-context.js";
-import { AccessError, type AccessFailure } from "../access/access.errors.js";
+import { AccessError } from "../access/access.errors.js";
+import { requiredKey } from "../access/idempotency.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import type { OrganizationDatabase } from "../access/organization-owner.js";
 import {
@@ -26,13 +27,6 @@ import {
 type Scope = { Params: { organizationId: string; storeId: string } };
 type Id = { Params: Scope["Params"] & { id: string } };
 type Page = { Querystring: Filters };
-
-function requiredKey(request: FastifyRequest, code: AccessFailure) {
-  const key = request.headers["idempotency-key"];
-  if (typeof key !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(key))
-    throw new AccessError(code, "idempotencyKey");
-  return key;
-}
 
 export function registerSupplierRoutes(
   app: FastifyInstance,

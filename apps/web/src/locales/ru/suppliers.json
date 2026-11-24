@@ -1,4 +1,8 @@
 {
+  "relatedRecord": "Связанная запись",
+  "openProduct": "Открыть изделие",
+  "purchaseWeight": "Общий вес брутто",
+  "initialPayment": "Первоначальный платёж",
   "title": "Поставщики",
   "supplier": "Поставщик",
   "addSupplier": "Добавить поставщика",
@@ -30,7 +34,6 @@
   "invalidPurchaseDate": "Укажите корректную дату закупки.",
   "documentNumber": "Номер документа",
   "noPurchases": "Закупки не найдены",
-  "productPurchaseHint": "При сохранении товар будет записан как закупка с непогашенным остатком.",
   "acquisitionDetails": "Стоимость закупки и камни",
   "searchProducts": "Поиск товаров",
   "newProduct": "Новый товар",
@@ -107,6 +110,7 @@
     "PAID": "Оплачено"
   },
   "events": {
+    "HISTORICAL_PRODUCT_LINKED": "Указан прежний поставщик",
     "CREATED": "Поставщик создан",
     "UPDATED": "Данные поставщика обновлены",
     "DEACTIVATED": "Поставщик деактивирован",

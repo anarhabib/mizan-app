@@ -1,4 +1,8 @@
 {
+  "relatedRecord": "Əlaqəli qeyd",
+  "openProduct": "Məhsulu aç",
+  "purchaseWeight": "Ümumi brutto çəki",
+  "initialPayment": "İlkin ödəniş",
   "title": "Təchizatçılar",
   "supplier": "Təchizatçı",
   "addSupplier": "Təchizatçı əlavə et",
@@ -30,7 +34,6 @@
   "invalidPurchaseDate": "Düzgün alış tarixi daxil edin.",
   "documentNumber": "Sənəd nömrəsi",
   "noPurchases": "Alış tapılmadı",
-  "productPurchaseHint": "Məhsul saxlanıldıqda ödənilməmiş borcu olan alış kimi qeydə alınacaq.",
   "acquisitionDetails": "Alış dəyəri və daşlar",
   "searchProducts": "Məhsulları axtar",
   "newProduct": "Yeni məhsul",
@@ -107,6 +110,7 @@
     "PAID": "Ödənilib"
   },
   "events": {
+    "HISTORICAL_PRODUCT_LINKED": "Əvvəlki təchizatçı əlaqələndirildi",
     "CREATED": "Təchizatçı yaradıldı",
     "UPDATED": "Təchizatçının məlumatları yeniləndi",
     "DEACTIVATED": "Təchizatçı deaktiv edildi",

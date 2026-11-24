@@ -608,6 +608,9 @@ function PurchasePage({
             <PurchaseStatus value={purchase.status} />
           </Fact>
           <Fact label={t("productCount")}>{purchase.productCount}</Fact>
+          <Fact label={t("purchaseWeight")}>
+            <WeightText value={purchase.grossWeight} />
+          </Fact>
           <Fact label={t("actor")}>
             {purchase.actorName ?? t("unknownActor", { ns: "auth" })}
           </Fact>

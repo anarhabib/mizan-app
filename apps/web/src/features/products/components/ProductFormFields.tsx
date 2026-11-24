@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import {
   Controller,
   get,
@@ -75,7 +75,7 @@ export function ProductTextField({
   multiline?: boolean;
   readOnly?: boolean;
 }) {
-  const id = `create-product-${name}`;
+  const id = useId();
   const registration = form.register(name, {
     onChange: () => {
       if (form.getFieldState(name).invalid) form.clearErrors(name);
@@ -150,6 +150,7 @@ export function GemstoneFields({
   form: ProductFormState;
   busy: boolean;
 }) {
+  const id = useId();
   const { t } = useTranslation("products");
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -206,11 +207,11 @@ export function GemstoneFields({
               name={`gemstones.${index}.origin`}
               render={({ field }) => (
                 <div className="grid gap-2">
-                  <Label htmlFor={`product-gemstone-origin-${index}`}>
+                  <Label htmlFor={`${id}-gemstone-origin-${index}`}>
                     {t("jewelry.stoneFields.origin")}
                   </Label>
                   <OptionSelect
-                    id={`product-gemstone-origin-${index}`}
+                    id={`${id}-gemstone-origin-${index}`}
                     ref={field.ref}
                     value={field.value ?? "UNKNOWN"}
                     onBlur={field.onBlur}

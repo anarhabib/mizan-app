@@ -3,7 +3,9 @@ import {
   parsePurchaseInput,
   parseSupplierInput,
   parseSupplierPayment,
+  type ParsedPurchase,
   type PurchaseReceipt,
+  type SupplierPaymentInput,
   type Supplier,
   type SupplierActivity,
   type SupplierPayment,
@@ -19,7 +21,7 @@ import {
   lockOrganization,
   type OrganizationDatabase,
 } from "../access/organization-owner.js";
-import { receiveProduct } from "../products/product.service.js";
+import { receiveProducts } from "../products/product.service.js";
 import {
   paymentFields,
   presentPayment,
@@ -159,7 +161,6 @@ export async function registerPurchase(
   const parsed = parsePurchaseInput(body);
   if ("field" in parsed)
     throw new AccessError("INVALID_PURCHASE", parsed.field);
-  const { items, supplierId, purchaseDate, ...metadata } = parsed.input;
   const requestDigest = digest(parsed.input);
   return ownerWrite(
     db,
@@ -184,127 +185,123 @@ export async function registerPurchase(
         };
       }
 
-      const supplier = await tx.supplier.findUnique({
-        where: supplierKey(current, supplierId),
-        select: { id: true, isActive: true },
-      });
-      if (!supplier) throw new AccessError("SUPPLIER_NOT_FOUND", "supplierId");
-      if (!supplier.isActive)
-        throw new AccessError("SUPPLIER_INACTIVE", "supplierId");
-
-      const store = scopeOf(current);
-      const existingIds = items.flatMap((item) =>
-        "productId" in item ? [item.productId] : [],
-      );
-      const existing = new Map(
-        existingIds.length
-          ? (
-              await tx.product.findMany({
-                where: {
-                  ...store,
-                  id: { in: existingIds },
-                  purchaseItem: null,
-                },
-                select: {
-                  id: true,
-                  acquisitionCost: true,
-                  acquisitionCurrency: true,
-                },
-              })
-            ).map((row) => [row.id, row])
-          : [],
-      );
-      // Validate all links before receiving new stock.
-      for (const [position, item] of items.entries()) {
-        if (!("productId" in item)) continue;
-        const product = existing.get(item.productId);
-        if (!product || !product.acquisitionCost.gt(0))
-          throw new AccessError(
-            "PURCHASE_PRODUCT_CONFLICT",
-            `items.${position}`,
-          );
-        if (product.acquisitionCurrency !== metadata.currency)
-          throw new AccessError(
-            "SUPPLIER_CURRENCY_MISMATCH",
-            `items.${position}.currency`,
-          );
-      }
-
-      let total = new ExactDecimal(0);
-      let received = 0;
-      const products = [];
-      for (const [position, item] of items.entries()) {
-        if ("productId" in item) {
-          const cost = existing.get(item.productId)!.acquisitionCost.toFixed();
-          total = total.plus(cost);
-          products.push({
-            position,
-            productId: item.productId,
-            acquisitionCost: cost,
-          });
-          continue;
-        }
-        try {
-          const product = await receiveProduct(
-            tx,
-            current,
-            item.product,
-            item.total,
-          );
-          total = total.plus(item.total.amount);
-          products.push({
-            position,
-            productId: product.id,
-            acquisitionCost: item.total.amount,
-          });
-          received++;
-        } catch (error) {
-          if (error instanceof AccessError && error.field)
-            throw new AccessError(
-              error.code,
-              `items.${position}.${error.field}`,
-            );
-          throw error;
-        }
-      }
-
-      const purchase = await tx.purchase.create({
-        data: {
-          ...store,
-          ...metadata,
-          supplierId,
-          purchaseDate: new Date(purchaseDate),
-          actorId: current.userId,
-          idempotencyKey,
-          requestDigest,
-          totalAmount: total.toFixed(),
-          items: { createMany: { data: products } },
-        },
-        select: { id: true, supplierId: true },
-      });
-      await activity(
+      return writePurchase(
         tx,
         current,
-        supplierId,
-        "PURCHASE_REGISTERED",
-        purchase.id,
+        parsed.input,
+        idempotencyKey,
+        requestDigest,
       );
-      if (received)
-        await activity(
-          tx,
-          current,
-          supplierId,
-          "PRODUCTS_RECEIVED",
-          purchase.id,
-          received,
-        );
-      return {
-        ...purchase,
-        productIds: products.map((item) => item.productId),
-      };
     },
     30_000,
   );
+}
+
+export async function writePurchase(
+  tx: Tx,
+  current: AccessContext,
+  input: ParsedPurchase,
+  idempotencyKey: string,
+  requestDigest = digest(input),
+): Promise<PurchaseReceipt> {
+  const { items, supplierId, purchaseDate, ...metadata } = input;
+  const supplier = await tx.supplier.findUnique({
+    where: supplierKey(current, supplierId),
+    select: { id: true, name: true, isActive: true },
+  });
+  if (!supplier) throw new AccessError("SUPPLIER_NOT_FOUND", "supplierId");
+  if (!supplier.isActive)
+    throw new AccessError("SUPPLIER_INACTIVE", "supplierId");
+
+  const store = scopeOf(current);
+  const existingIds = items.flatMap((item) =>
+    "productId" in item ? [item.productId] : [],
+  );
+  const existing = new Map(
+    existingIds.length
+      ? (
+          await tx.product.findMany({
+            where: {
+              ...store,
+              id: { in: existingIds },
+              purchaseItem: null,
+            },
+            select: {
+              id: true,
+              acquisitionCost: true,
+              acquisitionCurrency: true,
+            },
+          })
+        ).map((row) => [row.id, row])
+      : [],
+  );
+  // Validate all links before receiving new stock.
+  for (const [position, item] of items.entries()) {
+    if (!("productId" in item)) continue;
+    const product = existing.get(item.productId);
+    if (!product || !product.acquisitionCost.gt(0))
+      throw new AccessError("PURCHASE_PRODUCT_CONFLICT", `items.${position}`);
+    if (product.acquisitionCurrency !== metadata.currency)
+      throw new AccessError(
+        "SUPPLIER_CURRENCY_MISMATCH",
+        `items.${position}.currency`,
+      );
+  }
+
+  const newItems = items.flatMap((item, position) =>
+    "product" in item ? [{ ...item, position }] : [],
+  );
+  const receivedIds = newItems.length
+    ? await receiveProducts(
+        tx,
+        current,
+        newItems,
+        "SUPPLIER_PURCHASE",
+        undefined,
+        (index, field) => `items.${newItems[index].position}.${field}`,
+      )
+    : [];
+  let total = new ExactDecimal(0);
+  let received = 0;
+  const products = items.map((item, position) => {
+    const linked = "productId" in item;
+    const productId = linked ? item.productId : receivedIds[received++];
+    const acquisitionCost = linked
+      ? existing.get(productId)!.acquisitionCost.toFixed()
+      : item.total.amount;
+    total = total.plus(acquisitionCost);
+    return { position, productId, acquisitionCost };
+  });
+
+  const purchase = await tx.purchase.create({
+    data: {
+      ...store,
+      ...metadata,
+      supplierId,
+      supplierName: supplier.name,
+      purchaseDate: new Date(purchaseDate),
+      actorId: current.userId,
+      idempotencyKey,
+      requestDigest,
+      totalAmount: total.toFixed(),
+      items: { createMany: { data: products } },
+    },
+    select: { id: true, supplierId: true },
+  });
+  await activity(tx, current, supplierId, "PURCHASE_REGISTERED", purchase.id);
+  if (received)
+    await activity(
+      tx,
+      current,
+      supplierId,
+      "PRODUCTS_RECEIVED",
+      purchase.id,
+      received,
+    );
+  return {
+    ...purchase,
+    productIds: products.map((item) => item.productId),
+  };
 }
 
 export async function recordSupplierPayment(
@@ -329,39 +326,60 @@ export async function recordSupplierPayment(
         throw new AccessError("SUPPLIER_REQUEST_CONFLICT");
       return presentPayment(previous);
     }
-    const purchase = await purchaseAmounts(tx, current, purchaseId);
-    if (parsed.input.currency !== purchase.currency)
-      throw new AccessError("SUPPLIER_CURRENCY_MISMATCH", "currency");
-    const paymentDate = new Date(parsed.input.paymentDate);
-    if (paymentDate < purchase.purchaseDate)
-      throw new AccessError("INVALID_SUPPLIER_PAYMENT", "paymentDate");
-    const amount = new Prisma.Decimal(parsed.input.amount);
-    if (amount.gt(purchase.outstanding))
-      throw new AccessError("SUPPLIER_OVERPAYMENT", "amount");
-
-    const payment = await tx.supplierPayment.create({
-      data: {
-        ...scopeOf(current),
-        ...parsed.input,
-        paymentDate,
-        createdAt: new Date(),
-        purchaseId,
-        actorId: current.userId,
-        idempotencyKey,
-        requestDigest,
-      },
-      select: paymentFields,
-    });
-    await activity(
+    return writeSupplierPayment(
       tx,
       current,
-      purchase.supplierId,
-      "PAYMENT_RECORDED",
       purchaseId,
+      parsed.input,
+      idempotencyKey,
+      false,
+      requestDigest,
     );
-    const status = amount.eq(purchase.outstanding) ? "PAID" : "PARTIALLY_PAID";
-    if (status !== purchaseStatus(purchase))
-      await activity(tx, current, purchase.supplierId, status, purchaseId);
-    return presentPayment(payment);
   });
+}
+
+export async function writeSupplierPayment(
+  tx: Tx,
+  current: AccessContext,
+  purchaseId: string,
+  input: SupplierPaymentInput,
+  idempotencyKey: string,
+  isInitial: boolean,
+  requestDigest = digest({ purchaseId, ...input }),
+): Promise<SupplierPayment> {
+  const purchase = await purchaseAmounts(tx, current, purchaseId);
+  if (input.currency !== purchase.currency)
+    throw new AccessError("SUPPLIER_CURRENCY_MISMATCH", "currency");
+  const paymentDate = new Date(input.paymentDate);
+  if (paymentDate < purchase.purchaseDate)
+    throw new AccessError("INVALID_SUPPLIER_PAYMENT", "paymentDate");
+  const amount = new Prisma.Decimal(input.amount);
+  if (amount.gt(purchase.outstanding))
+    throw new AccessError("SUPPLIER_OVERPAYMENT", "amount");
+
+  const payment = await tx.supplierPayment.create({
+    data: {
+      ...scopeOf(current),
+      ...input,
+      paymentDate,
+      createdAt: new Date(),
+      purchaseId,
+      isInitial,
+      actorId: current.userId,
+      idempotencyKey,
+      requestDigest,
+    },
+    select: paymentFields,
+  });
+  await activity(
+    tx,
+    current,
+    purchase.supplierId,
+    "PAYMENT_RECORDED",
+    purchaseId,
+  );
+  const status = amount.eq(purchase.outstanding) ? "PAID" : "PARTIALLY_PAID";
+  if (status !== purchaseStatus(purchase))
+    await activity(tx, current, purchase.supplierId, status, purchaseId);
+  return presentPayment(payment);
 }

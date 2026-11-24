@@ -37,11 +37,19 @@ export function detailFields(access: AccessContext) {
   const owner = canManageAsOwner(access);
   return {
     ...listFields,
+    historicalSupplierId: owner,
+    historicalSupplierName: owner,
     purchaseItem: {
       select: {
         purchaseId: true,
         purchase: {
-          select: { supplierId: true, supplier: { select: { name: true } } },
+          select: {
+            supplierId: true,
+            supplierName: true,
+            documentNumber: true,
+            purchaseDate: true,
+            supplier: { select: { name: true } },
+          },
         },
       },
     },
@@ -84,6 +92,7 @@ export function detailFields(access: AccessContext) {
       select: {
         id: true,
         kind: true,
+        registrationSource: true,
         actorId: true,
         actor: actorProfile,
         createdAt: true,
@@ -217,6 +226,9 @@ export function presentDetail(
   const owner = canManageAsOwner(access);
   const showCost = owner || !row.purchaseItem;
   const purchase = row.purchaseItem?.purchase;
+  const registrationSource = movements.find(
+    ({ registrationSource }) => registrationSource,
+  )?.registrationSource;
   if (owner) {
     if (row.acquisitionMetal) breakdown.metal = row.acquisitionMetal.toFixed();
     if (row.acquisitionGemstones)
@@ -227,13 +239,24 @@ export function presentDetail(
   }
   return {
     ...presentListItem(row),
+    ...(owner && registrationSource && { registrationSource }),
+    ...(owner &&
+      row.historicalSupplierId &&
+      row.historicalSupplierName && {
+        historicalSupplier: {
+          id: row.historicalSupplierId,
+          name: row.historicalSupplierName,
+        },
+      }),
     ...(owner &&
       purchase &&
       row.purchaseItem && {
         purchase: {
           id: row.purchaseItem.purchaseId,
           supplierId: purchase.supplierId,
-          supplierName: purchase.supplier.name,
+          supplierName: purchase.supplierName ?? purchase.supplier.name,
+          documentNumber: purchase.documentNumber,
+          purchaseDate: purchase.purchaseDate.toISOString().slice(0, 10),
         },
       }),
     metalType: row.metalType,
@@ -276,6 +299,7 @@ export function presentDetail(
         row.status === "IN_STOCK" &&
         !sale &&
         !row.purchaseItem &&
+        !row.historicalSupplierId &&
         movements.length === 0,
     }),
     note,
@@ -284,8 +308,9 @@ export function presentDetail(
       photoUrl && photoContentType && photoSize !== null
         ? { url: photoUrl, contentType: photoContentType, size: photoSize }
         : null,
-    movements: movements.map(({ actor, ...movement }) => ({
+    movements: movements.map(({ actor, registrationSource, ...movement }) => ({
       ...movement,
+      ...(owner && registrationSource && { registrationSource }),
       actorName: actor.membership.user.fullName,
       createdAt: movement.createdAt.toISOString(),
     })),

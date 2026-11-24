@@ -166,6 +166,19 @@ export function resolveProductForm(
 export function productErrorField(error: ApiError) {
   if (error.code === "PRODUCT_CODE_CONFLICT") return "code";
   if (error.code === "PURITY_CONFLICT") return "purity";
+  if (error.code === "CATEGORY_UNAVAILABLE") return "categoryId";
   if (error.code === "INVALID_PRODUCT" && error.field)
     return productField(error.field);
+}
+
+export function productWithCurrency(
+  values: ProductFormValues,
+  currency?: string,
+): ProductFormValues {
+  if (currency === undefined) return values;
+  return {
+    ...values,
+    acquisitionCostPerGram: { ...values.acquisitionCostPerGram, currency },
+    acquisitionCost: { amount: values.acquisitionCost?.amount ?? "", currency },
+  };
 }

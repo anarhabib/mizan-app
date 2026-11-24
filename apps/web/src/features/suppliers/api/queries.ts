@@ -172,6 +172,31 @@ export function useSaveSupplier(scope: SupplierScope, id?: string) {
 
 type Attempt<T> = { body: T; key: string };
 
+export function refreshSupplierActivity(
+  client: QueryClient,
+  scope: SupplierScope,
+  supplierId: string,
+) {
+  return invalidateSupplierData(client, scope, [
+    `suppliers/${supplierId}/activity`,
+  ]);
+}
+
+export function refreshSupplierPurchase(
+  client: QueryClient,
+  scope: SupplierScope,
+  supplierId: string,
+) {
+  return invalidateSupplierData(client, scope, [
+    "suppliers",
+    "purchases",
+    `suppliers/${supplierId}`,
+    `suppliers/${supplierId}/products`,
+    `suppliers/${supplierId}/payments`,
+    `suppliers/${supplierId}/activity`,
+  ]);
+}
+
 export function useRegisterPurchase(scope: SupplierScope) {
   const client = useQueryClient();
   return useMutation<PurchaseReceipt, ApiError, Attempt<PurchaseInput>>({
@@ -183,13 +208,7 @@ export function useRegisterPurchase(scope: SupplierScope) {
         headers: { "Idempotency-Key": key },
       }),
     onSuccess: ({ supplierId }) =>
-      invalidateSupplierData(client, scope, [
-        "suppliers",
-        "purchases",
-        `suppliers/${supplierId}`,
-        `suppliers/${supplierId}/products`,
-        `suppliers/${supplierId}/activity`,
-      ]),
+      refreshSupplierPurchase(client, scope, supplierId),
   });
 }
 

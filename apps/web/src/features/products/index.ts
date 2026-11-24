@@ -2,7 +2,7 @@ export { ProductsPage } from "./components/ProductsPage";
 export { ProductPanel } from "./components/ProductPanel";
 export { ProductThumbnail } from "./components/ProductThumbnail";
 export { ProductStatusBadge } from "./components/ProductList";
-export { ProductForm } from "./components/ProductCreate";
+export { ProductForm } from "./components/ProductForm";
 export {
   cacheSoldProduct,
   invalidateProductInventory,
