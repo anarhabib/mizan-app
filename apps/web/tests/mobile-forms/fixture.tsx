@@ -1,14 +1,71 @@
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { SupplierOption } from "@mizan/contracts";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
+import type {
+  ProductCategory,
+  ProductCreateInput,
+  ProductDetail,
+  SupplierOption,
+} from "@mizan/contracts";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProductPanel } from "@/features/products/components/ProductPanel";
+import {
+  productDefaults,
+  ProductFields,
+} from "@/features/products/components/ProductForm";
+import type { ProductFormValues } from "@/features/products/lib/form";
 import { SupplierPicker } from "@/features/suppliers/components/SupplierPicker";
 import i18n from "@/shared/lib/i18n";
 import "@/index.css";
+
+const savedProduct: ProductDetail = {
+  id: "saved-ring",
+  code: "R1",
+  name: "Ring",
+  category: "Ring",
+  purity: 585,
+  weight: "2.001",
+  netGoldWeight: "1.500",
+  acquisitionCostPerGram: { amount: "50", currency: "AZN" },
+  status: "IN_STOCK",
+  note: null,
+  createdAt: "2026-11-24T00:00:00Z",
+  photo: null,
+  movements: [],
+  sale: null,
+};
+
+function WeightFields({
+  product,
+  currency,
+}: {
+  product?: ProductDetail;
+  currency: string;
+}) {
+  const categories = useQuery({
+    queryKey: ["fixture-categories"],
+    queryFn: (): ProductCategory[] => [],
+  });
+  const form = useForm<ProductFormValues, unknown, ProductCreateInput>({
+    defaultValues: productDefaults(currency, product),
+  });
+  return (
+    <ProductFields
+      form={form}
+      product={product}
+      categories={categories}
+      busy={false}
+      purities={[585]}
+    />
+  );
+}
 
 function Fixture() {
   const opener = useRef<HTMLButtonElement>(null);
@@ -21,6 +78,7 @@ function Fixture() {
   const [expanded, setExpanded] = useState(true);
   const [invalid, setInvalid] = useState(false);
   const mobile = useIsMobile();
+  const weights = new URLSearchParams(location.search).get("weights");
   const footer = mobile && !new URLSearchParams(location.search).has("inline");
   const save = (
     <Button type="submit" form="intake" className="min-h-11 lg:min-h-9">
@@ -50,6 +108,21 @@ function Fixture() {
             }}
           >
             <p id="intake-help">Mobile form fixture</p>
+            {weights && (
+              <>
+                <fieldset aria-label="First product">
+                  <WeightFields
+                    currency="AZN"
+                    product={weights === "edit" ? savedProduct : undefined}
+                  />
+                </fieldset>
+                {weights === "bulk" && (
+                  <fieldset aria-label="Second product">
+                    <WeightFields currency="USD" />
+                  </fieldset>
+                )}
+              </>
+            )}
             <label>
               Reference <Input name="reference" required />
             </label>
