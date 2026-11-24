@@ -1,5 +1,32 @@
 # Misqal project state
 
+## Dashboard default section order (November 24, 2026)
+
+- `preferences.ts` defaults to Market, Payments, Sales, Inventory and Operations. Existing saved section order is preserved. All 16 Dashboard preference and layout tests passed with the updated default order.
+
+## Mobile form drawer scroll boundary (November 24, 2026)
+
+- `ProductPanel.tsx` clips the mobile drawer shell and gives vertical scrolling to the shrinkable body. The body prevents vertical overscroll chaining. The header, footer, visual viewport binding and desktop sheet retain their existing behavior.
+- Five Chromium fixture tests passed at 320px, 390px and 1280px, including repeated touch swipes at the end of ten rows, dynamic row and error changes, reopen, and simulated keyboard resize. Eight focused web tests and web TypeScript passed. The physical iPhone Safari reproduction still needs a device retest, along with Android and installed PWA checks.
+
+## Mobile form regression coverage (November 24, 2026)
+
+- DESIGN.md and AGENTS.md record the existing ProductPanel, Input and SupplierPicker contracts for scroll, keyboard positioning, focus, safe areas, action placement and native date fields. Application logic was unchanged.
+- `apps/web/tests/mobile-forms` exercises the production components with stubbed supplier search. All three Chromium checks passed at 320px, 390px and 1280px, along with the visual viewport unit test. Physical iOS Safari, Android Chrome and installed PWA verification remains open for actual keyboards, system insets and native date controls.
+
+## Sales Overview date range (November 24, 2026)
+
+- The Sales list and overview share URL-backed From and To sale dates. `sale.service.ts` applies inclusive Asia/Baku business-day bounds to both. Older single-day links still work. Checkout and repayment invalidate every cached overview period for the affected store.
+- The overview reports cumulative net payments and current debt for the selected receipts, grouped by saved settlement currency. The API still has no cancellation or return workflow. No migration is required.
+- Five disposable PostgreSQL integration tests and the web cache invalidation test passed. Fixture-backed Chromium verified shared date filters, legacy links, reversed ranges and layout at 390px and 1280px.
+
+## Suppliers tabs and Sales Overview (November 24, 2026)
+
+- `SuppliersPage.tsx` uses the Gold Pricing line tab treatment for Suppliers and Purchases. The existing URL and nested tabs retain their behavior.
+- `SalesOverview.tsx` shows store-wide completed sales, products sold, sales amount, payments received and outstanding debt. `sale.service.ts` aggregates committed receipt snapshots by saved settlement currency with a legacy single-item fallback. The Sales query refreshes after checkout and repayment. The completed-sales tile clears the existing list filters.
+- Contracts, API and web builds, web TypeScript and changed web source lint passed. Five API tests passed against disposable PostgreSQL, including overview assertions for mixed currencies, multi-item receipts, payments, repayments, and store isolation. The current model has no cancellation or refund workflow. No migration is required.
+- Fixture-backed Chromium verified the matching tab underline, keyboard navigation, URL persistence after reload, mixed-currency display and filter reset at 390px and 1280px in light and dark mode.
+
 ## Mobile drawer and date controls (November 24, 2026)
 
 - `ProductPanel.tsx` and `form-drawer-viewport.ts` keep the mobile product, purchase and other shared form drawers inside the visual viewport. The form body scrolls independently of the footer and returns focus to the opener. The desktop sheet still uses its existing sizing.

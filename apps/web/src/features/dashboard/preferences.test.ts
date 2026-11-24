@@ -37,7 +37,7 @@ describe("dashboard preferences", () => {
       unit: "azn",
       agedDays: 45,
     });
-    expect(visibleWidgets(restored, true)).toEqual(["grossProfit", "gold"]);
+    expect(visibleWidgets(restored, true)).toEqual(["gold", "grossProfit"]);
     expect(visibleWidgets(restored, false)).toEqual(["gold"]);
     expect(
       readPreferences(storage, preferenceKey("other", "org", "store")),
@@ -50,17 +50,7 @@ describe("dashboard preferences", () => {
   it("assigns every business widget to exactly one group in default section order", () => {
     const groups = groupWidgets(widgets);
     expect(groups).toEqual([
-      { id: "operations", widgets: ["activity"] },
-      {
-        id: "sales",
-        widgets: [
-          "sales",
-          "salesTrend",
-          "grossProfit",
-          "recentSales",
-          "categories",
-        ],
-      },
+      { id: "market", widgets: ["gold", "exchange", "storeRates"] },
       {
         id: "payments",
         widgets: [
@@ -71,6 +61,16 @@ describe("dashboard preferences", () => {
           "settlement",
           "recentRepayments",
           "debtors",
+        ],
+      },
+      {
+        id: "sales",
+        widgets: [
+          "sales",
+          "salesTrend",
+          "grossProfit",
+          "recentSales",
+          "categories",
         ],
       },
       {
@@ -86,7 +86,7 @@ describe("dashboard preferences", () => {
           "recentTradeIns",
         ],
       },
-      { id: "market", widgets: ["gold", "exchange", "storeRates"] },
+      { id: "operations", widgets: ["activity"] },
     ]);
   });
 
@@ -161,9 +161,9 @@ describe("dashboard preferences", () => {
     ]);
     expect(legacy).not.toHaveProperty("order");
     expect(groupWidgets(visibleWidgets(legacy, true))).toEqual([
-      { id: "sales", widgets: ["sales", "salesTrend"] },
-      { id: "payments", widgets: ["payments"] },
       { id: "market", widgets: ["gold", "exchange"] },
+      { id: "payments", widgets: ["payments"] },
+      { id: "sales", widgets: ["sales", "salesTrend"] },
     ]);
   });
 
@@ -196,9 +196,9 @@ describe("dashboard preferences", () => {
     );
     const restored = readPreferences(storage, key);
     expect(visibleWidgets(restored, true)).toEqual([
-      "salesTrend",
-      "debt",
       "gold",
+      "debt",
+      "salesTrend",
     ]);
     expect(restored.salesMetric).toBe("count");
     values.set(key, JSON.stringify({ ...restored, salesMetric: "sales" }));
@@ -224,8 +224,8 @@ describe("dashboard preferences", () => {
   it("persists group moves independently of visibility and restores default ordering on reset", () => {
     const defaults = defaultPreferences();
     const order = moveGroup(defaults.groupOrder, "inventory", -1);
-    expect(moveGroup(order, "operations", -1)).toBe(order);
-    expect(moveGroup(order, "market", 1)).toBe(order);
+    expect(moveGroup(order, "market", -1)).toBe(order);
+    expect(moveGroup(order, "operations", 1)).toBe(order);
     const preferences = {
       ...defaults,
       groupOrder: order,
@@ -238,23 +238,23 @@ describe("dashboard preferences", () => {
     expect(
       groupWidgets(visibleWidgets(saved, false), saved.groupOrder),
     ).toEqual([
-      { id: "sales", widgets: ["sales"] },
       { id: "payments", widgets: ["debt"] },
+      { id: "sales", widgets: ["sales"] },
     ]);
     const restored = { ...saved, hiddenGroups: [] };
     expect(
       groupWidgets(visibleWidgets(restored, true), restored.groupOrder),
     ).toEqual([
-      { id: "sales", widgets: ["sales", "grossProfit"] },
-      { id: "inventory", widgets: ["intake"] },
       { id: "payments", widgets: ["debt"] },
+      { id: "inventory", widgets: ["intake"] },
+      { id: "sales", widgets: ["sales", "grossProfit"] },
     ]);
     expect(defaultPreferences().groupOrder).toEqual([
-      "operations",
-      "sales",
-      "payments",
-      "inventory",
       "market",
+      "payments",
+      "sales",
+      "inventory",
+      "operations",
     ]);
   });
 
@@ -270,9 +270,9 @@ describe("dashboard preferences", () => {
     expect(restored.groupOrder).toEqual([
       "market",
       "sales",
-      "operations",
       "payments",
       "inventory",
+      "operations",
     ]);
   });
 });

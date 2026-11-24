@@ -1,8 +1,7 @@
 import { marketPeriods, type MarketPeriod } from "@mizan/contracts";
 
 const widgetGroups = {
-  operations: ["activity"],
-  sales: ["sales", "salesTrend", "grossProfit", "recentSales", "categories"],
+  market: ["gold", "exchange", "storeRates"],
   payments: [
     "payments",
     "paymentTrend",
@@ -12,6 +11,7 @@ const widgetGroups = {
     "recentRepayments",
     "debtors",
   ],
+  sales: ["sales", "salesTrend", "grossProfit", "recentSales", "categories"],
   inventory: [
     "inventory",
     "intake",
@@ -22,7 +22,7 @@ const widgetGroups = {
     "recentIntake",
     "recentTradeIns",
   ],
-  market: ["gold", "exchange", "storeRates"],
+  operations: ["activity"],
 } as const;
 
 export type WidgetGroupId = keyof typeof widgetGroups;

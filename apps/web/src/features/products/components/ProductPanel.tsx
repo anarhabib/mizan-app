@@ -76,8 +76,8 @@ export function ProductPanel({
       data-vaul-no-drag={mobile ? "" : undefined}
       className={
         mobileFooter
-          ? "min-h-12 flex-auto overflow-y-auto overscroll-contain px-4 pb-3"
-          : "min-h-0 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-lg:min-h-12 max-lg:overscroll-contain lg:px-6"
+          ? "min-h-0 flex-auto overflow-y-auto overscroll-y-none px-4 pb-3"
+          : "min-h-0 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-lg:overscroll-y-none lg:px-6"
       }
     >
       {children}
@@ -119,7 +119,7 @@ export function ProductPanel({
         aria-describedby={descriptionId}
         onEscapeKeyDown={handleEscape}
         onCloseAutoFocus={restoreFocus}
-        className="overflow-y-auto overscroll-contain [touch-action:pan-y_pinch-zoom]! after:hidden data-[vaul-drawer-direction=bottom]:bottom-[var(--form-drawer-bottom,0px)] data-[vaul-drawer-direction=bottom]:max-h-[min(85dvh,calc(var(--form-drawer-height,100dvh)-max(0.5rem,env(safe-area-inset-top))))] motion-reduce:animate-none motion-reduce:transition-none"
+        className="overflow-clip [touch-action:pan-y_pinch-zoom]! after:hidden data-[vaul-drawer-direction=bottom]:bottom-[var(--form-drawer-bottom,0px)] data-[vaul-drawer-direction=bottom]:max-h-[min(85dvh,calc(var(--form-drawer-height,100dvh)-max(0.5rem,env(safe-area-inset-top))))] motion-reduce:animate-none motion-reduce:transition-none"
       >
         <DrawerHeader className="shrink-0 touch-none flex-row items-center justify-between">
           <DrawerTitle>{title}</DrawerTitle>

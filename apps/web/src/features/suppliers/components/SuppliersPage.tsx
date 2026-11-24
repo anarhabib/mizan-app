@@ -149,13 +149,20 @@ function Directory({
           })
         }
       >
-        <TabsList className="mb-2 h-auto!" aria-label={t("title")}>
-          <TabsTrigger className={`${controlClass} h-auto!`} value="suppliers">
-            {t("title")}
-          </TabsTrigger>
-          <TabsTrigger className={`${controlClass} h-auto!`} value="purchases">
-            {t("purchases")}
-          </TabsTrigger>
+        <TabsList
+          aria-label={t("title")}
+          variant="line"
+          className="mb-2 grid h-auto w-full grid-cols-2 border-b group-data-horizontal/tabs:h-auto"
+        >
+          {(["suppliers", "purchases"] as const).map((tab) => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="min-h-11 min-w-0 px-1 py-2 text-center wrap-anywhere whitespace-normal after:bg-brand-accent motion-reduce:transition-none motion-reduce:after:transition-none"
+            >
+              {t(tab === "suppliers" ? "title" : "purchases")}
+            </TabsTrigger>
+          ))}
         </TabsList>
         <TabsContent value="suppliers">
           <SupplierList scope={scope} create={createSupplier} />
