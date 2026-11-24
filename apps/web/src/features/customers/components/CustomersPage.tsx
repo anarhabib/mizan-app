@@ -83,6 +83,9 @@ function CustomerFacts({ customer }: { customer: CustomerSummary }) {
   return (
     <>
       <Amount label={t("purchases")} value={customer.totalPurchases} />
+      {customer.netPurchases && (
+        <Amount label={t("returns.netTotal")} value={customer.netPurchases} />
+      )}
       <Amount label={t("debt")} value={customer.outstandingDebt} />
       <div>
         <dt className="text-xs text-muted-foreground">{t("lastPurchase")}</dt>
@@ -458,24 +461,47 @@ function PurchaseHistory({
                   </Link>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <DateText value={sale.createdAt} />
-                    <SalePaymentStatusBadge
-                      status={
-                        hasDebt
-                          ? hasPaid
-                            ? "PARTIALLY_PAID"
-                            : "UNPAID"
-                          : "PAID"
-                      }
-                    />
+                    {sale.returnStatus !== "RETURNED" && (
+                      <SalePaymentStatusBadge
+                        status={
+                          hasDebt
+                            ? hasPaid
+                              ? "PARTIALLY_PAID"
+                              : "UNPAID"
+                            : "PAID"
+                        }
+                      />
+                    )}
+                    {sale.returnStatus && (
+                      <span>{t(`returns.${sale.returnStatus}`)}</span>
+                    )}
                   </div>
                 </div>
                 <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   <Amount label={t("purchaseTotal")} value={sale.total} />
+                  {sale.returnedValue && (
+                    <Amount
+                      label={t("returns.value")}
+                      value={sale.returnedValue}
+                    />
+                  )}
+                  {sale.netTotal && (
+                    <Amount
+                      label={t("returns.netTotal")}
+                      value={sale.netTotal}
+                    />
+                  )}
                   <Amount
                     label={t("tradeInCredit")}
                     value={sale.tradeInCredit}
                   />
                   <Amount label={t("paidAmount")} value={sale.paidAmount} />
+                  {sale.netPaidAmount && (
+                    <Amount
+                      label={t("returns.netPaid")}
+                      value={sale.netPaidAmount}
+                    />
+                  )}
                   <Amount label={t("debt")} value={sale.outstandingDebt} />
                 </dl>
                 {hasDebt && (

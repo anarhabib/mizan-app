@@ -221,6 +221,9 @@ export function SummaryWidget({
           link={{ to: "/products", search: { status: "SOLD", soldOn: day } }}
         />
         <Metric label={t("average")} value={sales.average} />
+        {!!data.returnedSales?.length && (
+          <Metric label={t("returnedSales")} value={data.returnedSales} />
+        )}
       </>
     ),
     payments: (
@@ -243,6 +246,13 @@ export function SummaryWidget({
           value={payments.repayments}
           meaning="inflow"
         />
+        {!!payments.refunds?.length && (
+          <Metric
+            label={t("refunds")}
+            value={payments.refunds}
+            meaning="outflow"
+          />
+        )}
         <Metric label={t("tradeCredit")} value={payments.tradeInCredit} />
         {!!payments.payouts?.length && (
           <Metric

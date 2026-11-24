@@ -24,7 +24,7 @@ import { lockProductOwner } from "./product.service.js";
 // Decimal(20, 4) acquisition amounts can gain digits when summed.
 const SetDecimal = Prisma.Decimal.clone({ precision: 24 });
 const weights = { weight: true, netGoldWeight: true, status: true } as const;
-const inStock = { status: "IN_STOCK", sale: null, saleItem: null } as const;
+const inStock = { status: "IN_STOCK" } as const;
 
 function scope({ organizationId, storeId }: AccessContext) {
   return { organizationId, storeId };

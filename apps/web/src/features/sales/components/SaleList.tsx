@@ -288,7 +288,14 @@ export function SaleList({
                       />
                     </TableCell>
                     <TableCell>
-                      <SalePaymentStatusBadge status={sale.paymentStatus} />
+                      {sale.returnStatus !== "RETURNED" && (
+                        <SalePaymentStatusBadge status={sale.paymentStatus} />
+                      )}
+                      {sale.returnStatus && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {t(`returns.status.${sale.returnStatus}`)}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -345,7 +352,12 @@ export function SaleList({
                   </span>
                   <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <SaleDate value={sale.createdAt} />
-                    <SalePaymentStatusBadge status={sale.paymentStatus} />
+                    {sale.returnStatus !== "RETURNED" && (
+                      <SalePaymentStatusBadge status={sale.paymentStatus} />
+                    )}
+                    {sale.returnStatus && (
+                      <span>{t(`returns.status.${sale.returnStatus}`)}</span>
+                    )}
                   </span>
                   <ChevronRight
                     aria-hidden="true"

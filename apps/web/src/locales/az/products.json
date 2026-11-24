@@ -253,6 +253,7 @@
     "note": "Daha qısa qeyd daxil edin."
   },
   "status": {
+    "UNAVAILABLE": "Satışa yararsız",
     "IN_REPAIR": "Təmirdə",
     "IN_STOCK": "Stokda",
     "SOLD": "Satılıb",
@@ -264,6 +265,7 @@
     "date": "Satış tarixi"
   },
   "movements": {
+    "PRODUCT_RETURNED": "Məhsul qaytarıldı",
     "REPAIR_SENT": "Təmirə göndərildi",
     "REPAIR_COMPLETED": "Təmir tamamlandı",
     "REPAIR_CANCELED": "Təmir ləğv edildi",

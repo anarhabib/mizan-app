@@ -253,6 +253,7 @@
     "note": "Enter a shorter note."
   },
   "status": {
+    "UNAVAILABLE": "Unavailable",
     "IN_REPAIR": "In repair",
     "IN_STOCK": "In stock",
     "SOLD": "Sold",
@@ -264,6 +265,7 @@
     "date": "Sale date"
   },
   "movements": {
+    "PRODUCT_RETURNED": "Product returned",
     "REPAIR_SENT": "Sent to repair",
     "REPAIR_COMPLETED": "Repair completed",
     "REPAIR_CANCELED": "Repair canceled",

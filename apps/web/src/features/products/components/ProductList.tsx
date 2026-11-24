@@ -45,7 +45,7 @@ export function ProductStatusBadge({
       variant={
         status === "IN_STOCK"
           ? "success"
-          : status === "IN_REPAIR"
+          : status === "IN_REPAIR" || status === "UNAVAILABLE"
             ? "warning"
             : "outline"
       }

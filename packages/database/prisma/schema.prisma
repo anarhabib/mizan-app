@@ -19,6 +19,7 @@ enum ProductStatus {
   IN_STOCK
   SOLD
   IN_REPAIR
+  UNAVAILABLE
 
   @@schema("mizan")
 }
@@ -41,6 +42,7 @@ enum GemstoneOrigin {
 enum MovementKind {
   PRODUCT_ADDED
   PRODUCT_SOLD
+  PRODUCT_RETURNED
   OLD_GOLD_RECEIVED
   REPAIR_SENT
   REPAIR_COMPLETED
@@ -160,6 +162,8 @@ model StoreAssignment {
   movements      InventoryMovement[]
   productRegistrations ProductRegistration[]
   repairEvents     RepairEvent[]
+  saleReturns      SaleReturn[]
+  saleRefunds      SaleRefund[]
 
   @@id([organizationId, storeId, userId])
   @@index([organizationId, userId])
@@ -324,8 +328,9 @@ model Product {
   store                  Store               @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
   grade                  PurityGrade         @relation(fields: [organizationId, purity], references: [organizationId, value], onDelete: Restrict)
   productCategory        ProductCategory?    @relation(fields: [organizationId, categoryId], references: [organizationId, id], onDelete: Restrict)
-  sale                   Sale?
-  saleItem               SaleItem?
+  sales                  Sale[]
+  saleItems              SaleItem[]
+  returnedItems          SaleReturnItem[]
   movements              InventoryMovement[]
   gemstones              ProductGemstone[]
   purchaseItem           PurchaseItem?
@@ -607,9 +612,10 @@ model Sale {
   items                       SaleItem[]
   payments                    SalePayment[]
   movements                   InventoryMovement[]
+  returns                     SaleReturn[]
 
   @@id([organizationId, storeId, id])
-  @@unique([organizationId, storeId, productId])
+  @@index([organizationId, storeId, productId])
   @@unique([organizationId, storeId, actorId, idempotencyKey])
   @@index([organizationId, storeId, customerId, createdAt, id], map: "Sale_customer_history_idx")
   @@index([organizationId, storeId, createdAt, id], map: "Sale_dashboard_date_idx")
@@ -660,9 +666,91 @@ model SaleItem {
   acquisitionCurrency    String?  @db.Char(3)
   sale                   Sale     @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
   product                Product  @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+  returnedItem           SaleReturnItem?
 
-  @@id([organizationId, storeId, productId])
+  @@id([organizationId, storeId, saleId, productId])
   @@unique([organizationId, storeId, saleId, position])
+  @@index([organizationId, storeId, productId])
+  @@schema("mizan")
+}
+
+model SaleReturn {
+  organizationId  String          @db.Uuid
+  storeId         String          @db.Uuid
+  saleId          String          @db.Uuid
+  id              String          @default(uuid()) @db.Uuid
+  actorId         String          @db.Uuid
+  idempotencyKey  String
+  requestDigest   String
+  reason          String
+  returnDate      DateTime        @db.Date
+  createdAt       DateTime        @default(now())
+  currency        String          @db.Char(3)
+  returnedValue   Decimal         @db.Decimal(32, 4)
+  refundableValue Decimal         @db.Decimal(32, 4)
+  sale            Sale            @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
+  actor           StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+  items           SaleReturnItem[]
+  debtAdjustment  SaleReturnDebt?
+  refunds         SaleRefund[]
+
+  @@id([organizationId, storeId, id])
+  @@unique([organizationId, storeId, saleId, id])
+  @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@index([organizationId, storeId, returnDate])
+  @@schema("mizan")
+}
+
+model SaleReturnItem {
+  organizationId String          @db.Uuid
+  storeId        String          @db.Uuid
+  saleId         String          @db.Uuid
+  returnId       String          @db.Uuid
+  productId      String          @db.Uuid
+  snapshotProductId String?      @db.Uuid
+  resellable     Boolean
+  saleReturn     SaleReturn      @relation(fields: [organizationId, storeId, saleId, returnId], references: [organizationId, storeId, saleId, id], onDelete: Restrict)
+  product        Product         @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+  saleItem       SaleItem?       @relation(fields: [organizationId, storeId, saleId, snapshotProductId], references: [organizationId, storeId, saleId, productId], onDelete: Restrict)
+  movement       InventoryMovement?
+
+  @@id([organizationId, storeId, saleId, productId])
+  @@unique([organizationId, storeId, saleId, snapshotProductId])
+  @@index([organizationId, storeId, saleId, returnId])
+  @@schema("mizan")
+}
+
+model SaleReturnDebt {
+  organizationId String      @db.Uuid
+  storeId        String      @db.Uuid
+  returnId       String      @db.Uuid
+  amount         Decimal     @db.Decimal(32, 4)
+  saleReturn     SaleReturn  @relation(fields: [organizationId, storeId, returnId], references: [organizationId, storeId, id], onDelete: Restrict)
+
+  @@id([organizationId, storeId, returnId])
+  @@schema("mizan")
+}
+
+model SaleRefund {
+  organizationId String          @db.Uuid
+  storeId        String          @db.Uuid
+  returnId       String          @db.Uuid
+  id             String          @default(uuid()) @db.Uuid
+  actorId        String          @db.Uuid
+  idempotencyKey String
+  requestDigest  String
+  refundDate     DateTime        @db.Date
+  createdAt      DateTime        @default(now())
+  method         String
+  currency       String          @db.Char(3)
+  amount         Decimal         @db.Decimal(32, 4)
+  saleReturn     SaleReturn      @relation(fields: [organizationId, storeId, returnId], references: [organizationId, storeId, id], onDelete: Restrict)
+  actor          StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+
+  @@id([organizationId, storeId, id])
+  @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@index([organizationId, storeId, returnId])
+  @@index([organizationId, storeId, refundDate])
   @@schema("mizan")
 }
 
@@ -731,6 +819,7 @@ model Repair {
   repairerName       String
   description        String
   status             RepairStatus @default(ACTIVE)
+  wasUnavailable     Boolean      @default(false)
   sentDate           DateTime     @db.Date
   expectedReturnDate DateTime?    @db.Date
   completedDate      DateTime?    @db.Date
@@ -788,16 +877,19 @@ model InventoryMovement {
   saleId         String?         @db.Uuid
   tradeInId      String?         @db.Uuid
   repairId       String?         @db.Uuid
+  returnSaleId   String?         @db.Uuid
   createdAt      DateTime        @default(now())
   actor          StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
   product        Product?        @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
   sale           Sale?           @relation(fields: [organizationId, storeId, saleId], references: [organizationId, storeId, id], onDelete: Restrict)
   tradeIn        TradeIn?        @relation(fields: [organizationId, storeId, tradeInId], references: [organizationId, storeId, id], onDelete: Restrict)
   repair         Repair?         @relation(fields: [organizationId, storeId, repairId], references: [organizationId, storeId, id], onDelete: Restrict)
+  returnItem     SaleReturnItem? @relation(fields: [organizationId, storeId, returnSaleId, productId], references: [organizationId, storeId, saleId, productId], onDelete: Restrict)
 
   @@id([organizationId, storeId, id])
   @@index([organizationId, storeId, productId])
   @@index([organizationId, storeId, repairId])
+  @@unique([organizationId, storeId, returnSaleId, productId])
   @@index([organizationId, storeId, kind, createdAt, id], map: "InventoryMovement_dashboard_date_idx")
   @@schema("mizan")
 }

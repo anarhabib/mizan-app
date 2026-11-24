@@ -261,6 +261,7 @@
     "note": "Сократите примечание."
   },
   "status": {
+    "UNAVAILABLE": "Недоступен для продажи",
     "IN_REPAIR": "В ремонте",
     "IN_STOCK": "В наличии",
     "SOLD": "Продан",
@@ -272,6 +273,7 @@
     "date": "Дата продажи"
   },
   "movements": {
+    "PRODUCT_RETURNED": "Товар возвращён",
     "REPAIR_SENT": "Отправлено в ремонт",
     "REPAIR_COMPLETED": "Ремонт завершён",
     "REPAIR_CANCELED": "Ремонт отменён",

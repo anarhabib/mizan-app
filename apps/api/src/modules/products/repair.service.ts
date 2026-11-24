@@ -195,12 +195,10 @@ async function sendToRepair(
       weight: true,
       netGoldWeight: true,
       gemstones: gemstoneFields,
-      sale: { select: { id: true } },
-      saleItem: { select: { saleId: true } },
     },
   });
   if (!product) throw new AccessError("PRODUCT_NOT_FOUND");
-  if (product.status !== "IN_STOCK" || product.sale || product.saleItem)
+  if (product.status !== "IN_STOCK" && product.status !== "UNAVAILABLE")
     throw new AccessError("REPAIR_CONFLICT");
   const {
     supplierId,
@@ -229,6 +227,7 @@ async function sendToRepair(
       supplierId,
       repairerName: supplier ? supplier.name : repairerName!,
       description,
+      wasUnavailable: product.status === "UNAVAILABLE",
       sentDate: toDate(sentDate),
       expectedReturnDate: expectedReturnDate && toDate(expectedReturnDate),
       beforeWeight: product.weight,
@@ -276,6 +275,7 @@ async function advanceRepair(
     where: { ...where, productId },
     select: {
       status: true,
+      wasUnavailable: true,
       sentDate: true,
       actualCost: true,
       paidDate: true,
@@ -308,7 +308,7 @@ async function advanceRepair(
     await tx.repair.update({ where, data: { status: "CANCELED" } });
     await tx.product.update({
       where: productWhere,
-      data: { status: "IN_STOCK" },
+      data: { status: repair.wasUnavailable ? "UNAVAILABLE" : "IN_STOCK" },
     });
     return;
   }

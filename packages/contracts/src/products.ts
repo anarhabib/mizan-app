@@ -7,7 +7,7 @@ import {
   type ProductCategory,
 } from "./product-categories.js";
 
-export type ProductStatus = "IN_STOCK" | "SOLD" | "IN_REPAIR";
+export type ProductStatus = "IN_STOCK" | "SOLD" | "IN_REPAIR" | "UNAVAILABLE";
 export type ProductMetal = "GOLD";
 export const productRegistrationSources = [
   "OPENING_STOCK",
@@ -124,6 +124,7 @@ export interface ProductDetail extends ProductListItem {
     kind:
       | "PRODUCT_ADDED"
       | "PRODUCT_SOLD"
+      | "PRODUCT_RETURNED"
       | "OLD_GOLD_RECEIVED"
       | "REPAIR_SENT"
       | "REPAIR_COMPLETED"
@@ -131,6 +132,9 @@ export interface ProductDetail extends ProductListItem {
     actorId: string;
     actorName?: string | null;
     registrationSource?: ProductRegistrationSource;
+    saleId?: string;
+    returnId?: string;
+    returnDate?: string;
     createdAt: string;
   }[];
   sale: { id: string; total: MoneyInput; createdAt: string } | null;

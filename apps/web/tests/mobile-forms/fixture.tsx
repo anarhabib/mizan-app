@@ -11,6 +11,7 @@ import type {
   ProductDetail,
   RepairCommand,
   RepairDetail,
+  SaleResult,
   SupplierOption,
 } from "@mizan/contracts";
 import { useForm } from "react-hook-form";
@@ -28,6 +29,7 @@ import {
 } from "@/features/products/components/ProductForm";
 import type { ProductFormValues } from "@/features/products/lib/form";
 import { SupplierPicker } from "@/features/suppliers/components/SupplierPicker";
+import { SaleReturnPanel } from "@/features/sales/components/SaleReturnPanel";
 import i18n from "@/shared/lib/i18n";
 import "@/index.css";
 
@@ -255,13 +257,83 @@ function RepairFixture({ action }: { action: "send" | "complete" }) {
   );
 }
 
-await i18n.changeLanguage("en");
+const returnSale: SaleResult = {
+  id: "fixture-sale",
+  actorId: "fixture-owner",
+  createdAt: "2026-01-01T00:00:00Z",
+  currency: "AZN",
+  saleAmount: "1000",
+  paidAmount: "400",
+  outstandingDebt: "600",
+  balance: "1000",
+  payout: "0",
+  tradeInTotal: "0",
+  paymentStatus: "PARTIALLY_PAID",
+  payment: null,
+  payments: [],
+  tradeIns: [],
+  product: { ...savedProduct, status: "SOLD" },
+  items: [
+    { product: { ...savedProduct, status: "SOLD" }, saleAmount: "400" },
+    {
+      product: {
+        ...savedProduct,
+        id: "other-ring",
+        name: "Other ring",
+        code: "R2",
+        status: "SOLD",
+      },
+      saleAmount: "600",
+    },
+  ],
+};
+
+function ReturnFixture({ refund }: { refund: boolean }) {
+  const [opener, setOpener] = useState<HTMLButtonElement>();
+  return (
+    <>
+      <Button onClick={(event) => setOpener(event.currentTarget)}>
+        Open return
+      </Button>
+      {opener && (
+        <SaleReturnPanel
+          scope={{ organizationId: "fixture-org", storeId: "fixture-store" }}
+          actorId="fixture-owner"
+          action={{
+            sale: returnSale,
+            ...(refund && {
+              refund: {
+                id: "fixture-return",
+                actorName: "Owner",
+                returnDate: "2026-01-02",
+                reason: "Customer request",
+                items: [{ productId: "saved-ring", resellable: true }],
+                returnedValue: "400",
+                debtCanceled: "300",
+                refundableValue: "100",
+                remainingRefundable: "75",
+                refundLimit: "75",
+                refunds: [],
+              },
+            }),
+          }}
+          opener={opener}
+          close={() => setOpener(undefined)}
+        />
+      )}
+    </>
+  );
+}
+
 const params = new URLSearchParams(location.search);
+await i18n.changeLanguage(params.get("language") ?? "en");
 const repairAction = params.get("repair");
 document.documentElement.classList.toggle("dark", params.has("dark"));
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>
-    {repairAction === "send" || repairAction === "complete" ? (
+    {params.has("return") ? (
+      <ReturnFixture refund={params.get("return") === "refund"} />
+    ) : repairAction === "send" || repairAction === "complete" ? (
       <RepairFixture action={repairAction} />
     ) : (
       <Fixture />

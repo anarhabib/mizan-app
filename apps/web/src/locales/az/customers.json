@@ -1,4 +1,11 @@
 {
+  "returns": {
+    "RETURNED": "Qaytarılıb",
+    "PARTIALLY_RETURNED": "Qismən qaytarılıb",
+    "value": "Qaytarılan məhsulların dəyəri",
+    "netTotal": "Xalis alış",
+    "netPaid": "Xalis ödəniş"
+  },
   "note": "Qeyd",
   "optionalNote": "Qeyd (istəyə bağlı)",
   "invalidNote": "Qeyd ən çox {{max}} simvol ola bilər.",

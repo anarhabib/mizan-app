@@ -3,11 +3,17 @@ import type { SaleDateFilter, SalePreviewInput } from "@mizan/contracts";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import { AccessError } from "../access/access.errors.js";
+import { requiredKey } from "../access/idempotency.js";
 import { resolveAccessContext } from "../access/access.service.js";
 import type { ProductPhotoStorage } from "../products/product.storage.js";
 import { SaleConfirmationRequired } from "./sale-confirmation.js";
 import { parsePayment } from "./sale-input.js";
 import { formatPaymentAzn, SaleDecimal } from "./settlement.js";
+import {
+  previewReturn,
+  recordRefund,
+  recordReturn,
+} from "./sale-return.service.js";
 import {
   getSale,
   getSaleOptions,
@@ -128,6 +134,56 @@ export function registerSaleRoutes(
     "/sales/:id",
     { preHandler },
     (request) => getSale(db!, request.access!, request.params.id),
+  );
+
+  app.post<Scope & { Params: { id: string } }>(
+    "/sales/:id/returns/preview",
+    { preHandler },
+    (request) =>
+      previewReturn(db!, request.access!, request.params.id, request.body),
+  );
+
+  app.post<Scope & { Params: { id: string } }>(
+    "/sales/:id/returns",
+    { preHandler },
+    async (request, reply) => {
+      const { confirmation, ...input } = (request.body ?? {}) as Record<
+        string,
+        unknown
+      >;
+      return reply
+        .code(201)
+        .send(
+          await recordReturn(
+            db!,
+            request.access!,
+            request.params.id,
+            input,
+            confirmation,
+            requiredKey(request, "INVALID_RETURN"),
+            request.identity?.sessionId,
+          ),
+        );
+    },
+  );
+
+  app.post<Scope & { Params: { id: string; returnId: string } }>(
+    "/sales/:id/returns/:returnId/refunds",
+    { preHandler },
+    async (request, reply) =>
+      reply
+        .code(201)
+        .send(
+          await recordRefund(
+            db!,
+            request.access!,
+            request.params.id,
+            request.params.returnId,
+            request.body,
+            requiredKey(request, "INVALID_RETURN"),
+            request.identity?.sessionId,
+          ),
+        ),
   );
 
   app.post<Scope & { Params: { id: string } }>(

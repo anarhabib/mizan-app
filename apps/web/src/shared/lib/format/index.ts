@@ -17,9 +17,12 @@ export function formatDecimal(value: string, locale: string) {
   return `${negative ? "-" : ""}${whole}${fraction ? point + fraction : ""}`;
 }
 
-export function formatMoney(money: MoneyInput, locale = "az") {
-  currencyMinorUnits(money.currency);
-  return `${formatDecimal(roundMoneyHalfUp(money.amount, 2), locale)} ${money.currency}`;
+export function formatMoney(money: MoneyInput, locale = "az", exact = false) {
+  const minorUnits = currencyMinorUnits(money.currency);
+  const scale = exact
+    ? Math.max(minorUnits, money.amount.split(".")[1]?.length ?? 0)
+    : 2;
+  return `${formatDecimal(roundMoneyHalfUp(money.amount, scale), locale)} ${money.currency}`;
 }
 export function formatWeight(value: string, locale = "az") {
   parseDecimal(value.startsWith("-") ? value.slice(1) : value, 3);

@@ -615,9 +615,25 @@ function ProductRecord({
                   {movement.registrationSource
                     ? t(`registration.sources.${movement.registrationSource}`)
                     : t(`movements.${movement.kind}`)}
+                  {movement.saleId && (
+                    <>
+                      {" · "}
+                      <Link
+                        to="/sales"
+                        search={{ sale: movement.saleId }}
+                        className="underline underline-offset-4"
+                      >
+                        #{movement.saleId.slice(0, 8)}
+                      </Link>
+                    </>
+                  )}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {time(movement.createdAt)}
+                  {movement.returnDate ? (
+                    <CalendarDate value={movement.returnDate} />
+                  ) : (
+                    time(movement.createdAt)
+                  )}
                   {" · "}
                   {movement.actorName ?? t("unknownActor", { ns: "auth" })}
                 </span>

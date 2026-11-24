@@ -1,4 +1,5 @@
 import type { MoneyInput } from "./money.js";
+import type { SaleReturnStatus } from "./sale-returns.js";
 
 export interface CustomerInput {
   name: string;
@@ -14,6 +15,7 @@ export interface CustomerContact extends Pick<CustomerInput, "name" | "phone"> {
 
 export interface CustomerSummary extends CustomerContact {
   totalPurchases: MoneyInput;
+  netPurchases?: MoneyInput;
   outstandingDebt: MoneyInput;
   lastPurchaseAt: string | null;
 }
@@ -37,6 +39,10 @@ export interface CustomerPurchase {
   paidAmount: MoneyInput;
   outstandingDebt: MoneyInput;
   payment: MoneyInput | null;
+  returnStatus?: SaleReturnStatus;
+  returnedValue?: MoneyInput;
+  netTotal?: MoneyInput;
+  netPaidAmount?: MoneyInput;
 }
 
 export interface CustomerHistory {

@@ -10,6 +10,7 @@ export * from "./product-registration.js";
 export * from "./jewelry-sets.js";
 export * from "./repairs.js";
 export * from "./sales.js";
+export * from "./sale-returns.js";
 export * from "./customers.js";
 export * from "./suppliers.js";
 export * from "./exchange-rates.js";

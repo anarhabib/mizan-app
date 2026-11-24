@@ -85,28 +85,46 @@ export function SalesOverview({
               {number.format(data.completedSales)}
             </dd>
           </div>
-          {(["salesAmount", "amountReceived", "outstandingDebt"] as const).map(
-            (metric) => (
-              <div key={metric} className="min-w-0 rounded-md bg-muted/50 p-2">
-                <dt className="text-xs text-muted-foreground">
-                  {t(`overview.${metric}`)}
-                </dt>
-                {data[metric].length ? (
-                  data[metric].map((value) => (
-                    <dd
-                      key={value.currency}
-                      className="text-base font-semibold wrap-anywhere"
-                    >
-                      <MoneyText value={value} />
+          {(
+            [
+              "salesAmount",
+              "returnedValue",
+              "netSales",
+              "amountReceived",
+              "refunds",
+              "netReceived",
+              "outstandingDebt",
+            ] as const
+          ).map(
+            (metric) =>
+              data[metric] && (
+                <div
+                  key={metric}
+                  className="min-w-0 rounded-md bg-muted/50 p-2"
+                >
+                  <dt className="text-xs text-muted-foreground">
+                    {t(
+                      metric === "salesAmount" && data.returnedValue
+                        ? "overview.grossSales"
+                        : `overview.${metric}`,
+                    )}
+                  </dt>
+                  {data[metric].length ? (
+                    data[metric].map((value) => (
+                      <dd
+                        key={value.currency}
+                        className="text-base font-semibold wrap-anywhere"
+                      >
+                        <MoneyText value={value} />
+                      </dd>
+                    ))
+                  ) : (
+                    <dd className="text-base font-semibold">
+                      {t("overview.noAmounts")}
                     </dd>
-                  ))
-                ) : (
-                  <dd className="text-base font-semibold">
-                    {t("overview.noAmounts")}
-                  </dd>
-                )}
-              </div>
-            ),
+                  )}
+                </div>
+              ),
           )}
           <div className="min-w-0 rounded-md bg-muted/50 p-2">
             <dt className="text-xs text-muted-foreground">
