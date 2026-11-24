@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -24,6 +25,7 @@ export function ProductPanel({
   busy = false,
   descriptionId,
   restoreFallbackFocus,
+  mobileFooter,
 }: {
   title: string;
   children: ReactNode;
@@ -32,6 +34,7 @@ export function ProductPanel({
   busy?: boolean;
   descriptionId?: string;
   restoreFallbackFocus?: () => void;
+  mobileFooter?: ReactNode;
 }) {
   const mobile = useIsMobile();
   const { t } = useTranslation("products");
@@ -58,7 +61,13 @@ export function ProductPanel({
     </Button>
   );
   const body = (
-    <div className="min-h-0 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:px-6">
+    <div
+      className={
+        mobileFooter
+          ? "min-h-0 flex-auto overflow-y-auto overscroll-contain px-4 pb-3"
+          : "min-h-0 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:px-6"
+      }
+    >
       {children}
     </div>
   );
@@ -94,11 +103,19 @@ export function ProductPanel({
         onCloseAutoFocus={restoreFocus}
         className="data-[vaul-drawer-direction=bottom]:max-h-[85dvh] motion-reduce:animate-none motion-reduce:transition-none"
       >
-        <DrawerHeader className="flex-row items-center justify-between">
+        <DrawerHeader className="shrink-0 flex-row items-center justify-between">
           <DrawerTitle>{title}</DrawerTitle>
           {closeButton}
         </DrawerHeader>
         {body}
+        {mobileFooter && (
+          <DrawerFooter
+            data-vaul-no-drag
+            className="shrink-0 gap-2 border-t px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          >
+            {mobileFooter}
+          </DrawerFooter>
+        )}
       </DrawerContent>
     </Drawer>
   );

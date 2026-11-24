@@ -1,5 +1,10 @@
 {
   "registration": {
+    "discardRow": "Удалить это несохранённое изделие?",
+    "summaryCount_one": "{{count}} изделие",
+    "summaryCount_other": "{{count}} изделий",
+    "summaryCount_few": "{{count}} изделия",
+    "summaryCount_many": "{{count}} изделий",
     "mode": "Режим регистрации",
     "single": "Одно изделие",
     "bulk": "Несколько изделий",

@@ -1,5 +1,8 @@
 {
   "registration": {
+    "discardRow": "Discard this unsaved product?",
+    "summaryCount_one": "{{count}} product",
+    "summaryCount_other": "{{count}} products",
     "mode": "Registration mode",
     "single": "Single product",
     "bulk": "Multiple products",

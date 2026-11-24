@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type FormEvent } from "react";
+import { useCallback, useId, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkspace } from "@/features/workspace";
 import {
   PurchaseStatus,
@@ -72,6 +73,8 @@ export function ProductCreate({
     "errors",
     "sales",
   ]);
+  const mobile = useIsMobile();
+  const formId = useId();
   const { canManageAsOwner } = useWorkspace();
   const options = useQuery(productOptionsQuery(scope));
   const categories = useProductCategories(scope);
@@ -95,6 +98,7 @@ export function ProductCreate({
   const [rows, setRows] = useState<Row[]>(() => [
     { id: crypto.randomUUID(), defaults },
   ]);
+  const [editingRow, setEditingRow] = useState(rows[0].id);
   const [previews, setPreviews] = useState<Record<string, ProductPreview>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; field?: string }>();
@@ -122,17 +126,27 @@ export function ProductCreate({
     setPreviews((current) => ({ ...current, [id]: preview }));
   }, []);
 
+  function revealRow(id: string) {
+    setEditingRow(id);
+    requestAnimationFrame(() => {
+      const header = document.getElementById(`registration-row-${id}`);
+      header?.focus({ preventScroll: true });
+      header?.scrollIntoView({ block: "nearest" });
+    });
+  }
+
   function addRow(values: ProductFormValues) {
     if (rows.length >= maxPurchaseItems) return;
-    handles.current.forEach((row) => row.collapse());
-    setRows((current) => [
-      ...current,
-      { id: crypto.randomUUID(), defaults: values },
-    ]);
+    const id = crypto.randomUUID();
+    if (mobile) revealRow(id);
+    else handles.current.forEach((row) => row.collapse());
+    setRows((current) => [...current, { id, defaults: values }]);
   }
 
   function removeRow(id: string) {
-    setRows((current) => current.filter((row) => row.id !== id));
+    const remainingRows = rows.filter((row) => row.id !== id);
+    if (editingRow === id) setEditingRow(remainingRows[0].id);
+    setRows(remainingRows);
     setPreviews((current) => {
       const remaining = { ...current };
       delete remaining[id];
@@ -186,6 +200,8 @@ export function ProductCreate({
   function showError(error: ApiError, rowHandles: (RowHandle | undefined)[]) {
     const row = /^products\.(\d+)\.(.+)$/.exec(error.field ?? "");
     if (row) {
+      if (mobile && bulk && activeRows[+row[1]])
+        revealRow(activeRows[+row[1]].id);
       rowHandles[+row[1]]?.showError(
         new ApiError(
           error.status,
@@ -234,6 +250,8 @@ export function ProductCreate({
       if (
         !items.every((item): item is ProductCreateInput => item !== undefined)
       ) {
+        if (mobile && bulk)
+          revealRow(activeRows[items.findIndex((item) => !item)].id);
         setError({ message: t("registration.rowErrors") });
         return;
       }
@@ -373,8 +391,126 @@ export function ProductCreate({
   const paymentText = (value: typeof summary.paid) =>
     value ? formatPayable(value, locale) : "—";
   const inputClass = "min-h-11 lg:min-h-9";
+  const totals = (bulk || purchasing) && (
+    <dl className="grid max-h-[24dvh] grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-2 gap-y-1 overflow-auto text-sm tabular-nums">
+      {bulk && (
+        <>
+          <dt>{t("registration.productCount")}</dt>
+          <dd>{activeRows.length}</dd>
+          <dt>{t("fields.weight")}</dt>
+          <dd>{summary.gross ? <WeightText value={summary.gross} /> : "—"}</dd>
+          {summary.net && (
+            <>
+              <dt>
+                {t("registration.netWeightCount", {
+                  count: summary.netCount,
+                })}
+              </dt>
+              <dd>
+                <WeightText value={summary.net} />
+              </dd>
+            </>
+          )}
+        </>
+      )}
+      <dt>
+        {t(
+          purchasing ? "registration.purchaseTotal" : "fields.acquisitionCost",
+        )}
+      </dt>
+      <dd className="wrap-anywhere">
+        {summary.acquisition.length
+          ? summary.acquisition.map((value) => (
+              <div key={value.currency}>{formatPayable(value, locale)}</div>
+            ))
+          : "—"}
+      </dd>
+      {purchasing && (
+        <>
+          <dt>{t("registration.paid")}</dt>
+          <dd>{paymentText(summary.paid)}</dd>
+          <dt>{t("registration.outstanding")}</dt>
+          <dd>{paymentText(summary.outstanding)}</dd>
+          <dt>{t("registration.paymentStatus")}</dt>
+          <dd>
+            {summary.status ? <PurchaseStatus value={summary.status} /> : "—"}
+          </dd>
+        </>
+      )}
+    </dl>
+  );
+  const actions = (
+    <>
+      {(error || summary.overpayment) && (
+        <p role="alert" className="text-destructive">
+          {error?.message ?? t("registration.overpayment")}
+        </p>
+      )}
+      <div className={mobile && bulk ? "grid grid-cols-2 gap-2" : "grid"}>
+        {mobile && bulk && (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto min-h-11 whitespace-normal"
+            disabled={busy || rows.length >= maxPurchaseItems}
+            onClick={() => addRow(defaults)}
+          >
+            <Plus aria-hidden="true" /> {t("registration.addRow")}
+          </Button>
+        )}
+        <PendingButton
+          type="submit"
+          form={formId}
+          pending={busy}
+          disabled={!categories.data?.some(({ isActive }) => isActive)}
+          className={inputClass}
+        >
+          {busy ? t("saving") : t("save")}
+        </PendingButton>
+      </div>
+    </>
+  );
+  const mobileFooter = mobile &&
+    !photoResult &&
+    options.isSuccess &&
+    options.data.purities.length > 0 && (
+      <>
+        {totals && (
+          <details className="min-w-0">
+            <summary className="min-h-8 cursor-pointer content-center text-sm font-medium">
+              <span className="tabular-nums">
+                {bulk &&
+                  t("registration.summaryCount", { count: activeRows.length })}
+                {bulk && summary.gross && (
+                  <>
+                    {" "}
+                    · <WeightText value={summary.gross} />
+                  </>
+                )}
+                {bulk && " · "}
+                {summary.acquisition.length === 1
+                  ? formatPayable(summary.acquisition[0], locale)
+                  : t(
+                      purchasing
+                        ? "registration.purchaseTotal"
+                        : "fields.acquisitionCost",
+                    )}
+              </span>
+            </summary>
+            {totals}
+          </details>
+        )}
+        {actions}
+      </>
+    );
   return (
-    <ProductPanel title={t("create")} opener={opener} close={close} busy={busy}>
+    <ProductPanel
+      title={t("create")}
+      opener={opener}
+      close={close}
+      busy={busy}
+      mobileFooter={mobileFooter}
+    >
       {photoResult ? (
         <div className="grid gap-3">
           <p role="status">
@@ -425,6 +561,7 @@ export function ProductCreate({
         <EmptyState title={t("noPurities")} description={t("noPuritiesHint")} />
       ) : (
         <form
+          id={formId}
           className="grid min-w-0 gap-4"
           onSubmit={(event) => void submit(event)}
           onChange={() => {
@@ -603,6 +740,10 @@ export function ProductCreate({
           {rows.map(({ id, defaults }, index) => (
             <div key={id} hidden={!bulk && index !== 0} className="min-w-0">
               <ProductRegistrationRow
+                mobileOpen={mobile && bulk ? editingRow === id : undefined}
+                onMobileToggle={() =>
+                  setEditingRow((current) => (current === id ? "" : id))
+                }
                 rowId={id}
                 number={index + 1}
                 defaults={defaults}
@@ -624,7 +765,7 @@ export function ProductCreate({
               />
             </div>
           ))}
-          {bulk && (
+          {bulk && !mobile && (
             <Button
               type="button"
               variant="outline"
@@ -635,83 +776,12 @@ export function ProductCreate({
               <Plus aria-hidden="true" /> {t("registration.addRow")}
             </Button>
           )}
-          <div className="sticky bottom-0 z-[1] grid gap-2 rounded-t-md border bg-background p-3">
-            {(bulk || purchasing) && (
-              <dl className="grid max-h-[24dvh] grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-2 gap-y-1 overflow-auto text-sm tabular-nums">
-                {bulk && (
-                  <>
-                    <dt>{t("registration.productCount")}</dt>
-                    <dd>{activeRows.length}</dd>
-                    <dt>{t("fields.weight")}</dt>
-                    <dd>
-                      {summary.gross ? (
-                        <WeightText value={summary.gross} />
-                      ) : (
-                        "—"
-                      )}
-                    </dd>
-                    {summary.net && (
-                      <>
-                        <dt>
-                          {t("registration.netWeightCount", {
-                            count: summary.netCount,
-                          })}
-                        </dt>
-                        <dd>
-                          <WeightText value={summary.net} />
-                        </dd>
-                      </>
-                    )}
-                  </>
-                )}
-                <dt>
-                  {t(
-                    purchasing
-                      ? "registration.purchaseTotal"
-                      : "fields.acquisitionCost",
-                  )}
-                </dt>
-                <dd className="wrap-anywhere">
-                  {summary.acquisition.length
-                    ? summary.acquisition.map((value) => (
-                        <div key={value.currency}>
-                          {formatPayable(value, locale)}
-                        </div>
-                      ))
-                    : "—"}
-                </dd>
-                {purchasing && (
-                  <>
-                    <dt>{t("registration.paid")}</dt>
-                    <dd>{paymentText(summary.paid)}</dd>
-                    <dt>{t("registration.outstanding")}</dt>
-                    <dd>{paymentText(summary.outstanding)}</dd>
-                    <dt>{t("registration.paymentStatus")}</dt>
-                    <dd>
-                      {summary.status ? (
-                        <PurchaseStatus value={summary.status} />
-                      ) : (
-                        "—"
-                      )}
-                    </dd>
-                  </>
-                )}
-              </dl>
-            )}
-            {(error || summary.overpayment) && (
-              <p role="alert" className="text-destructive">
-                {error?.message ?? t("registration.overpayment")}
-              </p>
-            )}
-            <PendingButton
-              type="submit"
-              pending={busy}
-              disabled={!categories.data?.some(({ isActive }) => isActive)}
-              className={inputClass}
-            >
-              {busy ? t("saving") : t("save")}
-            </PendingButton>
-          </div>
+          {!mobile && (
+            <div className="sticky bottom-0 z-[1] grid gap-2 rounded-t-md border bg-background p-3">
+              {totals}
+              {actions}
+            </div>
+          )}
         </form>
       )}
     </ProductPanel>
