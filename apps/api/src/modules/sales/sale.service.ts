@@ -44,6 +44,7 @@ import {
   pagePhotoUrls,
   type ProductPhotoStorage,
 } from "../products/product.storage.js";
+import { resolveJewelrySetSale } from "../products/jewelry-set.service.js";
 import { requireSaleConfirmation } from "./sale-confirmation.js";
 import {
   calculateSettlement,
@@ -220,6 +221,19 @@ export async function previewSale(
 ): Promise<SalePreview> {
   const currency = context.settings.defaultCurrency;
   const input = parseSalePreview(body, currency);
+  if (input.jewelrySet && input.items) {
+    const { items, jewelrySet } = input;
+    await db.$transaction(
+      (tx) =>
+        resolveJewelrySetSale(
+          tx,
+          context,
+          jewelrySet,
+          items.map(({ productId }) => productId),
+        ),
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+  }
   input.payments?.forEach((payment, index) =>
     assertPaymentCurrency(
       context.settings,
@@ -377,6 +391,10 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
   }
   return {
     id: sale.id,
+    ...(sale.jewelrySetId &&
+      sale.jewelrySetName && {
+        jewelrySet: { id: sale.jewelrySetId, name: sale.jewelrySetName },
+      }),
     ...(sale.customerId && { customerId: sale.customerId }),
     ...(sale.customer && { customerName: sale.customer.name }),
     outstandingDebt: sale.outstandingDebt.toFixed(),
@@ -760,7 +778,7 @@ export async function recordSale(
       const requestDigest = createHash("sha256")
         .update(
           JSON.stringify(
-            items.length === 1
+            items.length === 1 && !input.jewelrySet
               ? {
                   ...items[0],
                   tradeIns: requestedTradeIns,
@@ -779,6 +797,15 @@ export async function recordSale(
           throw new AccessError("SALE_CONFLICT", "idempotencyKey");
         return presentSale(previous, access);
       }
+      // Set edits, dissolution and all sales hold the same organization lock.
+      const jewelrySet = input.jewelrySet
+        ? await resolveJewelrySetSale(
+            tx,
+            access,
+            input.jewelrySet,
+            items.map(({ productId }) => productId),
+          )
+        : undefined;
       input.payments?.forEach((payment, index) =>
         assertPaymentCurrency(
           access.settings,
@@ -952,6 +979,8 @@ export async function recordSale(
           ...key,
           requestDigest,
           productId: first.productId,
+          jewelrySetId: jewelrySet?.id,
+          jewelrySetName: jewelrySet?.name,
           customerId: input.customerId,
           customerReportingRate: input.customerReportingRate,
           currency,

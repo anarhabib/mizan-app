@@ -27,6 +27,9 @@ test("prefills a same-currency fixed price and never prefills a stone-set metal 
   expect(initialProductSaleAmount(plain, "AZN", "125.00")).toBe("125.00");
   expect(initialProductSaleAmount(jewelry, "AZN", "125.00")).toBeUndefined();
   expect(
+    initialProductSaleAmount({ ...plain, hasGemstones: true }, "AZN", "125.00"),
+  ).toBeUndefined();
+  expect(
     initialProductSaleAmount(
       { ...jewelry, netGoldWeight: undefined, fixedSellingPrice },
       "AZN",

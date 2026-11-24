@@ -27,10 +27,11 @@ import {
 import { saleAttempt, type SaleAttempt } from "../lib/attempt";
 import { saleError } from "../lib/form";
 
-export function useSaleSubmission(scope: SaleScope, productId: string) {
+export function useSaleSubmission(scope: SaleScope, productId?: string) {
   const client = useQueryClient();
   const { t } = useTranslation("sales");
   const attempt = useRef<SaleAttempt>(undefined);
+  const retryToken = useRef<string>(undefined);
   const locked = useRef(false);
   const requiresCheck = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -38,6 +39,8 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   const [checkedInStock, setCheckedInStock] = useState(false);
   const [recoveredId, setRecoveredId] = useState<string>();
   const [confirmation, setConfirmation] = useState<SaleConfirmation>();
+  const [retryError, setRetryError] =
+    useState<ReturnType<typeof saleError>["message"]>();
 
   async function refreshInventory(
     sold: {
@@ -118,6 +121,7 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
   });
 
   async function verifyProduct() {
+    if (!productId) return;
     requiresCheck.current = true;
     setNeedsCheck(true);
     setCheckedInStock(false);
@@ -168,6 +172,16 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
 
   async function checkAgain() {
     if (locked.current) return;
+    if (attempt.current?.payload.jewelrySet) {
+      const error = await submit(
+        attempt.current.payload,
+        retryToken.current,
+        true,
+      );
+      if (error && error.message !== "unknownOutcome")
+        setRetryError(error.message);
+      return;
+    }
     locked.current = true;
     setBusy(true);
     try {
@@ -178,10 +192,20 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
     }
   }
 
-  async function submit(payload: SaleCreateInput, token?: string) {
-    if (locked.current || requiresCheck.current || mutation.data) return;
+  async function submit(
+    payload: SaleCreateInput,
+    token?: string,
+    replay = false,
+  ) {
+    if (locked.current || (requiresCheck.current && !replay) || mutation.data)
+      return;
     locked.current = true;
+    if (replay) {
+      requiresCheck.current = false;
+      setNeedsCheck(false);
+    }
     setBusy(true);
+    setRetryError(undefined);
     setCheckedInStock(false);
     try {
       const next = saleAttempt(attempt.current, payload);
@@ -209,7 +233,16 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
         payload.tradeIns?.length ?? 0,
       );
       setConfirmation(undefined);
-      if ("check" in mapped) await verifyProduct();
+      if ("check" in mapped) {
+        if (payload.jewelrySet) {
+          // Only replaying this key can distinguish our receipt from a competing sale.
+          retryToken.current = token;
+          requiresCheck.current = true;
+          setNeedsCheck(true);
+        } else {
+          await verifyProduct();
+        }
+      }
       if ("refresh" in mapped && mapped.refresh) {
         await client.invalidateQueries({
           queryKey: saleKeys.options(scope),
@@ -229,6 +262,7 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
     checkedInStock,
     resultId: mutation.data?.id,
     recoveredId,
+    retryError,
     confirmation,
     cancelConfirmation: () => setConfirmation(undefined),
     confirm: () => {

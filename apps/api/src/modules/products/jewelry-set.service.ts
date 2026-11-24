@@ -7,13 +7,18 @@ import {
   type JewelrySetPreview,
   type JewelrySetProduct,
   type JewelrySetTotals,
+  type SaleJewelrySetSelection,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { uuidPattern, type AccessContext } from "../access/access.service.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import type { OrganizationDatabase } from "../access/organization-owner.js";
 import { readPageSize } from "../access/page-size.js";
-import { acquisitionFields, presentAcquisition } from "./product.presenter.js";
+import {
+  acquisitionFields,
+  presentAcquisition,
+  presentFixedSellingPrice,
+} from "./product.presenter.js";
 import { lockProductOwner } from "./product.service.js";
 
 // Decimal(20, 4) acquisition amounts can gain digits when summed.
@@ -33,6 +38,9 @@ function productFields(access: AccessContext) {
     name: true,
     purity: true,
     category: true,
+    fixedSellingAmount: true,
+    fixedSellingCurrency: true,
+    _count: { select: { gemstones: true } },
     productCategory: {
       select: {
         id: true,
@@ -103,7 +111,9 @@ function presentProducts(
     purity: row.purity,
     weight: row.weight.toFixed(3),
     status: row.status,
+    ...(row._count.gemstones > 0 && { hasGemstones: true }),
     ...(row.netGoldWeight && { netGoldWeight: row.netGoldWeight.toFixed(3) }),
+    ...presentFixedSellingPrice(row),
     ...presentAcquisition(row, access),
   }));
   const totals: JewelrySetTotals = { ...weightTotals(rows) };
@@ -269,12 +279,42 @@ async function requireRevision(
 ) {
   const current = await tx.jewelrySet.findUnique({
     where: { organizationId_storeId_id: where },
-    select: { revision: true, members: { select: { productId: true } } },
+    select: {
+      id: true,
+      name: true,
+      revision: true,
+      members: { select: { productId: true } },
+    },
   });
   if (!current) throw new AccessError("JEWELRY_SET_NOT_FOUND");
   if (current.revision !== revision)
     throw new AccessError("JEWELRY_SET_CHANGED");
-  return current.members;
+  return current;
+}
+
+export async function resolveJewelrySetSale(
+  tx: Prisma.TransactionClient,
+  access: AccessContext,
+  selection: SaleJewelrySetSelection,
+  productIds: string[],
+) {
+  const set = await requireRevision(
+    tx,
+    setWhere(access, selection.id),
+    selection.revision,
+  );
+  const members = new Set(set.members.map(({ productId }) => productId));
+  if (
+    (selection.mode === "complete" && productIds.length !== members.size) ||
+    productIds.some((productId) => !members.has(productId))
+  )
+    throw new AccessError("JEWELRY_SET_CHANGED", "items");
+  const available = await tx.product.count({
+    where: { ...scope(access), id: { in: productIds }, ...inStock },
+  });
+  if (available !== productIds.length)
+    throw new AccessError("JEWELRY_SET_PRODUCT_UNAVAILABLE", "items");
+  return { id: set.id, name: set.name };
 }
 
 export async function saveJewelrySet(
@@ -291,7 +331,7 @@ export async function saveJewelrySet(
       const where = existing && setWhere(owner, existing.id);
       const current =
         where && existing
-          ? await requireRevision(tx, where, existing.revision)
+          ? (await requireRevision(tx, where, existing.revision)).members
           : [];
       const currentIds = new Set(current.map(({ productId }) => productId));
       const added = productIds.filter((id) => !currentIds.has(id));

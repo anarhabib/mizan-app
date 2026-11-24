@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   isBusinessDate,
   type SaleDateFilter,
+  type SaleJewelrySetSelection,
   type SalePaymentStatus,
 } from "@mizan/contracts";
 import { SalesPage } from "@/features/sales";
@@ -11,6 +12,8 @@ export const Route = createFileRoute("/sales")({
     search: Record<string, unknown>,
   ): SaleDateFilter & {
     product?: string;
+    jewelrySet?: string;
+    setMode?: SaleJewelrySetSelection["mode"];
     sale?: string;
     paymentDate?: string;
     paymentStatus?: SalePaymentStatus;
@@ -18,6 +21,14 @@ export const Route = createFileRoute("/sales")({
     product:
       typeof search.product === "string" && search.product
         ? search.product
+        : undefined,
+    jewelrySet:
+      typeof search.jewelrySet === "string" && search.jewelrySet
+        ? search.jewelrySet
+        : undefined,
+    setMode:
+      search.setMode === "complete" || search.setMode === "selected"
+        ? search.setMode
         : undefined,
     sale:
       typeof search.sale === "string" && search.sale ? search.sale : undefined,
@@ -38,15 +49,21 @@ export const Route = createFileRoute("/sales")({
 });
 
 function SalesRoute() {
-  const { product, sale, ...filters } = Route.useSearch();
+  const { product, sale, jewelrySet, setMode, ...filters } = Route.useSearch();
   const navigate = Route.useNavigate();
   return (
     <SalesPage
       productId={product}
+      setTarget={
+        jewelrySet && setMode ? { id: jewelrySet, mode: setMode } : undefined
+      }
       saleId={sale}
       filters={filters}
       setFilters={(next) =>
-        void navigate({ search: { product, sale, ...next }, replace: true })
+        void navigate({
+          search: { product, sale, jewelrySet, setMode, ...next },
+          replace: true,
+        })
       }
       closeCreate={() => void navigate({ search: filters, replace: true })}
     />

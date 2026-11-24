@@ -91,6 +91,11 @@ function SaleRecord({
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>
+        {sale.jewelrySet && (
+          <p className="wrap-anywhere text-muted-foreground">
+            {t("setReceipt", { name: sale.jewelrySet.name })}
+          </p>
+        )}
         <ul className="divide-y rounded-lg border border-border bg-card">
           {sale.items.map(({ product, saleAmount, profit }) => (
             <li key={product.id} className="grid gap-3 p-3">

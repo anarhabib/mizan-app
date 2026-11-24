@@ -164,6 +164,20 @@ function presentMoney(value: Prisma.Decimal, currency: string) {
   };
 }
 
+export function presentFixedSellingPrice({
+  fixedSellingAmount,
+  fixedSellingCurrency,
+}: Pick<DetailRow, "fixedSellingAmount" | "fixedSellingCurrency">) {
+  return fixedSellingAmount && fixedSellingCurrency
+    ? {
+        fixedSellingPrice: presentMoney(
+          fixedSellingAmount,
+          fixedSellingCurrency,
+        ),
+      }
+    : {};
+}
+
 export function presentAcquisition(
   row: Pick<DetailRow, keyof ReturnType<typeof acquisitionFields>> & {
     purchaseItem: object | null;
@@ -303,13 +317,7 @@ export function presentDetail(
     ...(row.gemstones.length > 0 && {
       gemstones: presentGemstones(row.gemstones),
     }),
-    ...(row.fixedSellingAmount &&
-      row.fixedSellingCurrency && {
-        fixedSellingPrice: presentMoney(
-          row.fixedSellingAmount,
-          row.fixedSellingCurrency,
-        ),
-      }),
+    ...presentFixedSellingPrice(row),
     ...presentAcquisition(row, access),
     ...(owner && {
       canEditAcquisition: canEditAcquisition(row),
