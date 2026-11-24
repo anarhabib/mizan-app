@@ -1,14 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { isBusinessDate, type SalePaymentStatus } from "@mizan/contracts";
+import {
+  isBusinessDate,
+  type SaleDateFilter,
+  type SalePaymentStatus,
+} from "@mizan/contracts";
 import { SalesPage } from "@/features/sales";
 
 export const Route = createFileRoute("/sales")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): {
+  ): SaleDateFilter & {
     product?: string;
     sale?: string;
-    date?: string;
     paymentDate?: string;
     paymentStatus?: SalePaymentStatus;
   } => ({
@@ -19,6 +22,8 @@ export const Route = createFileRoute("/sales")({
     sale:
       typeof search.sale === "string" && search.sale ? search.sale : undefined,
     date: isBusinessDate(search.date) ? search.date : undefined,
+    dateFrom: isBusinessDate(search.dateFrom) ? search.dateFrom : undefined,
+    dateTo: isBusinessDate(search.dateTo) ? search.dateTo : undefined,
     paymentDate: isBusinessDate(search.paymentDate)
       ? search.paymentDate
       : undefined,

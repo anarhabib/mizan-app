@@ -19,6 +19,7 @@ import {
 import { apiRequest, ApiError } from "@/shared/lib/api";
 import {
   saleDetailQuery,
+  invalidateSaleOverviews,
   saleKeys,
   salePath,
   type SaleScope,
@@ -51,6 +52,7 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
       .getQueryCache()
       .findAll({ queryKey: saleKeys.lists(scope) });
     void Promise.all([
+      invalidateSaleOverviews(client, scope),
       ...lists.map(({ queryKey }) =>
         client.invalidateQueries({ queryKey, exact: true }),
       ),

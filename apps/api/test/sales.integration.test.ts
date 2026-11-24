@@ -49,6 +49,20 @@ test.skipIf(!db)(
       }>();
       const scope = { organizationId, storeId };
       const query = new URLSearchParams(scope).toString();
+      const overview = (actor = "owner") =>
+        app.inject({
+          method: "GET",
+          url: `/api/v1/sales/overview?${query}&limit=10&q=no-match`,
+          headers: { authorization: `Bearer ${actor}` },
+        });
+      expect((await overview("other")).statusCode).toBe(403);
+      expect((await overview()).json()).toEqual({
+        completedSales: 0,
+        productsSold: 0,
+        salesAmount: [],
+        amountReceived: [],
+        outstandingDebt: [],
+      });
       const product = await db.product.create({
         data: {
           ...scope,
@@ -300,6 +314,13 @@ test.skipIf(!db)(
           { calculatedValue: "30", acceptedValue: "40", overridden: true },
         ],
       });
+      expect((await overview()).json()).toEqual({
+        completedSales: 3,
+        productsSold: 3,
+        salesAmount: [{ amount: "270", currency: "AZN" }],
+        amountReceived: [{ amount: "220", currency: "AZN" }],
+        outstandingDebt: [{ amount: "0", currency: "AZN" }],
+      });
 
       const rollbackItem = await makeProduct("TASK10-ROLLBACK");
       const rollbackPayload = {
@@ -346,6 +367,65 @@ test.skipIf(!db)(
         data: { defaultCurrency: "USD" },
       });
       expect((await send(winningKey)).json()).toEqual(created);
+      await db.purityGrade.update({
+        where: { organizationId_value: { organizationId, value: 585 } },
+        data: { active: true },
+      });
+      const secondUsdItem = await makeProduct("USD-2");
+      const usdSale = await send("usd", {
+        expectedCurrency: "USD",
+        items: [
+          { productId: rollbackItem.id, saleAmount: "30" },
+          { productId: secondUsdItem.id, saleAmount: "40" },
+        ],
+      });
+      expect(usdSale.statusCode, usdSale.body).toBe(201);
+      expect((await overview()).json()).toEqual({
+        completedSales: 4,
+        productsSold: 5,
+        salesAmount: [
+          { amount: "270", currency: "AZN" },
+          { amount: "70", currency: "USD" },
+        ],
+        amountReceived: [
+          { amount: "220", currency: "AZN" },
+          { amount: "70", currency: "USD" },
+        ],
+        outstandingDebt: [
+          { amount: "0", currency: "AZN" },
+          { amount: "0", currency: "USD" },
+        ],
+      });
+      for (let index = 0; index < 7; index++) {
+        const item = await makeProduct(`PAGE-${index}`);
+        const response = await send(`page-${index}`, {
+          productId: item.id,
+          saleAmount: "10",
+        });
+        expect(response.statusCode, response.body).toBe(201);
+      }
+      await db.sale.updateMany({
+        where: scope,
+        data: { createdAt: new Date("2026-11-23T19:59:59.999Z") },
+      });
+      const period = "dateFrom=2026-11-23&dateTo=2026-11-23&limit=10";
+      const page = await inventoryHistory(period);
+      expect(page.json().items).toHaveLength(10);
+      expect(page.json().nextCursor).toBeTruthy();
+      const totals = await app.inject({
+        method: "GET",
+        url: `/api/v1/sales/overview?${query}&${period}&after=${page.json().nextCursor}`,
+        headers: { authorization: "Bearer owner" },
+      });
+      expect(totals.statusCode, totals.body).toBe(200);
+      expect(totals.json()).toMatchObject({
+        completedSales: 11,
+        productsSold: 12,
+        salesAmount: [
+          { amount: "270", currency: "AZN" },
+          { amount: "140", currency: "USD" },
+        ],
+      });
     } finally {
       await app.close();
     }

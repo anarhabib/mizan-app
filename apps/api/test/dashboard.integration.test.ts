@@ -212,6 +212,15 @@ test.skipIf(!db)(
         exchangeRate: "1.70",
       });
       expect(repayment.statusCode, repayment.body).toBe(201);
+      const salesOverview = await send("GET", `/sales/overview?${query}`);
+      expect(salesOverview.statusCode, salesOverview.body).toBe(200);
+      expect(salesOverview.json()).toEqual({
+        completedSales: 1,
+        productsSold: 1,
+        salesAmount: [{ amount: "100", currency: "AZN" }],
+        amountReceived: [{ amount: "37", currency: "AZN" }],
+        outstandingDebt: [{ amount: "48", currency: "AZN" }],
+      });
       const priorSale = await send("POST", `/sales?${query}`, {
         productId: second.id,
         saleAmount: "50",
@@ -227,6 +236,48 @@ test.skipIf(!db)(
         where: { ...scope, id: priorId },
         data: { createdAt: previous },
       });
+      await db.salePayment.updateMany({
+        where: { ...scope, saleId: id, position: null },
+        data: { createdAt: new Date(+midnight + 86_400_000) },
+      });
+      const filteredSales = (path: string, filters: string) =>
+        send("GET", `/sales${path}?${query}&${filters}`);
+      const today = "dateFrom=2026-11-23&dateTo=2026-11-23";
+      const yesterday = "dateFrom=2026-11-22&dateTo=2026-11-22";
+      expect((await filteredSales("/overview", today)).json()).toEqual(
+        salesOverview.json(),
+      );
+      expect((await filteredSales("", today)).json().items).toMatchObject([
+        { id },
+      ]);
+      expect((await filteredSales("", yesterday)).json().items).toMatchObject([
+        { id: priorId },
+      ]);
+      expect(
+        (await filteredSales("/overview", yesterday)).json(),
+      ).toMatchObject({
+        completedSales: 1,
+        salesAmount: [{ amount: "50", currency: "AZN" }],
+      });
+      expect(
+        (
+          await filteredSales(
+            "/overview",
+            "dateFrom=2026-11-22&dateTo=2026-11-23&limit=10",
+          )
+        ).json(),
+      ).toMatchObject({ completedSales: 2 });
+      expect(
+        (await filteredSales("/overview", "dateFrom=2026-11-24")).json(),
+      ).toMatchObject({ completedSales: 0, salesAmount: [] });
+      for (const path of ["", "/overview"]) {
+        for (const filters of [
+          "dateFrom=2026-11-23&dateTo=2026-11-22",
+          "dateTo=2026-02-31",
+        ]) {
+          expect((await filteredSales(path, filters)).statusCode).toBe(400);
+        }
+      }
       await db.salePayment.updateMany({
         where: { ...scope, saleId: id },
         data: { createdAt: midnight },
@@ -429,6 +480,18 @@ test.skipIf(!db)(
       const branchQuery = new URLSearchParams({
         organizationId,
         storeId: branch.id,
+      });
+      const branchSalesOverview = await send(
+        "GET",
+        `/sales/overview?${branchQuery}`,
+      );
+      expect(branchSalesOverview.statusCode).toBe(200);
+      expect(branchSalesOverview.json()).toEqual({
+        completedSales: 0,
+        productsSold: 0,
+        salesAmount: [],
+        amountReceived: [],
+        outstandingDebt: [],
       });
       const branchPath = `/products/overview?${branchQuery}`;
       expect((await send("GET", branchPath)).json()).toEqual({

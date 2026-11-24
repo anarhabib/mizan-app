@@ -1,4 +1,20 @@
 {
+  "dateFrom": "Satışın başlanğıc tarixi",
+  "dateTo": "Satışın bitmə tarixi",
+  "invalidDateRange": "Bitmə tarixi başlanğıc tarixindən əvvəl ola bilməz.",
+  "overview": {
+    "periodAll": "Bütün satış tarixləri",
+    "periodFrom": "{{from}} tarixindən",
+    "periodTo": "{{to}} tarixinədək",
+    "periodRange": "{{from}} – {{to}}",
+    "title": "Satış icmalı",
+    "completedSales": "Tamamlanmış satışlar",
+    "salesAmount": "Satış məbləği",
+    "amountReceived": "Alınan ödənişlər",
+    "outstandingDebt": "Qalıq borc",
+    "productsSold": "Satılan məhsullar",
+    "noAmounts": "—"
+  },
   "recordedBy": "Qeyd edən: {{name}}",
   "paymentRecordedBy": "Qeyd edən",
   "itemPricing": {
