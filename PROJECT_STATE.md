@@ -1,5 +1,39 @@
 # Misqal project state
 
+## Mobile product registration sheet (November 24, 2026)
+
+- `ProductCreate.tsx` and `ProductPanel.tsx` place the compact totals and save action in a safe-area-aware mobile drawer footer. Single non-purchase registration has only the save action. Bulk totals and purchase amounts remain available in the expandable summary. The desktop sheet retains its layout.
+- `ProductRegistrationRow.tsx` keeps one mobile bulk item open at a time, displays its identity and weight in the heading, preserves values and errors on collapse, and confirms removal. Add Product Row remains reachable from the footer.
+- All 177 web tests, changed-file lint and TypeScript passed. Fixture-backed Chromium covered 360px, 390px and 1280px, including scrolling, loading, single and bulk submission, collapsed-row validation, a focused-input viewport resize, a simulated 34px bottom inset and a repeated submission attempt. Physical iOS Safari and its native keyboard remain unverified.
+
+## Mobile account menu (November 24, 2026)
+
+- `apps/web/src/app/Shell.tsx` places the account avatar beside the mobile store switcher. More retains the existing business links and shows a translated empty state when the current role has no additional destinations. Bottom tab order and desktop sidebar placement are unchanged.
+- `apps/web/src/app/AccountMenu.tsx` derives initials from the workspace profile, provides an icon fallback, and shares account handlers across both layouts. Mobile presents the three language choices directly in the dropdown. Desktop retains the language submenu.
+- All 177 web tests, changed-source formatting and lint, TypeScript and the production build passed. Fixture-backed Chromium checks at 360px, 390px and 1280px in both themes covered account actions, permissions, avatar fallback and menu overflow. Changes remain local on `task/mobile-account-menu`.
+
+## Task 23 — unified product registration (November 24, 2026)
+
+- `apps/web/src/features/products/components/ProductCreate.tsx` uses the existing Add Product panel for single and bulk intake. Other is the default source. Bulk rows retain individual codes, measurements, gemstone groups, costs and photos. Shared defaults and duplicate-row controls preserve editable values, and the summary keeps amounts exact and grouped by currency.
+- `apps/api/src/modules/products/product-registration.service.ts` and `packages/contracts/src/product-registration.ts` add atomic, idempotent intake. Supplier purchases reuse Task 22's receipt and payment allocation services. The optional initial payment uses the purchase date and currency. Opening stock, other intake and historical supplier links create no payable. Owners see purchase dates, references, gross weights, initial payments and historical links in the existing Products and Suppliers features.
+- `packages/database/prisma/migrations/202611240003_product_registration/migration.sql` adds registration receipts, movement sources, historical supplier links and initial-payment metadata. Source remains unknown for legacy intake. Purchase history stays protected from inventory edits. Photos attach through the existing signed flow after the transaction and can be retried separately.
+- Prisma validation, schema parity, clean migration and comparison of 13 legacy rows passed on disposable PostgreSQL. The final API suite passed 77 tests on a fresh database with two Vitest workers and a 20-second timeout after the default parallel run timed out. A separate live local Storage test passed. Database (4), contracts (30), web (177), changed-source formatting and lint, TypeScript and production builds passed.
+- Chromium verified bulk registration, row validation, totals and purchase history at 390px and 1280px in light and dark. Single opening stock and invalid currency handling passed on mobile and desktop. Azerbaijani and Russian rendering and photo confirmation retry passed. Browser authentication used fixtures and writes used the real API against disposable PostgreSQL.
+- The Task 23 migration was applied to the configured hosted development database. Prisma reports all 20 migrations applied. Read-only Fastify smoke checks with fixture authentication returned HTTP 200 for the purchase list and product detail. Task 17 is absent from the approved base. Branch is `task/23-unified-product-registration`.
+
+## Task 22 — suppliers, purchases and payables (November 24, 2026)
+
+- `apps/api/src/modules/suppliers` and `packages/contracts/src/suppliers.ts` implement Owner-mode supplier profiles, purchase documents, payment allocations and audit events. Directory and history filters run before cursor pagination. Balances are derived by currency at recorded precision. Purchase and payment writes are idempotent, and competing payments cannot exceed the remaining payable amount.
+- `apps/web/src/features/suppliers` adds an Azerbaijani, English and Russian workspace destination in the desktop sidebar and mobile More. The purchase form receives new products or links eligible existing stock. The Products form also supports optional supplier selection, and authorized Product details link to the supplier and purchase.
+- Migration `202611240002_supplier_purchases_payables` adds scoped suppliers, purchases, purchase items, supplier payments and activity records. New products keep the existing acquisition and inventory movement logic. Linking existing stock reuses its movement history and locks its acquisition record. The dashboard still counts actual intake, and customer debt stays in the sales ledger.
+- Prisma validation, clean migration, schema parity and legacy row preservation passed on disposable PostgreSQL. Contracts (28), database (4), API (76 with live Storage skipped) and web (175) tests passed. The final targeted API test also verified chronological payment ordering within a day. Changed-file lint, TypeScript and production builds passed. Chromium checked 390px and 1280px in light and dark, with real local API writes for supplier profiles, mixed receipts, a purchase from the product drawer and payment allocation. The browser used fixture authentication.
+- The migration is applied to the hosted development database configured for the local API. Prisma reports all 19 migrations applied. Fastify smoke tests with fixture authentication against that database returned HTTP 200 for the filtered supplier and purchase lists. Tasks 17 and 18 are absent from the approved base. Task branch is `task/22-suppliers-purchases-payables`.
+
+### Follow-up — supplier and purchase form panels
+
+- `SupplierForm.tsx` and `PurchaseForm.tsx` now reuse Add Product's right-side sheet and mobile bottom drawer. The supplier directory and detail page stay mounted while a form is open. Opening a purchase from supplier details preselects that supplier.
+- TypeScript, changed-file lint, the production build and three targeted Vitest tests passed. Chromium verified 390px and 1280px in both themes, including focus restoration, supplier preselection and successful form submissions against disposable PostgreSQL.
+
 ## Task 21 — social authentication, profiles and product categories (November 24, 2026)
 
 - `apps/web/src/features/auth` adds Google and Apple to the existing Supabase login and callback. The invitation tab keeps its token in memory while OAuth opens separately. Acceptance still checks the verified email. `/me/profile` stores the confirmed name under the Supabase UUID. Owner onboarding saves the name and eleven category defaults atomically. Existing and invited members complete their profiles without creating a workspace.

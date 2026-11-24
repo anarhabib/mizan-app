@@ -15,6 +15,16 @@ export type AccessFailure =
   | "INVALID_SALE"
   | "SALE_CUSTOMER_REQUIRED"
   | "INVALID_CUSTOMER"
+  | "INVALID_SUPPLIER"
+  | "SUPPLIER_NOT_FOUND"
+  | "SUPPLIER_INACTIVE"
+  | "INVALID_PURCHASE"
+  | "PURCHASE_NOT_FOUND"
+  | "PURCHASE_PRODUCT_CONFLICT"
+  | "SUPPLIER_CURRENCY_MISMATCH"
+  | "INVALID_SUPPLIER_PAYMENT"
+  | "SUPPLIER_OVERPAYMENT"
+  | "SUPPLIER_REQUEST_CONFLICT"
   | "CUSTOMER_NOT_FOUND"
   | "CUSTOMER_DELETE_CONFLICT"
   | "SALE_PAYMENT_NOT_DUE"
@@ -31,6 +41,40 @@ export type AccessFailure =
   | "PHOTO_UNAVAILABLE";
 
 const details = {
+  INVALID_SUPPLIER: {
+    statusCode: 400,
+    message: "Təchizatçı məlumatlarını yoxlayın.",
+  },
+  SUPPLIER_NOT_FOUND: { statusCode: 404, message: "Təchizatçı tapılmadı." },
+  SUPPLIER_INACTIVE: {
+    statusCode: 409,
+    message: "Yeni alış üçün aktiv təchizatçı seçin.",
+  },
+  INVALID_PURCHASE: {
+    statusCode: 400,
+    message: "Alış məlumatlarını yoxlayın.",
+  },
+  PURCHASE_NOT_FOUND: { statusCode: 404, message: "Alış sənədi tapılmadı." },
+  PURCHASE_PRODUCT_CONFLICT: {
+    statusCode: 409,
+    message: "Məhsul bu alış sənədinə əlavə edilə bilməz.",
+  },
+  SUPPLIER_CURRENCY_MISMATCH: {
+    statusCode: 400,
+    message: "Valyuta alış sənədinin valyutası ilə eyni olmalıdır.",
+  },
+  INVALID_SUPPLIER_PAYMENT: {
+    statusCode: 400,
+    message: "Ödəniş məlumatlarını yoxlayın.",
+  },
+  SUPPLIER_OVERPAYMENT: {
+    statusCode: 409,
+    message: "Ödəniş qalan borcdan çoxdur.",
+  },
+  SUPPLIER_REQUEST_CONFLICT: {
+    statusCode: 409,
+    message: "Bu sorğu açarı fərqli əməliyyat üçün istifadə edilib.",
+  },
   INVALID_PROFILE: { statusCode: 400, message: "Ad və soyadı yoxlayın." },
   INVALID_CATEGORY: {
     statusCode: 400,

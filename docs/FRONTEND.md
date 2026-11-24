@@ -20,7 +20,7 @@ apps/web/src/
   locales/      az/, en/ and ru/, one namespace file per feature
 ```
 
-Features: `auth`, `workspace`, `products`, `sales`, `settings`, `team`.
+Features include `auth`, `workspace`, `products`, `sales`, `suppliers`, `settings` and `team`.
 
 Check `src/components/ui` before building an interactive control. Compose installed shadcn primitives for feature-specific UI and use semantic HTML for structure. When authorized to add a missing primitive, run `pnpm dlx shadcn@latest add <component> --cwd apps/web` without overwriting installed components. Remove the replaced implementation and unused translations.
 
@@ -59,7 +59,8 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 - Every query screen has loading (skeleton), empty and error states with a retry.
 - Mutations are never optimistic and never retried automatically. Disable submit while pending.
 - `POST /sales` sends an `Idempotency-Key` (`crypto.randomUUID()`, matches `[A-Za-z0-9._:-]{1,128}`). Create the key once per sale attempt, reuse the same key and payload for retries after timeouts or network errors, and create a new key only after a definitive success or when the user changes the payload.
-- Other mutations have no idempotency support. After a network failure with unknown outcome, refetch the affected data before allowing another attempt.
+- Supplier purchase and payment POSTs also send `Idempotency-Key`. Their retry keys are scoped to the signed-in account, store, operation and request digest. Session storage retains the key for an uncertain attempt without recording the draft.
+- Other mutations without idempotency support should refetch the affected data after a network failure with unknown outcome before allowing another attempt.
 
 ## Money, weight, purity and i18n
 
@@ -90,9 +91,10 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 
 - Mobile-first at 360px. `lg:` changes layout, it does not scale things up.
 - Base text 14px. Controls `h-9` (`h-8` dense on desktop). Spacing scale: 2, 3, 4, 6 only.
-- Use `PageContainer` for fluid, centered content in the space available beside the sidebar. Dashboard, Products, Sales and Customers use the wide variant with a 1600px content cap. Settings and Team use standard (64rem). Authentication uses narrow (28rem). Gutters are 16px, 20px from 640px, 24px from 1024px and 32px from 1440px, with safe-area support.
-- Bottom navigation on mobile, sidebar on `lg`. The desktop sidebar header holds the collapse control and its footer holds the account menu. Mobile More includes the account menu and owner-only destinations. The top header retains the store selector.
+- Use `PageContainer` for fluid, centered content in the space available beside the sidebar. Dashboard, Products, Sales, Customers and Suppliers use the wide variant with a 1600px content cap. Settings and Team use standard (64rem). Authentication uses narrow (28rem). Gutters are 16px, 20px from 640px, 24px from 1024px and 32px from 1440px, with safe-area support.
+- Bottom navigation on mobile, sidebar on `lg`. The desktop sidebar header holds the collapse control and its footer holds the account menu. On mobile, the account avatar sits beside the store selector in the top header. More holds business destinations available to the current role.
 - Products use scoped API aggregates for the inventory overview. Summary links open the matching inventory status, including products whose sale currently has an outstanding balance. On desktop, search and filters share one toolbar that scrolls internally when its controls exceed the available width. On mobile, search stays beside a Filters button that opens the filter drawer.
+- Suppliers requires Owner mode and appears in the desktop sidebar and mobile More. Supplier and purchase histories use scoped cursor pagination. The supplier purchase form can stage new products and link eligible existing inventory. Add Product handles single or bulk intake with an explicit registration source. The purchase source uses the active supplier picker, and historical links use the same picker with inactive suppliers included. Show supplier ledger amounts and the registration preview at their recorded precision. The preview uses shared acquisition parsing and integer arithmetic. The API computes the final balance.
 - Lists are rows on mobile; use tables only on `lg` and only when columns help. Dialogs become drawers on mobile.
 - Preserve the shadcn preset in `components.json`, including typography, radius, icon library, and light and dark themes. Use semantic tokens and favor borders over shadows. Keep neutral surfaces and independent status colors.
 - Tabular numbers for amounts and weights. Real labels and real data, never lorem ipsum.

@@ -8,7 +8,9 @@ import type {
   ProductGemstoneFilter,
   ProductPhotoUpload,
   ProductOverview,
+  ProductRegistrationSource,
   ProductStatus,
+  RegistrationProduct,
 } from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { businessDateRange } from "../access/business-date.js";
@@ -74,74 +76,152 @@ export async function createProduct(
   input: ProductCreateInput,
   total: MoneyInput,
 ) {
-  const { code, name, purity, metalType, note, gemstones } = input;
   const store = scope(access);
-  try {
-    return await db.$transaction(async (tx) => {
-      // Purity changes use this same lock, so a grade cannot be deactivated during creation.
-      await lockOrganization(tx, store.organizationId);
-      const currentAccess = await resolveAccessContext(
-        tx,
-        access,
-        store.organizationId,
-        store.storeId,
-      );
-      const grade = await tx.purityGrade.findUnique({
-        where: {
-          organizationId_value: {
-            organizationId: store.organizationId,
-            value: purity,
-          },
-        },
-        select: { active: true },
-      });
-      if (!grade?.active) throw new AccessError("PURITY_CONFLICT", "purity");
-      const category = await activeCategory(tx, store.organizationId, input);
-      const product = await tx.product.create({
-        data: {
-          ...store,
-          code,
-          name,
-          category: input.category ?? category.name,
-          categoryId: category.id,
-          purity,
-          metalType,
-          note,
-          ...acquisitionData(input, total),
-          ...(gemstones?.length && {
-            gemstones: {
-              create: gemstones.map((group, position) => ({
-                ...group,
-                position,
-              })),
-            },
-          }),
-        },
-        select: { id: true },
-      });
-      await tx.inventoryMovement.create({
-        data: {
-          ...store,
-          productId: product.id,
-          actorId: currentAccess.userId,
-          kind: "PRODUCT_ADDED",
-        },
-      });
-      return presentDetail(
-        await findProduct(tx, currentAccess, product.id),
-        null,
-        currentAccess,
-      );
+  return db.$transaction(async (tx) => {
+    // Purity changes use this same lock, so a grade cannot be deactivated during creation.
+    await lockOrganization(tx, store.organizationId);
+    const currentAccess = await resolveAccessContext(
+      tx,
+      access,
+      store.organizationId,
+      store.storeId,
+    );
+    const { id } = await receiveProduct(tx, currentAccess, input, total);
+    return presentDetail(
+      await findProduct(tx, currentAccess, id),
+      null,
+      currentAccess,
+    );
+  });
+}
+
+// The caller holds the organization lock and has resolved current store access.
+export async function receiveProduct(
+  tx: Prisma.TransactionClient,
+  access: AccessContext,
+  input: ProductCreateInput,
+  total: MoneyInput,
+) {
+  const [id] = await receiveProducts(tx, access, [{ product: input, total }]);
+  return { id };
+}
+
+// All intake paths share these checks. The organization lock also protects code
+// uniqueness and category/purity changes across stores in the organization.
+export async function receiveProducts(
+  tx: Prisma.TransactionClient,
+  access: AccessContext,
+  items: RegistrationProduct[],
+  source?: ProductRegistrationSource,
+  historicalSupplier?: { id: string; name: string },
+  rowField?: (index: number, field: string) => string,
+) {
+  const store = scope(access);
+  const grades = await tx.purityGrade.findMany({
+    where: {
+      organizationId: store.organizationId,
+      active: true,
+      value: { in: items.map(({ product }) => product.purity) },
+    },
+    select: { value: true },
+  });
+  const categories = await tx.productCategory.findMany({
+    where: {
+      organizationId: store.organizationId,
+      isActive: true,
+      ...(items.every(({ product }) => product.categoryId) && {
+        id: { in: items.map(({ product }) => product.categoryId!) },
+      }),
+    },
+    select: { id: true, name: true, code: true },
+  });
+  const existing = await tx.product.findMany({
+    where: {
+      organizationId: store.organizationId,
+      code: { in: items.map(({ product }) => product.code) },
+    },
+    select: { code: true },
+  });
+  const activeGrades = new Set(grades.map(({ value }) => value));
+  const categoriesById = new Map(
+    categories.map((category) => [category.id, category]),
+  );
+  const usedCodes = new Set(existing.map(({ code }) => code));
+  const gemstoneRows: Prisma.ProductGemstoneCreateManyInput[] = [];
+  const rows = items.map(({ product, total }, index) => {
+    const { code, name, purity, metalType, note, gemstones } = product;
+    const field = (name: string) => rowField?.(index, name) ?? name;
+    if (!activeGrades.has(purity))
+      throw new AccessError("PURITY_CONFLICT", field("purity"));
+    const category = product.categoryId
+      ? categoriesById.get(product.categoryId.toLowerCase())
+      : categoryByLabel(categories, product.category);
+    if (!category)
+      throw new AccessError("CATEGORY_UNAVAILABLE", field("categoryId"));
+    if (usedCodes.has(code))
+      throw new AccessError("PRODUCT_CODE_CONFLICT", field("code"));
+    usedCodes.add(code);
+    const id = randomUUID();
+    gemstones?.forEach((group, position) => {
+      gemstoneRows.push({ ...store, ...group, productId: id, position });
     });
+    return {
+      ...store,
+      id,
+      code,
+      name,
+      category: product.category ?? category.name,
+      categoryId: category.id,
+      purity,
+      metalType,
+      note,
+      ...acquisitionData(product, total),
+      historicalSupplierId: historicalSupplier?.id,
+      historicalSupplierName: historicalSupplier?.name,
+    };
+  });
+  try {
+    await tx.product.createMany({ data: rows });
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      throw new AccessError("PRODUCT_CODE_CONFLICT", "code");
+      throw new AccessError(
+        "PRODUCT_CODE_CONFLICT",
+        rows.length === 1 ? (rowField?.(0, "code") ?? "code") : undefined,
+      );
     }
     throw error;
   }
+  if (gemstoneRows.length)
+    await tx.productGemstone.createMany({ data: gemstoneRows });
+  await tx.inventoryMovement.createMany({
+    data: rows.map(({ id }) => ({
+      ...store,
+      productId: id,
+      actorId: access.userId,
+      kind: "PRODUCT_ADDED",
+      registrationSource: source,
+    })),
+  });
+  return rows.map(({ id }) => id);
+}
+
+function categoryByLabel(
+  rows: { id: string; name: string; code: string | null }[],
+  label: string | undefined,
+) {
+  if (!label) return;
+  const folded = label.toLowerCase();
+  return (
+    rows.find(({ name }) => name.toLowerCase() === folded) ??
+    rows.find((candidate) =>
+      ["en", "ru"].some(
+        (locale) => categoryLabel(candidate, locale).toLowerCase() === folded,
+      ),
+    )
+  );
 }
 
 async function activeCategory(
@@ -149,27 +229,12 @@ async function activeCategory(
   organizationId: string,
   input: { categoryId?: string; category?: string },
 ) {
-  const { categoryId, category } = input;
+  const { categoryId } = input;
   if (categoryId) {
     const row = await tx.productCategory.findFirst({
       where: { organizationId, id: categoryId, isActive: true },
       select: { id: true, name: true },
     });
-    if (row) return row;
-  } else if (category) {
-    // Older clients can still select a configured category by its existing label.
-    const rows = await tx.productCategory.findMany({
-      where: { organizationId, isActive: true },
-      select: { id: true, code: true, name: true },
-    });
-    const folded = category.toLowerCase();
-    const row =
-      rows.find(({ name }) => name.toLowerCase() === folded) ??
-      rows.find((candidate) =>
-        ["en", "ru"].some(
-          (locale) => categoryLabel(candidate, locale).toLowerCase() === folded,
-        ),
-      );
     if (row) return row;
   }
   throw new AccessError("CATEGORY_UNAVAILABLE", "categoryId");
@@ -263,6 +328,8 @@ export async function deleteProduct(
           status: "IN_STOCK",
           sale: null,
           saleItem: null,
+          purchaseItem: null,
+          historicalSupplierId: null,
           movements: { none: {} },
         },
       });
@@ -359,6 +426,8 @@ export async function listProducts(
     credit?: boolean;
     limit?: string;
     photos?: boolean;
+    unpurchased?: boolean;
+    purchaseCurrency?: string;
   },
 ) {
   const pageSize = readPageSize(filters.limit, "INVALID_PRODUCT");
@@ -380,6 +449,9 @@ export async function listProducts(
       category: filters.category,
       categoryId: filters.categoryId,
       purity: filters.purity,
+      purchaseItem: filters.unpurchased ? null : undefined,
+      acquisitionCurrency: filters.purchaseCurrency,
+      acquisitionCost: filters.unpurchased ? { gt: 0 } : undefined,
       gemstones:
         filters.gemstones === "recorded"
           ? { some: {} }

@@ -1,10 +1,19 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { parseProductAcquisition, parseProductCreate } from "@mizan/contracts";
+import {
+  isSupplierCurrency,
+  parseProductAcquisition,
+  parseProductCreate,
+} from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
+import { requiredKey } from "../access/idempotency.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import { resolveAccessContext, uuidPattern } from "../access/access.service.js";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
+import {
+  linkHistoricalSupplier,
+  registerProducts,
+} from "./product-registration.service.js";
 import {
   confirmPhoto,
   createProduct,
@@ -34,6 +43,8 @@ type Query = {
   agedDays?: string;
   credit?: string;
   limit?: string;
+  unpurchased?: string;
+  purchaseCurrency?: string;
 };
 type ProductQuery = { Querystring: Query };
 type ProductId = ProductQuery & { Params: { id: string } };
@@ -73,6 +84,41 @@ export function registerProductRoutes(
         };
 
   app.post<ProductQuery>(
+    "/products/registration",
+    { preHandler, bodyLimit: 4 * 1024 * 1024 },
+    async (request, reply) =>
+      reply
+        .code(201)
+        .send(
+          await registerProducts(
+            options().db,
+            request.access!,
+            request.body,
+            requiredKey(request, "INVALID_PRODUCT"),
+          ),
+        ),
+  );
+  app.patch<ProductId & { Body: { supplierId?: unknown } | null }>(
+    "/products/:id/historical-supplier",
+    { preHandler },
+    async (request, reply) => {
+      if (!canManageAsOwner(request.access!))
+        throw new AccessError("ACCESS_DENIED");
+      const { id } = request.params;
+      if (!uuidPattern.test(id)) throw new AccessError("PRODUCT_NOT_FOUND");
+      const supplierId = request.body?.supplierId;
+      if (typeof supplierId !== "string" || !uuidPattern.test(supplierId))
+        throw new AccessError("INVALID_PRODUCT", "historicalSupplierId");
+      await linkHistoricalSupplier(
+        options().db,
+        request.access!,
+        id,
+        supplierId.toLowerCase(),
+      );
+      return reply.code(204).send();
+    },
+  );
+  app.post<ProductQuery>(
     "/products",
     { preHandler },
     async (request, reply) => {
@@ -103,7 +149,20 @@ export function registerProductRoutes(
       agedDays,
       credit,
       limit,
+      unpurchased,
+      purchaseCurrency,
     } = request.query;
+    if (unpurchased !== undefined) {
+      if (unpurchased !== "true")
+        throw new AccessError("INVALID_PRODUCT", "unpurchased");
+      if (!canManageAsOwner(request.access!))
+        throw new AccessError("ACCESS_DENIED");
+    }
+    if (
+      purchaseCurrency !== undefined &&
+      (unpurchased !== "true" || !isSupplierCurrency(purchaseCurrency))
+    )
+      throw new AccessError("INVALID_PRODUCT", "purchaseCurrency");
     if (
       agedDays !== undefined &&
       (typeof agedDays !== "string" ||
@@ -154,6 +213,8 @@ export function registerProductRoutes(
     )
       throw new AccessError("INVALID_PRODUCT", "after");
     return listProducts(options(), request.access!, {
+      unpurchased: unpurchased === "true",
+      purchaseCurrency,
       photos: request.query.photos === "1",
       q: q?.trim(),
       status,

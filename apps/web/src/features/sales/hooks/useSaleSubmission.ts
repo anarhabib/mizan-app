@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { invalidateCustomers } from "@/features/customers";
+import { refreshSupplierProductStatus } from "@/features/suppliers";
 import type {
   ProductDetail,
   SaleConfirmation,
@@ -60,6 +61,7 @@ export function useSaleSubmission(scope: SaleScope, productId: string) {
         }),
       ),
       invalidateProductInventory(client, scope),
+      refreshSupplierProductStatus(client, scope),
     ]);
   }
 

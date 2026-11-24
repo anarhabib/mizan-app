@@ -1,6 +1,5 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 import {
-  Ellipsis,
   Globe2,
   LogOut,
   Moon,
@@ -16,6 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { ProfileForm, useSession, useSignOut } from "@/features/auth";
 import {
   Sheet,
@@ -38,7 +39,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { DisplayModeControl } from "@/features/settings";
 import { useWorkspace } from "@/features/workspace";
 import {
@@ -48,14 +48,10 @@ import {
 
 export function AccountMenu({
   mobile = false,
-  active = false,
   concealWorkspace,
-  children,
 }: {
   mobile?: boolean;
-  active?: boolean;
   concealWorkspace: () => void;
-  children?: ReactNode;
 }) {
   const { t, i18n } = useTranslation(["shell", "auth"]);
   const { email, userId } = useSession();
@@ -64,7 +60,9 @@ export function AccountMenu({
   const { pending, signOut } = useSignOut();
   const [modeOpen, setModeOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const smallScreen = useIsMobile();
+  const initials = mobile
+    ? accountInitials(fullName, i18n.resolvedLanguage)
+    : "";
   const trigger = useRef<HTMLButtonElement>(null);
   const role = t(
     canManageAsOwner ? "displayMode.owner" : "displayMode.salesperson",
@@ -85,20 +83,42 @@ export function AccountMenu({
       cancel={closeProfile}
     />
   );
+  const languages = (
+    <DropdownMenuRadioGroup
+      aria-label={t("language")}
+      value={i18n.resolvedLanguage ?? "az"}
+      onValueChange={(value) => void i18n.changeLanguage(value)}
+    >
+      {(["az", "en", "ru"] as const).map((language) => (
+        <DropdownMenuRadioItem
+          key={language}
+          value={language}
+          className="min-h-10"
+        >
+          {t(`languageOptions.${language}`)}
+        </DropdownMenuRadioItem>
+      ))}
+    </DropdownMenuRadioGroup>
+  );
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           {mobile ? (
-            <SidebarMenuButton
+            <Button
               ref={trigger}
-              isActive={active}
-              className="h-auto min-h-14 flex-col justify-center gap-1 px-0.5 py-2 text-center text-xs leading-tight text-muted-foreground data-active:inset-shadow-[0_-2px_0_var(--brand-accent)]"
+              type="button"
+              variant="outline"
+              aria-label={t("account")}
+              className="size-11 shrink-0 rounded-full bg-muted p-0 font-semibold"
             >
-              <Ellipsis aria-hidden="true" />
-              {t("more")}
-            </SidebarMenuButton>
+              {initials ? (
+                <span aria-hidden="true">{initials}</span>
+              ) : (
+                <UserRound aria-hidden="true" />
+              )}
+            </Button>
           ) : (
             <SidebarMenuButton
               ref={trigger}
@@ -118,7 +138,7 @@ export function AccountMenu({
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          side={mobile ? "top" : "right"}
+          side={mobile ? "bottom" : "right"}
           align="end"
           sideOffset={8}
           collisionPadding={8}
@@ -139,7 +159,6 @@ export function AccountMenu({
             )}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {children}
           <DropdownMenuItem
             className={responsiveMenuItem}
             onSelect={() => setProfileOpen(true)}
@@ -167,31 +186,30 @@ export function AccountMenu({
               {t(dark ? "theme.switchToLight" : "theme.switchToDark")}
             </span>
           </DropdownMenuItem>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className={responsiveMenuItem}>
-              <Globe2 aria-hidden="true" />
-              <span className="min-w-0 wrap-anywhere">{t("language")}</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent
-              className="min-w-36 max-w-[calc(100dvw-1rem)]"
-              collisionPadding={8}
-            >
-              <DropdownMenuRadioGroup
-                value={i18n.resolvedLanguage ?? "az"}
-                onValueChange={(value) => void i18n.changeLanguage(value)}
-              >
-                {(["az", "en", "ru"] as const).map((language) => (
-                  <DropdownMenuRadioItem
-                    key={language}
-                    value={language}
-                    className="min-h-10"
-                  >
-                    {t(`languageOptions.${language}`)}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          {mobile ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {t("language")}
+              </DropdownMenuLabel>
+              {languages}
+            </>
+          ) : (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className={responsiveMenuItem}>
+                <Globe2 aria-hidden="true" />
+                <span className="min-w-0 wrap-anywhere">{t("language")}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent
+                  className="pointer-events-auto min-w-36 max-w-[calc(100dvw-1rem)]"
+                  collisionPadding={8}
+                >
+                  {languages}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className={responsiveMenuItem}
@@ -205,7 +223,7 @@ export function AccountMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {smallScreen ? (
+      {mobile ? (
         <Drawer open={profileOpen} onOpenChange={setProfileOpen} autoFocus>
           <DrawerContent
             aria-describedby={undefined}
@@ -241,4 +259,15 @@ export function AccountMenu({
       />
     </>
   );
+}
+
+function accountInitials(fullName: string | null | undefined, locale?: string) {
+  const letters = (fullName ?? "").split(/\s+/u).flatMap((word) => {
+    const initial = word.match(/\p{L}\p{M}*/u)?.[0];
+    return initial ? [initial] : [];
+  });
+  const first = letters[0] ?? "";
+  return (
+    letters.length > 1 ? first + letters.at(-1) : first
+  ).toLocaleUpperCase(locale);
 }

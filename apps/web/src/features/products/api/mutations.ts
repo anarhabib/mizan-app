@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   ProductAcquisitionInput,
-  ProductCreateInput,
-  ProductDetail,
+  ProductRegistrationInput,
+  ProductRegistrationReceipt,
   ProductPhotoConfirmInput,
   ProductPhotoUpload,
 } from "@mizan/contracts";
@@ -12,22 +12,56 @@ import {
   invalidateProductInventory,
   productKeys,
   productPath,
+  refreshPurchaseProducts,
   type ProductScope,
 } from "./queries";
+import {
+  refreshSupplierActivity,
+  refreshSupplierPurchase,
+} from "@/features/suppliers";
 
-export function useCreateProduct(scope: ProductScope) {
+export function useRegisterProducts(scope: ProductScope) {
   const client = useQueryClient();
-  const refresh = () => invalidateProductInventory(client, scope);
-
-  return useMutation({
+  return useMutation<
+    ProductRegistrationReceipt,
+    ApiError,
+    { body: ProductRegistrationInput; key: string }
+  >({
     mutationKey: productKeys.create(scope),
     retry: false,
-    mutationFn: (body: ProductCreateInput) =>
-      apiRequest<ProductDetail>(productPath(scope), { method: "POST", body }),
-    onSuccess: refresh,
-    onError: (error: ApiError) => {
-      if (error.isNetwork) return refresh();
+    mutationFn: ({ body, key }) =>
+      apiRequest(productPath(scope, "/registration"), {
+        method: "POST",
+        body,
+        headers: { "Idempotency-Key": key },
+      }),
+    onSuccess: ({ productIds }, { body }) => {
+      void refreshPurchaseProducts(client, scope, productIds);
+      if (body.source === "SUPPLIER_PURCHASE")
+        void refreshSupplierPurchase(client, scope, body.purchase.supplierId);
+      else if (body.historicalSupplierId)
+        void refreshSupplierActivity(client, scope, body.historicalSupplierId);
     },
+  });
+}
+
+export function useLinkHistoricalSupplier(scope: ProductScope, id: string) {
+  const client = useQueryClient();
+  return useMutation<void, ApiError, string>({
+    retry: false,
+    mutationFn: (supplierId: string) =>
+      apiRequest<void>(
+        productPath(scope, `/${encodeURIComponent(id)}/historical-supplier`),
+        { method: "PATCH", body: { supplierId } },
+      ),
+    onSuccess: (_, supplierId) =>
+      Promise.all([
+        client.invalidateQueries({
+          queryKey: productKeys.detail(scope, id),
+          exact: true,
+        }),
+        refreshSupplierActivity(client, scope, supplierId),
+      ]),
   });
 }
 
@@ -105,7 +139,6 @@ export function useDeleteProduct(scope: ProductScope, id: string) {
 
 export function useUploadProductPhoto(scope: ProductScope, productId: string) {
   const client = useQueryClient();
-  const path = `/${encodeURIComponent(productId)}`;
   const refresh = () =>
     client.invalidateQueries({
       queryKey: productKeys.detail(scope, productId),
@@ -115,24 +148,41 @@ export function useUploadProductPhoto(scope: ProductScope, productId: string) {
   return useMutation({
     mutationKey: productKeys.photo(scope, productId),
     retry: false,
-    mutationFn: async (file: File) => {
-      const jpeg = await prepareProductPhoto(file);
-      const upload = await apiRequest<ProductPhotoUpload>(
-        productPath(scope, `${path}/photo-upload`),
-        {
-          method: "POST",
-        },
-      );
-      await putSignedPhoto(upload.uploadUrl, jpeg);
-      await apiRequest<unknown>(productPath(scope, `${path}/photo-confirm`), {
-        method: "POST",
-        body: { uploadId: upload.uploadId } satisfies ProductPhotoConfirmInput,
-      });
-    },
+    mutationFn: async (file: File) =>
+      uploadPreparedProductPhoto(
+        scope,
+        productId,
+        await prepareProductPhoto(file),
+      ),
     onSuccess: refresh,
     onError: (error: ApiError) => {
       if (error.isNetwork || error.code === "PHOTO_CONFLICT") return refresh();
     },
+  });
+}
+
+export async function uploadPreparedProductPhoto(
+  scope: ProductScope,
+  productId: string,
+  jpeg: Blob,
+  progress?: { uploadId?: string },
+) {
+  const path = `/${encodeURIComponent(productId)}`;
+  let uploadId = progress?.uploadId;
+  if (!uploadId) {
+    const upload = await apiRequest<ProductPhotoUpload>(
+      productPath(scope, `${path}/photo-upload`),
+      {
+        method: "POST",
+      },
+    );
+    await putSignedPhoto(upload.uploadUrl, jpeg);
+    uploadId = upload.uploadId;
+    if (progress) progress.uploadId = uploadId;
+  }
+  await apiRequest<unknown>(productPath(scope, `${path}/photo-confirm`), {
+    method: "POST",
+    body: { uploadId } satisfies ProductPhotoConfirmInput,
   });
 }
 

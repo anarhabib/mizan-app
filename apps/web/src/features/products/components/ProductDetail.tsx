@@ -13,12 +13,14 @@ import { Link } from "@tanstack/react-router";
 import {
   acquisitionComponents,
   type ProductDetail as Detail,
+  type SupplierOption,
 } from "@mizan/contracts";
 import { ShoppingCart } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/features/workspace";
+import { CalendarDate, SupplierPicker } from "@/features/suppliers";
 import { formatDateTime, formatDecimal } from "@/shared/lib/format";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
@@ -28,10 +30,11 @@ import { WeightText } from "@/shared/ui/WeightText";
 import {
   useDeleteProduct,
   useEditProductAcquisition,
+  useLinkHistoricalSupplier,
   useUploadProductPhoto,
 } from "../api/mutations";
 import { productDetailQuery, type ProductScope } from "../api/queries";
-import { ProductForm } from "./ProductCreate";
+import { ProductForm } from "./ProductForm";
 import { categoryLabel } from "@mizan/contracts";
 import { ProductStatusBadge } from "./ProductList";
 import { ProductPanel } from "./ProductPanel";
@@ -56,6 +59,9 @@ export function ProductDetail({
   const upload = useUploadProductPhoto(scope, id);
   const edit = useEditProductAcquisition(scope, id);
   const removal = useDeleteProduct(scope, id);
+  const linkSupplier = useLinkHistoricalSupplier(scope, id);
+  const [linkingSupplier, setLinkingSupplier] = useState(false);
+  const [supplier, setSupplier] = useState<SupplierOption>();
   const [view, setView] = useState<"detail" | "edit">("detail");
   const [submittingEdit, setSubmittingEdit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -72,7 +78,8 @@ export function ProductDetail({
         upload.isPending ||
         submittingEdit ||
         edit.isPending ||
-        removal.isPending
+        removal.isPending ||
+        linkSupplier.isPending
       }
       restoreFallbackFocus={restoreFallbackFocus}
     >
@@ -131,6 +138,69 @@ export function ProductDetail({
                 product={detail.data}
                 canViewAcquisition={canViewAcquisition}
               />
+              {owner &&
+                !detail.data.purchase &&
+                !detail.data.historicalSupplier &&
+                (linkingSupplier ? (
+                  <section className="grid gap-3 border-t pt-3">
+                    <SupplierPicker
+                      label={t("registration.historicalSupplier")}
+                      scope={scope}
+                      value={supplier}
+                      onChange={setSupplier}
+                      onlyActive={false}
+                      disabled={linkSupplier.isPending}
+                    />
+                    <p className="text-muted-foreground">
+                      {t("registration.historicalHint")}
+                    </p>
+                    {linkSupplier.error && (
+                      <p role="alert" className="text-destructive">
+                        {t(linkSupplier.error.code, {
+                          ns: "errors",
+                          defaultValue: t("generic", { ns: "errors" }),
+                        })}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <PendingButton
+                        pending={linkSupplier.isPending}
+                        disabled={!supplier}
+                        onClick={() => {
+                          if (!supplier) return;
+                          linkSupplier.mutate(supplier.id, {
+                            onSuccess: () => {
+                              toast.success(t("registration.supplierLinked"));
+                              setLinkingSupplier(false);
+                            },
+                          });
+                        }}
+                      >
+                        {t("save")}
+                      </PendingButton>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={linkSupplier.isPending}
+                        onClick={() => {
+                          linkSupplier.reset();
+                          setLinkingSupplier(false);
+                        }}
+                      >
+                        {t("cancel")}
+                      </Button>
+                    </div>
+                  </section>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 justify-self-start lg:min-h-9"
+                    onClick={() => setLinkingSupplier(true)}
+                  >
+                    {t("registration.linkHistoricalSupplier")}
+                  </Button>
+                ))}
               {owner && detail.data.canEditAcquisition && (
                 <Button
                   variant="outline"
@@ -240,7 +310,7 @@ function ProductRecord({
   product: Detail;
   canViewAcquisition: boolean;
 }) {
-  const { t, i18n } = useTranslation(["products", "auth"]);
+  const { t, i18n } = useTranslation(["products", "auth", "suppliers"]);
   const locale = i18n.resolvedLanguage ?? "az";
   const acquisitionCurrency = product.acquisitionCost?.currency;
   const time = (value: string) => (
@@ -263,6 +333,53 @@ function ProductRecord({
             ? categoryLabel(product.productCategory, locale)
             : product.category}
         </Fact>
+        {product.registrationSource && (
+          <Fact label={t("registration.source")}>
+            {t(`registration.sources.${product.registrationSource}`)}
+          </Fact>
+        )}
+        {product.historicalSupplier && (
+          <Fact label={t("registration.historicalSupplier")}>
+            <Link
+              to="/suppliers"
+              search={{ supplier: product.historicalSupplier.id }}
+              className="inline-flex min-h-11 items-center underline underline-offset-2 lg:min-h-0"
+            >
+              {product.historicalSupplier.name}
+            </Link>
+          </Fact>
+        )}
+        {product.purchase && (
+          <>
+            <Fact label={t("supplier", { ns: "suppliers" })}>
+              <Link
+                to="/suppliers"
+                search={{ supplier: product.purchase.supplierId }}
+                className="inline-flex min-h-11 items-center underline underline-offset-2 lg:min-h-0"
+              >
+                {product.purchase.supplierName}
+              </Link>
+            </Fact>
+            <Fact label={t("purchase", { ns: "suppliers" })}>
+              <Link
+                to="/suppliers"
+                search={{
+                  supplier: product.purchase.supplierId,
+                  purchase: product.purchase.id,
+                }}
+                className="inline-flex min-h-11 items-center underline underline-offset-2 lg:min-h-0"
+              >
+                {product.purchase.documentNumber ??
+                  t("openPurchase", { ns: "suppliers" })}
+              </Link>
+            </Fact>
+            {product.purchase.purchaseDate && (
+              <Fact label={t("purchaseDate", { ns: "suppliers" })}>
+                <CalendarDate value={product.purchase.purchaseDate} />
+              </Fact>
+            )}
+          </>
+        )}
         <Fact label={t("fields.metalType")}>{t("jewelry.gold")}</Fact>
         <Fact label={t("fields.purity")}>
           <PurityText value={product.purity} />
@@ -426,7 +543,11 @@ function ProductRecord({
                 key={movement.id}
                 className="relative grid gap-2 before:absolute before:top-2 before:-left-5 before:size-2 before:rounded-full before:bg-muted-foreground"
               >
-                <span>{t(`movements.${movement.kind}`)}</span>
+                <span>
+                  {movement.registrationSource
+                    ? t(`registration.sources.${movement.registrationSource}`)
+                    : t(`movements.${movement.kind}`)}
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {time(movement.createdAt)}
                   {" · "}

@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
+import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as TeamRouteRouteImport } from './routes/team/route'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as InvitationsTokenRouteImport } from './routes/invitations.$token'
@@ -50,6 +51,11 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuppliersRoute = SuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TeamRouteRoute = TeamRouteRouteImport.update({
   id: '/team',
   path: '/team',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
+  '/suppliers': typeof SuppliersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
+  '/suppliers': typeof SuppliersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/sales': typeof SalesRoute
+  '/suppliers': typeof SuppliersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/invitations/$token': typeof InvitationsTokenRoute
   '/invitations/accept': typeof InvitationsAcceptRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/products'
     | '/sales'
+    | '/suppliers'
     | '/auth/callback'
     | '/invitations/$token'
     | '/invitations/accept'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/products'
     | '/sales'
+    | '/suppliers'
     | '/auth/callback'
     | '/invitations/$token'
     | '/invitations/accept'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/products'
     | '/sales'
+    | '/suppliers'
     | '/auth/callback'
     | '/invitations/$token'
     | '/invitations/accept'
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ProductsRoute: typeof ProductsRoute
   SalesRoute: typeof SalesRoute
+  SuppliersRoute: typeof SuppliersRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   InvitationsTokenRoute: typeof InvitationsTokenRoute
   InvitationsAcceptRoute: typeof InvitationsAcceptRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/suppliers': {
+      id: '/suppliers'
+      path: '/suppliers'
+      fullPath: '/suppliers'
+      preLoaderRoute: typeof SuppliersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/team': {
       id: '/team'
       path: '/team'
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ProductsRoute: ProductsRoute,
   SalesRoute: SalesRoute,
+  SuppliersRoute: SuppliersRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   InvitationsTokenRoute: InvitationsTokenRoute,
   InvitationsAcceptRoute: InvitationsAcceptRoute,
