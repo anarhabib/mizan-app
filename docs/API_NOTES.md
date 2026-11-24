@@ -4,9 +4,9 @@ Scope: static inspection of route registration/handlers, input schemas, auth/acc
 
 ## Connection and authentication
 
-- API origin defaults to `http://127.0.0.1:3001` (`PORT`, bound to loopback); every endpoint below has prefix `/api/v1`.
+- The API binds to `127.0.0.1` locally and `0.0.0.0` on Render. It reads `PORT` and defaults to `3001`. Every endpoint below has prefix `/api/v1`.
 - API startup uses server-only `DATABASE_URL`, `SUPABASE_URL`, optional `SUPABASE_PUBLISHABLE_KEY` (needed for legacy HS256 and invitation email verification), and `SUPABASE_SERVICE_ROLE_KEY` for photos. Never expose database/service-role credentials to the browser.
-- No frontend environment variable is defined by backend code. Suggested new Vite convention: `VITE_API_BASE_URL=/api/v1` with a same-origin development proxy to the API; this is a recommendation, not existing configuration. No CORS plugin/allow-list or OPTIONS handler is registered; direct cross-origin bearer requests need a proxy or approved backend CORS work.
+- Local Vite uses `VITE_API_BASE_URL=/api/v1` and its same-origin proxy. Staging uses the Render HTTPS API URL and allows browser requests and OPTIONS preflight from the single `MIZAN_WEB_ORIGIN`. See [Staging deployment](STAGING_DEPLOYMENT.md).
 - Protected routes require `Authorization: Bearer <Supabase access token>`; the API neither reads nor sets session cookies. JSON mutations use `Content-Type: application/json`.
 - The browser uses Supabase Auth for email/password and Google or Apple OAuth. Misqal derives the application user ID from the verified subject UUID. `GET /me/contexts` lists accessible stores and `GET /me/profile` returns the application profile.
 - Verification uses Supabase issuer `${SUPABASE_URL}/auth/v1`, audience/role `authenticated`, UUID subject, and expiration; anonymous identities are rejected. ES256/RS256 use JWKS; legacy HS256 uses Supabase's `/auth/v1/user` verification.
@@ -256,7 +256,6 @@ Dashboard uses the store-scoped `/gold-prices/rates` read. Each purity includes 
 
 ## Findings / inspection limits
 
-- Browser integration is incomplete: no CORS registration, API auth/session endpoints, or backend-defined frontend env names; proxy/Auth configuration needs an explicit implementation decision.
 - Error behavior is inconsistent: non-AccessError failures become 500, field hints are optional, and unmatched routes can use Fastify's default envelope.
 - No route JSON Schema/OpenAPI exists; local validation gaps and delegated validation are listed above. Several response fields/options and pagination rules require a later targeted service inspection.
 - The product checks above cover owner access, acquisition-cost redaction and arithmetic, and deletion safeguards. The broader inspection did not review service transactions, arithmetic or idempotent replay outside this product scope.
