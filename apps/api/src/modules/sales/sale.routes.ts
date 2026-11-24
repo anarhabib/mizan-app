@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import type { SalePreviewInput } from "@mizan/contracts";
+import type { SaleDateFilter, SalePreviewInput } from "@mizan/contracts";
 import { authenticate } from "../../plugins/auth.js";
 import type { AccessOptions } from "../../plugins/request-context.js";
 import { AccessError } from "../access/access.errors.js";
@@ -11,6 +11,7 @@ import { formatPaymentAzn, SaleDecimal } from "./settlement.js";
 import {
   getSale,
   getSaleOptions,
+  getSaleOverview,
   listSales,
   previewSale,
   recordRepayment,
@@ -90,6 +91,12 @@ export function registerSaleRoutes(
     getSaleOptions(db!, request.access!),
   );
 
+  app.get<{ Querystring: Scope["Querystring"] & SaleDateFilter }>(
+    "/sales/overview",
+    { preHandler },
+    (request) => getSaleOverview(db!, request.access!, request.query),
+  );
+
   app.post<Scope>("/sales/payment-preview", { preHandler }, (request) => {
     const { amount, exchangeRate } = parsePayment(request.body);
     return {
@@ -99,15 +106,15 @@ export function registerSaleRoutes(
   });
 
   app.get<{
-    Querystring: Scope["Querystring"] & {
-      q?: string;
-      date?: string;
-      paymentDate?: string;
-      paymentStatus?: string;
-      after?: string;
-      limit?: string;
-      photos?: string;
-    };
+    Querystring: Scope["Querystring"] &
+      SaleDateFilter & {
+        q?: string;
+        paymentDate?: string;
+        paymentStatus?: string;
+        after?: string;
+        limit?: string;
+        photos?: string;
+      };
   }>("/sales", { preHandler }, (request) =>
     listSales(
       db!,

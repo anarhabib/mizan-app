@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import { type OrganizationSettings } from "@mizan/contracts";
 import type {
   SaleItem,
+  SaleDateFilter,
   SalePayment,
   SalePaymentInput,
   SaleList,
   SaleOptions,
+  SaleOverview,
   SaleLoss,
   SalePreview,
   SaleResult,
@@ -437,12 +439,92 @@ export async function getSale(
   return presentSale(sale, context);
 }
 
+function saleDateRange({ date, dateFrom, dateTo }: SaleDateFilter) {
+  if (dateFrom === undefined && dateTo === undefined)
+    return businessDateRange(date, "INVALID_SALE", "date");
+  const from = businessDateRange(dateFrom, "INVALID_SALE", "dateFrom");
+  const to = businessDateRange(dateTo, "INVALID_SALE", "dateTo");
+  if (from && to && from.gte >= to.lt)
+    throw new AccessError("INVALID_SALE", "dateTo");
+  return { gte: from?.gte, lt: to?.lt };
+}
+
+export async function getSaleOverview(
+  db: SalesDatabase,
+  { organizationId, storeId }: AccessContext,
+  dates: SaleDateFilter,
+): Promise<SaleOverview> {
+  const range = saleDateRange(dates);
+  const from = range?.gte
+    ? Prisma.sql`AND "createdAt" >= (${range.gte.toISOString()}::timestamptz AT TIME ZONE 'UTC')`
+    : Prisma.empty;
+  const to = range?.lt
+    ? Prisma.sql`AND "createdAt" < (${range.lt.toISOString()}::timestamptz AT TIME ZONE 'UTC')`
+    : Prisma.empty;
+  // Use receipt snapshots so repayments and changes to currency settings
+  // never require reconstructing historical conversions from tender.
+  const rows = await db.$queryRaw<
+    {
+      currency: string;
+      completedSales: bigint;
+      productsSold: bigint;
+      salesAmount: string;
+      amountReceived: string;
+      outstandingDebt: string;
+    }[]
+  >`
+    WITH matching_sales AS (
+      SELECT id, "defaultCurrency", "defaultSaleAmount", "defaultSettlement", "outstandingDebt"
+      FROM "mizan"."Sale"
+      WHERE "organizationId" = ${organizationId}::uuid AND "storeId" = ${storeId}::uuid
+      ${from} ${to}
+    ), item_counts AS (
+      SELECT item."saleId", count(*) AS quantity
+      FROM "mizan"."SaleItem" item
+      JOIN matching_sales sale ON sale.id = item."saleId"
+      WHERE item."organizationId" = ${organizationId}::uuid AND item."storeId" = ${storeId}::uuid
+      GROUP BY item."saleId"
+    )
+    SELECT
+      sale."defaultCurrency" AS currency,
+      count(*) AS "completedSales",
+      sum(coalesce(item_counts.quantity, 1))::bigint AS "productsSold",
+      sum(sale."defaultSaleAmount")::text AS "salesAmount",
+      sum(greatest(sale."defaultSettlement" - sale."outstandingDebt", 0))::text AS "amountReceived",
+      sum(sale."outstandingDebt")::text AS "outstandingDebt"
+    FROM matching_sales sale
+    LEFT JOIN item_counts ON item_counts."saleId" = sale.id
+    GROUP BY sale."defaultCurrency"
+    ORDER BY sale."defaultCurrency"
+  `;
+
+  const amounts = (
+    field: "salesAmount" | "amountReceived" | "outstandingDebt",
+  ) =>
+    rows.map((row) => ({
+      currency: row.currency,
+      amount: new SaleDecimal(row[field]).toFixed(),
+    }));
+  return {
+    completedSales: rows.reduce(
+      (total, row) => total + Number(row.completedSales),
+      0,
+    ),
+    productsSold: rows.reduce(
+      (total, row) => total + Number(row.productsSold),
+      0,
+    ),
+    salesAmount: amounts("salesAmount"),
+    amountReceived: amounts("amountReceived"),
+    outstandingDebt: amounts("outstandingDebt"),
+  };
+}
+
 export async function listSales(
   db: SalesDatabase,
   { organizationId, storeId }: AccessContext,
-  filters: {
+  filters: SaleDateFilter & {
     q?: string;
-    date?: string;
     after?: string;
     limit?: string;
     paymentDate?: string;
@@ -453,13 +535,13 @@ export async function listSales(
 ): Promise<SaleList> {
   const pageSize = readPageSize(filters.limit, "INVALID_SALE");
   const scope = { organizationId, storeId };
-  const { q, date, after } = filters;
+  const { q, after } = filters;
   if (
     q !== undefined &&
     (typeof q !== "string" || q.length > 160 || q.includes("\0"))
   )
     throw new AccessError("INVALID_SALE", "q");
-  const createdAt = businessDateRange(date, "INVALID_SALE", "date");
+  const createdAt = saleDateRange(filters);
   const paymentDate = businessDateRange(
     filters.paymentDate,
     "INVALID_SALE",

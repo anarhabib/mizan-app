@@ -1,4 +1,20 @@
 {
+  "dateFrom": "Sale date from",
+  "dateTo": "Sale date to",
+  "invalidDateRange": "The end date must be on or after the start date.",
+  "overview": {
+    "periodAll": "All sale dates",
+    "periodFrom": "From {{from}}",
+    "periodTo": "Through {{to}}",
+    "periodRange": "{{from}} – {{to}}",
+    "title": "Sales overview",
+    "completedSales": "Completed sales",
+    "salesAmount": "Sales amount",
+    "amountReceived": "Payments received",
+    "outstandingDebt": "Outstanding debt",
+    "productsSold": "Products sold",
+    "noAmounts": "—"
+  },
   "recordedBy": "Recorded by {{name}}",
   "paymentRecordedBy": "Recorded by",
   "itemPricing": {
