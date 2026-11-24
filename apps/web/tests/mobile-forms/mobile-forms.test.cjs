@@ -1,0 +1,290 @@
+const assert = require("node:assert/strict");
+const { after, before, test } = require("node:test");
+const { chromium } = require("playwright");
+
+const origin = process.env.MIZAN_FORM_TEST_ORIGIN ?? "http://127.0.0.1:5191";
+let browser;
+before(async () => {
+  browser = await chromium.launch();
+});
+after(async () => browser?.close());
+
+async function openFixture(width, run, search = "") {
+  const mobile = width < 1024;
+  const context = await browser.newContext({
+    viewport: { width, height: 800 },
+    hasTouch: mobile,
+    isMobile: mobile,
+    reducedMotion: "reduce",
+  });
+  try {
+    const page = await context.newPage();
+    page.setDefaultTimeout(5000);
+    await page.route("**/api/v1/**", (route) => {
+      const url = new URL(route.request().url());
+      if (!url.pathname.endsWith("/suppliers")) return route.abort();
+      return route.fulfill({
+        json: {
+          items:
+            url.searchParams.get("q") === "Atlas"
+              ? [{ id: "atlas", name: "Atlas Gold" }]
+              : [],
+        },
+      });
+    });
+    await page.goto(new URL(`/tests/mobile-forms/${search}`, origin).href);
+    const opener = page.getByRole("button", { name: "Open intake" });
+    await opener.click();
+    const dialog = page.getByRole("dialog", { name: "Intake" });
+    await dialog.waitFor();
+    await run({ page, dialog, opener, mobile });
+  } finally {
+    await context.close();
+  }
+}
+
+test("only the mobile form body owns scrolling as row content changes", async () => {
+  await openFixture(
+    390,
+    async ({ page, dialog, opener }) => {
+      const body = dialog.locator("[data-slot=form-panel-body]");
+      const save = dialog.getByRole("button", { name: "Save intake" });
+      await save.click({ trial: true });
+      assert.equal(
+        await dialog.evaluate((node) => getComputedStyle(node).overflowY),
+        "clip",
+      );
+      assert.equal(
+        await body.evaluate(
+          (node) => getComputedStyle(node).overscrollBehaviorY,
+        ),
+        "none",
+      );
+      const range = () =>
+        body.evaluate((node) => node.scrollHeight - node.clientHeight);
+      assert.equal(await range(), 0);
+
+      const add = dialog.getByRole("button", { name: "Add row" });
+      for (let i = 0; i < 9; i++) await add.click();
+      const expandedRange = await range();
+      assert.ok(expandedRange > 0);
+      await dialog.getByRole("button", { name: "Toggle error" }).click();
+      assert.ok((await range()) > expandedRange);
+
+      await body.hover();
+      await page.mouse.wheel(0, 4000);
+      await page.waitForFunction(() => {
+        const node = document.querySelector("[data-slot=form-panel-body]");
+        return (
+          Math.abs(node.scrollTop - (node.scrollHeight - node.clientHeight)) <=
+          1
+        );
+      });
+      const touch = await page.context().newCDPSession(page);
+      const bounds = await body.boundingBox();
+      const x = Math.round(bounds.x + bounds.width / 2);
+      const y = Math.round(bounds.y + bounds.height * 0.8);
+      for (let swipe = 0; swipe < 3; swipe++) {
+        await touch.send("Input.dispatchTouchEvent", {
+          type: "touchStart",
+          touchPoints: [{ x, y }],
+        });
+        for (let step = 1; step <= 5; step++) {
+          await touch.send("Input.dispatchTouchEvent", {
+            type: "touchMove",
+            touchPoints: [{ x, y: y - step * 35 }],
+          });
+        }
+        await touch.send("Input.dispatchTouchEvent", {
+          type: "touchEnd",
+          touchPoints: [],
+        });
+      }
+      assert.ok(
+        await body.evaluate(
+          (node) =>
+            Math.abs(
+              node.scrollTop - (node.scrollHeight - node.clientHeight),
+            ) <= 1,
+        ),
+      );
+      assert.equal(await dialog.evaluate((node) => node.scrollTop), 0);
+      assert.equal(await page.evaluate(() => scrollY), 0);
+      assert.ok(
+        await body.evaluate((node) => {
+          const end = node.querySelector("form").getBoundingClientRect().bottom;
+          return Math.abs(node.getBoundingClientRect().bottom - end) <= 16;
+        }),
+      );
+      await save.click({ trial: true });
+      await dialog.getByRole("button", { name: "Close", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await opener.click();
+      assert.equal(await body.evaluate((node) => node.scrollTop), 0);
+
+      await dialog.getByRole("button", { name: "Toggle fields" }).click();
+      assert.ok((await range()) < expandedRange);
+      const remove = dialog.getByRole("button", { name: "Remove row" });
+      for (let i = 0; i < 9; i++) await remove.click();
+      assert.equal(await range(), 0);
+      assert.equal(await body.evaluate((node) => node.scrollTop), 0);
+    },
+    "?short",
+  );
+});
+
+test("mobile forms without a footer keep inline actions reachable", async () => {
+  await openFixture(
+    320,
+    async ({ dialog }) => {
+      const save = dialog.getByRole("button", { name: "Save intake" });
+      await dialog.getByLabel("Reference").fill("Inline action");
+      await save.click();
+      assert.equal(
+        await dialog.getByRole("status").textContent(),
+        "Submissions: 1",
+      );
+      assert.equal(await dialog.evaluate((node) => node.scrollTop), 0);
+    },
+    "?inline",
+  );
+});
+
+async function assertDateBounds(dialog) {
+  for (const name of ["From", "To"]) {
+    const input = dialog.getByLabel(name, { exact: true });
+    assert.equal(
+      await input.evaluate((element) => {
+        const field = element.getBoundingClientRect();
+        const column = element.parentElement.getBoundingClientRect();
+        return (
+          field.width > 0 &&
+          field.left >= column.left - 1 &&
+          field.right <= column.right + 1
+        );
+      }),
+      true,
+      `${name} date input must fit its column`,
+    );
+  }
+}
+
+for (const width of [320, 390, 1280]) {
+  test(`form panel contracts at ${width}px`, async () => {
+    await openFixture(width, async ({ page, dialog, opener, mobile }) => {
+      const body = dialog.locator("[data-slot=form-panel-body]");
+      const save = dialog.getByRole("button", { name: "Save intake" });
+      const reference = dialog.getByLabel("Reference");
+      assert.equal(
+        await dialog.getAttribute("data-slot"),
+        mobile ? "drawer-content" : "sheet-content",
+      );
+      assert.equal(await save.evaluate((button) => button.form.id), "intake");
+      assert.equal(
+        await save.evaluate((button) =>
+          Boolean(button.closest("[data-slot=form-panel-body]")),
+        ),
+        !mobile,
+      );
+
+      if (mobile) {
+        await save.click({ trial: true });
+        const beforeScroll = await save.boundingBox();
+        await body.hover();
+        await page.mouse.wheel(0, 480);
+        await page.waitForFunction(
+          () =>
+            document.querySelector("[data-slot=form-panel-body]").scrollTop > 0,
+        );
+        assert.deepEqual(await save.boundingBox(), beforeScroll);
+        await save.click();
+        assert.equal(
+          await reference.evaluate((input) => input.validity.valueMissing),
+          true,
+        );
+        assert.equal(
+          await dialog.getByRole("status").textContent(),
+          "Submissions: 0",
+        );
+      }
+      await reference.fill("Intake reference");
+      const picker = dialog.getByRole("button", {
+        name: "Supplier",
+        exact: true,
+      });
+      await picker.click();
+      const search = dialog.getByRole("searchbox", {
+        name: "Search suppliers",
+      });
+      assert.equal(
+        await search.evaluate((input) => document.activeElement === input),
+        true,
+      );
+      await search.press("Escape");
+      await search.waitFor({ state: "hidden" });
+      assert.equal(
+        await picker.evaluate((button) => document.activeElement === button),
+        true,
+      );
+      await picker.click();
+      await search.fill("Atlas");
+      await search.press("Enter");
+      const option = dialog.getByRole("button", {
+        name: "Atlas Gold",
+        exact: true,
+      });
+      await option.waitFor();
+      if (mobile) {
+        await page.evaluate(() => {
+          const viewport = window.visualViewport;
+          Object.defineProperty(viewport, "height", {
+            configurable: true,
+            value: 400,
+          });
+          viewport.dispatchEvent(new Event("resize"));
+        });
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector("[data-slot=drawer-content]")
+              .getBoundingClientRect().bottom <= 401,
+        );
+        assert.ok(
+          (await save.boundingBox()).y + (await save.boundingBox()).height <=
+            401,
+        );
+        await option.tap();
+        await page.evaluate(() => {
+          const viewport = window.visualViewport;
+          Reflect.deleteProperty(viewport, "height");
+          viewport.dispatchEvent(new Event("resize"));
+        });
+      } else {
+        await option.click();
+      }
+      await search.waitFor({ state: "hidden" });
+      assert.match(await picker.textContent(), /Atlas Gold/);
+      assert.equal(
+        await picker.evaluate((button) => document.activeElement === button),
+        true,
+      );
+      assert.equal(
+        await dialog.getByRole("status").textContent(),
+        "Submissions: 0",
+      );
+      await assertDateBounds(dialog);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+        width,
+      );
+      await save.click();
+      assert.equal(
+        await dialog.getByRole("status").textContent(),
+        "Submissions: 1",
+      );
+      await dialog.getByRole("button", { name: "Close", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await opener.and(page.locator(":focus")).waitFor();
+    });
+  });
+}

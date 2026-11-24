@@ -1,5 +1,15 @@
 Status: current
 
+## Mobile forms
+
+- Reuse `ProductPanel` for form overlays. It renders a bottom drawer below `lg` and a right sheet on desktop. Provide an accessible title and the actual opener. On close, return focus to that opener or provide a fallback when it disappears. Scope Escape and dismissal to the panel and its controls. Block dismissal during pending submissions.
+- Keep the mobile panel body as the form's primary vertical scroll container. Let it shrink between the header and footer, clip overflow at the drawer shell, and stop vertical overscroll from chaining outside the body. Keep primary actions reachable in `mobileFooter` when needed and associate the footer submit button with its form using `form` and the form ID. Keep one submit path with native validation and a pending guard. Keep desktop actions in the sheet flow.
+- Use the existing visual viewport binding to fit the drawer above the keyboard and scroll a focused field into view within the form body. Preserve vertical touch scrolling and pinch zoom. Keep the header and footer clear of safe-area insets. Avoid document scrolling, global keyboard handlers, and browser-specific workarounds without a verified reproduction.
+- Use shared `Input` with `type="date"`. Keep the input and its grid or flex parent shrinkable. Check empty and populated values in narrow columns. Preserve native date selection and accessible labels.
+- Reuse the domain's searchable picker. Use `SupplierPicker` for active and historical suppliers. Keep search and options reachable in the form scroll flow. Opening focuses search, an option tap can finish after search loses focus, Escape closes the picker first, and choosing an option returns focus to its trigger. Search Enter and option buttons must keep the enclosing form open without submitting it.
+
+## Design system
+
 The shadcn preset in components.json is the visual base: Radix Nova/Mist, Inter/Geist, Lucide and existing radius and light/dark colors.
 
 Tokens include semantic background, foreground, border, muted, primary, and ring. Use `--brand-accent` for small selection indicators. Respect system theme and forced colors.

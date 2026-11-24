@@ -1,5 +1,15 @@
 # Misqal project state
 
+## Mobile form drawer scroll boundary (November 24, 2026)
+
+- `ProductPanel.tsx` clips the mobile drawer shell and gives vertical scrolling to the shrinkable body. The body prevents vertical overscroll chaining. The header, footer, visual viewport binding and desktop sheet retain their existing behavior.
+- Five Chromium fixture tests passed at 320px, 390px and 1280px, including repeated touch swipes at the end of ten rows, dynamic row and error changes, reopen, and simulated keyboard resize. Eight focused web tests and web TypeScript passed. The physical iPhone Safari reproduction still needs a device retest, along with Android and installed PWA checks.
+
+## Mobile form regression coverage (November 24, 2026)
+
+- DESIGN.md and AGENTS.md record the existing ProductPanel, Input and SupplierPicker contracts for scroll, keyboard positioning, focus, safe areas, action placement and native date fields. Application logic was unchanged.
+- `apps/web/tests/mobile-forms` exercises the production components with stubbed supplier search. All three Chromium checks passed at 320px, 390px and 1280px, along with the visual viewport unit test. Physical iOS Safari, Android Chrome and installed PWA verification remains open for actual keyboards, system insets and native date controls.
+
 ## Mobile drawer and date controls (November 24, 2026)
 
 - `ProductPanel.tsx` and `form-drawer-viewport.ts` keep the mobile product, purchase and other shared form drawers inside the visual viewport. The form body scrolls independently of the footer and returns focus to the opener. The desktop sheet still uses its existing sizing.

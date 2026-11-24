@@ -52,6 +52,7 @@ Frontend (summary; details in docs/FRONTEND.md)
 - Money and weights stay as decimal strings in the UI; never use parseFloat or Number for them. Display server-calculated values; do not compute money in the UI.
 - Sales and any stock- or money-changing action are never optimistic. Disable submit while pending and invalidate exact query keys on success. POST /sales always sends an Idempotency-Key.
 - Preserve keyboard navigation, accessible names, focus visibility, contrast, reduced motion and usable mobile controls.
+- For new or changed forms, follow the Mobile forms section in DESIGN.md. Reuse ProductPanel, Input and the applicable existing picker. Verify at 320px and 390px, and confirm the desktop sheet at 1280px when applicable. Check scrolling, focus, form actions, searchable selection and date bounds as applicable. Reuse the browser regression checks in `apps/web/tests/mobile-forms`. Report physical iOS and Android keyboard, safe-area and date-picker checks separately.
 - Visual check only when the task asks for it, or once before a UI PR: one pass at 390px and 1280px. Report deliberate deviations and unverified states.
 Branding
 - Approved brand assets are located in `src/assets/branding` under `apps/web`.
