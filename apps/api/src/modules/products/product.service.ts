@@ -74,65 +74,77 @@ export async function createProduct(
   input: ProductCreateInput,
   total: MoneyInput,
 ) {
+  const store = scope(access);
+  return db.$transaction(async (tx) => {
+    // Purity changes use this same lock, so a grade cannot be deactivated during creation.
+    await lockOrganization(tx, store.organizationId);
+    const currentAccess = await resolveAccessContext(
+      tx,
+      access,
+      store.organizationId,
+      store.storeId,
+    );
+    const { id } = await receiveProduct(tx, currentAccess, input, total);
+    return presentDetail(
+      await findProduct(tx, currentAccess, id),
+      null,
+      currentAccess,
+    );
+  });
+}
+
+// The caller holds the organization lock and has resolved current store access.
+export async function receiveProduct(
+  tx: Prisma.TransactionClient,
+  access: AccessContext,
+  input: ProductCreateInput,
+  total: MoneyInput,
+) {
   const { code, name, purity, metalType, note, gemstones } = input;
   const store = scope(access);
   try {
-    return await db.$transaction(async (tx) => {
-      // Purity changes use this same lock, so a grade cannot be deactivated during creation.
-      await lockOrganization(tx, store.organizationId);
-      const currentAccess = await resolveAccessContext(
-        tx,
-        access,
-        store.organizationId,
-        store.storeId,
-      );
-      const grade = await tx.purityGrade.findUnique({
-        where: {
-          organizationId_value: {
-            organizationId: store.organizationId,
-            value: purity,
-          },
+    const grade = await tx.purityGrade.findUnique({
+      where: {
+        organizationId_value: {
+          organizationId: store.organizationId,
+          value: purity,
         },
-        select: { active: true },
-      });
-      if (!grade?.active) throw new AccessError("PURITY_CONFLICT", "purity");
-      const category = await activeCategory(tx, store.organizationId, input);
-      const product = await tx.product.create({
-        data: {
-          ...store,
-          code,
-          name,
-          category: input.category ?? category.name,
-          categoryId: category.id,
-          purity,
-          metalType,
-          note,
-          ...acquisitionData(input, total),
-          ...(gemstones?.length && {
-            gemstones: {
-              create: gemstones.map((group, position) => ({
-                ...group,
-                position,
-              })),
-            },
-          }),
-        },
-        select: { id: true },
-      });
-      await tx.inventoryMovement.create({
-        data: {
-          ...store,
-          productId: product.id,
-          actorId: currentAccess.userId,
-          kind: "PRODUCT_ADDED",
-        },
-      });
-      return presentDetail(
-        await findProduct(tx, currentAccess, product.id),
-        null,
-        currentAccess,
-      );
+      },
+      select: { active: true },
     });
+    if (!grade?.active) throw new AccessError("PURITY_CONFLICT", "purity");
+    const category = await activeCategory(tx, store.organizationId, input);
+    const product = await tx.product.create({
+      data: {
+        ...store,
+        code,
+        name,
+        category: input.category ?? category.name,
+        categoryId: category.id,
+        purity,
+        metalType,
+        note,
+        ...acquisitionData(input, total),
+        ...(gemstones?.length && {
+          gemstones: {
+            create: gemstones.map((group, position) => ({
+              ...group,
+              position,
+            })),
+          },
+        }),
+      },
+      select: { id: true },
+    });
+    await tx.inventoryMovement.create({
+      data: {
+        ...store,
+        productId: product.id,
+        actorId: access.userId,
+        kind: "PRODUCT_ADDED",
+      },
+    });
+    return product;
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -263,6 +275,7 @@ export async function deleteProduct(
           status: "IN_STOCK",
           sale: null,
           saleItem: null,
+          purchaseItem: null,
           movements: { none: {} },
         },
       });
@@ -359,6 +372,8 @@ export async function listProducts(
     credit?: boolean;
     limit?: string;
     photos?: boolean;
+    unpurchased?: boolean;
+    purchaseCurrency?: string;
   },
 ) {
   const pageSize = readPageSize(filters.limit, "INVALID_PRODUCT");
@@ -380,6 +395,9 @@ export async function listProducts(
       category: filters.category,
       categoryId: filters.categoryId,
       purity: filters.purity,
+      purchaseItem: filters.unpurchased ? null : undefined,
+      acquisitionCurrency: filters.purchaseCurrency,
+      acquisitionCost: filters.unpurchased ? { gt: 0 } : undefined,
       gemstones:
         filters.gemstones === "recorded"
           ? { some: {} }

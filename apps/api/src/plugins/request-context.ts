@@ -16,6 +16,7 @@ import { registerCategoryRoutes } from "../modules/products/category.routes.js";
 import type { ProductOptions } from "../modules/products/product.service.js";
 import { registerSaleRoutes } from "../modules/sales/sale.routes.js";
 import { registerCustomerRoutes } from "../modules/customers/customer.routes.js";
+import { registerSupplierRoutes } from "../modules/suppliers/supplier.routes.js";
 import { registerDashboardRoutes } from "../modules/dashboard/dashboard.routes.js";
 import type { SalesDatabase } from "../modules/sales/sale.service.js";
 import {
@@ -103,6 +104,7 @@ export const requestContextRoutes: FastifyPluginAsync<{
   registerCategoryRoutes(app, access, settingsDb ?? products?.db);
   registerSaleRoutes(app, access, salesDb, products?.storage);
   registerCustomerRoutes(app, access, salesDb);
+  registerSupplierRoutes(app, access, products?.db ?? settingsDb);
   registerDashboardRoutes(app, access, salesDb, goldMarketEnabled);
 
   const preHandler = access

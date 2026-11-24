@@ -105,6 +105,7 @@ model Store {
   invitations    Invitation[]
   products       Product[]
   customers      Customer[]
+  suppliers      Supplier[]
   goldPriceRules StoreGoldPriceRule[]
   ownerOnboardings OwnerOnboarding[]
 
@@ -148,6 +149,9 @@ model StoreAssignment {
   membership     OrganizationMembership @relation(fields: [organizationId, userId], references: [organizationId, userId], onDelete: Restrict)
   sales          Sale[]
   salePayments   SalePayment[]
+  purchases      Purchase[]
+  supplierPayments SupplierPayment[]
+  supplierActivities SupplierActivity[]
   movements      InventoryMovement[]
 
   @@id([organizationId, storeId, userId])
@@ -317,6 +321,7 @@ model Product {
   saleItem               SaleItem?
   movements              InventoryMovement[]
   gemstones              ProductGemstone[]
+  purchaseItem           PurchaseItem?
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, code])
@@ -362,6 +367,131 @@ model Customer {
 
   @@id([organizationId, storeId, id])
   @@index([organizationId, storeId, createdAt, id])
+  @@schema("mizan")
+}
+
+enum SupplierActivityKind {
+  CREATED
+  UPDATED
+  DEACTIVATED
+  REACTIVATED
+  PURCHASE_REGISTERED
+  PRODUCTS_RECEIVED
+  PAYMENT_RECORDED
+  PARTIALLY_PAID
+  PAID
+
+  @@schema("mizan")
+}
+
+model Supplier {
+  organizationId String   @db.Uuid
+  storeId        String   @db.Uuid
+  id             String   @default(uuid()) @db.Uuid
+  name           String
+  contactPerson  String?
+  phone          String?
+  phoneDigits    String?
+  email          String?
+  address        String?
+  taxId          String?
+  note           String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  store          Store    @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
+  purchases      Purchase[]
+  activities     SupplierActivity[]
+
+  @@id([organizationId, storeId, id])
+  @@index([organizationId, storeId, createdAt, id])
+  @@schema("mizan")
+}
+
+model Purchase {
+  organizationId String          @db.Uuid
+  storeId        String          @db.Uuid
+  id             String          @default(uuid()) @db.Uuid
+  supplierId     String          @db.Uuid
+  actorId        String          @db.Uuid
+  documentNumber String?
+  purchaseDate   DateTime        @db.Date
+  currency       String          @db.Char(3)
+  totalAmount    Decimal         @db.Decimal(24, 4)
+  note           String?
+  idempotencyKey String
+  requestDigest  String
+  createdAt      DateTime        @default(now())
+  supplier       Supplier        @relation(fields: [organizationId, storeId, supplierId], references: [organizationId, storeId, id], onDelete: Restrict)
+  actor          StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+  items          PurchaseItem[]
+  payments       SupplierPayment[]
+  activities     SupplierActivity[]
+
+  @@id([organizationId, storeId, id])
+  @@unique([organizationId, storeId, id, currency])
+  @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@index([organizationId, storeId, purchaseDate, id])
+  @@index([organizationId, storeId, supplierId, purchaseDate, id], map: "Purchase_supplier_date_idx")
+  @@schema("mizan")
+}
+
+model PurchaseItem {
+  organizationId  String   @db.Uuid
+  storeId         String   @db.Uuid
+  purchaseId      String   @db.Uuid
+  productId       String   @db.Uuid
+  position        Int
+  acquisitionCost Decimal  @db.Decimal(20, 4)
+  purchase        Purchase @relation(fields: [organizationId, storeId, purchaseId], references: [organizationId, storeId, id], onDelete: Restrict)
+  product         Product  @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+
+  @@id([organizationId, storeId, productId])
+  @@unique([organizationId, storeId, purchaseId, position])
+  @@schema("mizan")
+}
+
+model SupplierPayment {
+  organizationId   String          @db.Uuid
+  storeId          String          @db.Uuid
+  id               String          @default(uuid()) @db.Uuid
+  purchaseId       String          @db.Uuid
+  actorId          String          @db.Uuid
+  amount           Decimal         @db.Decimal(24, 4)
+  currency         String          @db.Char(3)
+  method           String
+  paymentDate      DateTime        @db.Date
+  referenceNumber  String?
+  note             String?
+  idempotencyKey   String
+  requestDigest    String
+  createdAt        DateTime        @default(now())
+  purchase         Purchase        @relation(fields: [organizationId, storeId, purchaseId, currency], references: [organizationId, storeId, id, currency], onDelete: Restrict)
+  actor            StoreAssignment @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+
+  @@id([organizationId, storeId, id])
+  @@unique([organizationId, storeId, actorId, idempotencyKey])
+  @@index([organizationId, storeId, paymentDate, id], map: "SupplierPayment_date_idx")
+  @@index([organizationId, storeId, purchaseId, paymentDate, id], map: "SupplierPayment_purchase_date_idx")
+  @@schema("mizan")
+}
+
+model SupplierActivity {
+  organizationId String               @db.Uuid
+  storeId        String               @db.Uuid
+  id             BigInt               @default(autoincrement())
+  supplierId     String               @db.Uuid
+  actorId        String               @db.Uuid
+  purchaseId     String?              @db.Uuid
+  kind           SupplierActivityKind
+  productCount   Int?
+  createdAt      DateTime             @default(now())
+  supplier       Supplier             @relation(fields: [organizationId, storeId, supplierId], references: [organizationId, storeId, id], onDelete: Restrict)
+  actor          StoreAssignment      @relation(fields: [organizationId, storeId, actorId], references: [organizationId, storeId, userId], onDelete: Restrict)
+  purchase       Purchase?            @relation(fields: [organizationId, storeId, purchaseId], references: [organizationId, storeId, id], onDelete: Restrict)
+
+  @@id([organizationId, storeId, id])
+  @@index([organizationId, storeId, supplierId, id], map: "SupplierActivity_supplier_idx")
   @@schema("mizan")
 }
 

@@ -8,6 +8,7 @@ export * from "./settings.js";
 export * from "./products.js";
 export * from "./sales.js";
 export * from "./customers.js";
+export * from "./suppliers.js";
 export * from "./exchange-rates.js";
 export * from "./gold-prices.js";
 export * from "./dashboard.js";

@@ -240,7 +240,7 @@ function ProductRecord({
   product: Detail;
   canViewAcquisition: boolean;
 }) {
-  const { t, i18n } = useTranslation(["products", "auth"]);
+  const { t, i18n } = useTranslation(["products", "auth", "suppliers"]);
   const locale = i18n.resolvedLanguage ?? "az";
   const acquisitionCurrency = product.acquisitionCost?.currency;
   const time = (value: string) => (
@@ -263,6 +263,31 @@ function ProductRecord({
             ? categoryLabel(product.productCategory, locale)
             : product.category}
         </Fact>
+        {product.purchase && (
+          <>
+            <Fact label={t("supplier", { ns: "suppliers" })}>
+              <Link
+                to="/suppliers"
+                search={{ supplier: product.purchase.supplierId }}
+                className="inline-flex min-h-11 items-center underline underline-offset-2 lg:min-h-0"
+              >
+                {product.purchase.supplierName}
+              </Link>
+            </Fact>
+            <Fact label={t("purchase", { ns: "suppliers" })}>
+              <Link
+                to="/suppliers"
+                search={{
+                  supplier: product.purchase.supplierId,
+                  purchase: product.purchase.id,
+                }}
+                className="inline-flex min-h-11 items-center underline underline-offset-2 lg:min-h-0"
+              >
+                {t("openPurchase", { ns: "suppliers" })}
+              </Link>
+            </Fact>
+          </>
+        )}
         <Fact label={t("fields.metalType")}>{t("jewelry.gold")}</Fact>
         <Fact label={t("fields.purity")}>
           <PurityText value={product.purity} />

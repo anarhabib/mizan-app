@@ -1,5 +1,18 @@
 # Misqal project state
 
+## Task 22 — suppliers, purchases and payables (November 24, 2026)
+
+- `apps/api/src/modules/suppliers` and `packages/contracts/src/suppliers.ts` implement Owner-mode supplier profiles, purchase documents, payment allocations and audit events. Directory and history filters run before cursor pagination. Balances are derived by currency at recorded precision. Purchase and payment writes are idempotent, and competing payments cannot exceed the remaining payable amount.
+- `apps/web/src/features/suppliers` adds an Azerbaijani, English and Russian workspace destination in the desktop sidebar and mobile More. The purchase form receives new products or links eligible existing stock. The Products form also supports optional supplier selection, and authorized Product details link to the supplier and purchase.
+- Migration `202611240002_supplier_purchases_payables` adds scoped suppliers, purchases, purchase items, supplier payments and activity records. New products keep the existing acquisition and inventory movement logic. Linking existing stock reuses its movement history and locks its acquisition record. The dashboard still counts actual intake, and customer debt stays in the sales ledger.
+- Prisma validation, clean migration, schema parity and legacy row preservation passed on disposable PostgreSQL. Contracts (28), database (4), API (76 with live Storage skipped) and web (175) tests passed. The final targeted API test also verified chronological payment ordering within a day. Changed-file lint, TypeScript and production builds passed. Chromium checked 390px and 1280px in light and dark, with real local API writes for supplier profiles, mixed receipts, a purchase from the product drawer and payment allocation. The browser used fixture authentication.
+- The migration is applied to the hosted development database configured for the local API. Prisma reports all 19 migrations applied. Fastify smoke tests with fixture authentication against that database returned HTTP 200 for the filtered supplier and purchase lists. Tasks 17 and 18 are absent from the approved base. Task branch is `task/22-suppliers-purchases-payables`.
+
+### Follow-up — supplier and purchase form panels
+
+- `SupplierForm.tsx` and `PurchaseForm.tsx` now reuse Add Product's right-side sheet and mobile bottom drawer. The supplier directory and detail page stay mounted while a form is open. Opening a purchase from supplier details preselects that supplier.
+- TypeScript, changed-file lint, the production build and three targeted Vitest tests passed. Chromium verified 390px and 1280px in both themes, including focus restoration, supplier preselection and successful form submissions against disposable PostgreSQL.
+
 ## Task 21 — social authentication, profiles and product categories (November 24, 2026)
 
 - `apps/web/src/features/auth` adds Google and Apple to the existing Supabase login and callback. The invitation tab keeps its token in memory while OAuth opens separately. Acceptance still checks the verified email. `/me/profile` stores the confirmed name under the Supabase UUID. Owner onboarding saves the name and eleven category defaults atomically. Existing and invited members complete their profiles without creating a workspace.

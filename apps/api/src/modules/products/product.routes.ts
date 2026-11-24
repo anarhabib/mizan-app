@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { parseProductAcquisition, parseProductCreate } from "@mizan/contracts";
+import {
+  isSupplierCurrency,
+  parseProductAcquisition,
+  parseProductCreate,
+} from "@mizan/contracts";
 import { AccessError } from "../access/access.errors.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import { resolveAccessContext, uuidPattern } from "../access/access.service.js";
@@ -34,6 +38,8 @@ type Query = {
   agedDays?: string;
   credit?: string;
   limit?: string;
+  unpurchased?: string;
+  purchaseCurrency?: string;
 };
 type ProductQuery = { Querystring: Query };
 type ProductId = ProductQuery & { Params: { id: string } };
@@ -103,7 +109,20 @@ export function registerProductRoutes(
       agedDays,
       credit,
       limit,
+      unpurchased,
+      purchaseCurrency,
     } = request.query;
+    if (unpurchased !== undefined) {
+      if (unpurchased !== "true")
+        throw new AccessError("INVALID_PRODUCT", "unpurchased");
+      if (!canManageAsOwner(request.access!))
+        throw new AccessError("ACCESS_DENIED");
+    }
+    if (
+      purchaseCurrency !== undefined &&
+      (unpurchased !== "true" || !isSupplierCurrency(purchaseCurrency))
+    )
+      throw new AccessError("INVALID_PRODUCT", "purchaseCurrency");
     if (
       agedDays !== undefined &&
       (typeof agedDays !== "string" ||
@@ -154,6 +173,8 @@ export function registerProductRoutes(
     )
       throw new AccessError("INVALID_PRODUCT", "after");
     return listProducts(options(), request.access!, {
+      unpurchased: unpurchased === "true",
+      purchaseCurrency,
       photos: request.query.photos === "1",
       q: q?.trim(),
       status,

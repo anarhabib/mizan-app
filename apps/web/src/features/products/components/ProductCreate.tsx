@@ -1,7 +1,7 @@
 import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
 import { OptionSelect } from "@/shared/ui/OptionSelect";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import {
   Controller,
@@ -15,20 +15,34 @@ import {
   parseProductAcquisition,
   categoryLabel,
   acquisitionComponents,
+  isSupplierDate,
+  type PurchaseInput,
   type ProductCreateInput,
   type ProductDetail,
+  type SupplierOption,
 } from "@mizan/contracts";
 import { MoneyText } from "@/shared/ui/MoneyText";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { ApiError } from "@/shared/lib/api";
 import { categoryQuery } from "@/features/product-categories";
 import { useWorkspace } from "@/features/workspace";
+import {
+  SupplierPicker,
+  todayInBaku,
+  useFinancialAttempt,
+  useRegisterPurchase,
+} from "@/features/suppliers";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ErrorState } from "@/shared/ui/ErrorState";
 import { ListSkeleton } from "@/shared/ui/ListSkeleton";
 import { useCreateProduct } from "../api/mutations";
-import { productOptionsQuery, type ProductScope } from "../api/queries";
+import {
+  productOptionsQuery,
+  refreshPurchaseProducts,
+  type ProductScope,
+} from "../api/queries";
 import {
   productErrorField,
   productAcquisitionValues,
@@ -67,20 +81,24 @@ export function ProductCreate({
   currency: string;
   opener: HTMLElement;
   close: () => void;
-  created: (product: ProductDetail) => void;
+  created: (product: { id: string }) => void;
 }) {
   const { t } = useTranslation("products");
+  const { t: supplierText } = useTranslation("suppliers");
+  const { canManageAsOwner } = useWorkspace();
+  const client = useQueryClient();
   const options = useQuery(productOptionsQuery(scope));
   const create = useCreateProduct(scope);
+  const receipt = useRegisterPurchase(scope);
+  const attempt = useFinancialAttempt<PurchaseInput>(scope, "purchase");
+  const [supplier, setSupplier] = useState<SupplierOption>();
+  const [purchaseDate, setPurchaseDate] = useState(todayInBaku);
+  const [receiptError, setReceiptError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const busy = submitting || create.isPending || receipt.isPending;
 
   return (
-    <ProductPanel
-      title={t("create")}
-      opener={opener}
-      close={close}
-      busy={submitting || create.isPending}
-    >
+    <ProductPanel title={t("create")} opener={opener} close={close} busy={busy}>
       {options.isPending ? (
         <ListSkeleton rows={3} />
       ) : options.isError ? (
@@ -92,18 +110,108 @@ export function ProductCreate({
       ) : options.data.purities.length === 0 ? (
         <EmptyState title={t("noPurities")} description={t("noPuritiesHint")} />
       ) : (
-        <ProductForm
-          scope={scope}
-          currency={currency}
-          purities={options.data.purities}
-          pending={create.isPending}
-          onSubmittingChange={setSubmitting}
-          save={async (input) => {
-            const product = await create.mutateAsync(input);
-            toast.success(t("created"));
-            created(product);
-          }}
-        />
+        <div className="grid gap-4">
+          {canManageAsOwner && (
+            <div className="grid gap-2">
+              <SupplierPicker
+                scope={scope}
+                value={supplier}
+                disabled={busy}
+                onChange={(next) => {
+                  setSupplier(next);
+                  setReceiptError(undefined);
+                }}
+              />
+              {supplier && (
+                <>
+                  <Label htmlFor="product-purchase-date">
+                    {supplierText("purchaseDate")}
+                  </Label>
+                  <Input
+                    id="product-purchase-date"
+                    type="date"
+                    value={purchaseDate}
+                    className="min-h-11 lg:min-h-9"
+                    disabled={busy}
+                    onChange={(event) => {
+                      setPurchaseDate(event.target.value);
+                      setReceiptError(undefined);
+                    }}
+                  />
+                  <p className="text-muted-foreground">
+                    {supplierText("productPurchaseHint")}
+                  </p>
+                </>
+              )}
+              {receiptError && (
+                <p role="alert" className="text-destructive">
+                  {receiptError}
+                </p>
+              )}
+            </div>
+          )}
+          <ProductForm
+            scope={scope}
+            currency={currency}
+            purities={options.data.purities}
+            pending={create.isPending || receipt.isPending}
+            onSubmittingChange={setSubmitting}
+            save={async (input) => {
+              if (supplier && canManageAsOwner) {
+                const currency = (
+                  input.acquisitionCost ?? input.acquisitionCostPerGram
+                ).currency;
+                setReceiptError(undefined);
+                if (!isSupplierDate(purchaseDate)) {
+                  setReceiptError(supplierText("invalidPurchaseDate"));
+                  return;
+                }
+                try {
+                  const result = await attempt(
+                    {
+                      supplierId: supplier.id,
+                      purchaseDate,
+                      currency,
+                      items: [{ product: input }],
+                    },
+                    receipt.mutateAsync,
+                  );
+                  void refreshPurchaseProducts(
+                    client,
+                    scope,
+                    result.productIds,
+                  );
+                  toast.success(supplierText("purchaseSaved"));
+                  created({ id: result.productIds[0] });
+                } catch (error) {
+                  if (
+                    error instanceof ApiError &&
+                    error.field?.startsWith("items.0.") &&
+                    error.code !== "SUPPLIER_CURRENCY_MISMATCH"
+                  )
+                    throw new ApiError(
+                      error.status,
+                      error.code,
+                      error.message,
+                      error.field.slice(8),
+                      error.isNetwork,
+                    );
+                  setReceiptError(
+                    supplierText(
+                      error instanceof ApiError && error.isNetwork
+                        ? "retrySame"
+                        : "purchaseError",
+                    ),
+                  );
+                }
+                return;
+              }
+              const product = await create.mutateAsync(input);
+              toast.success(t("created"));
+              created(product);
+            }}
+          />
+        </div>
       )}
     </ProductPanel>
   );
@@ -117,6 +225,8 @@ export function ProductForm({
   pending,
   onSubmittingChange,
   save,
+  acquisitionCurrencyLocked = false,
+  submitLabel,
 }: {
   scope: ProductScope;
   currency: string;
@@ -125,6 +235,8 @@ export function ProductForm({
   pending: boolean;
   onSubmittingChange: (submitting: boolean) => void;
   save: (input: ProductCreateInput) => Promise<void>;
+  acquisitionCurrencyLocked?: boolean;
+  submitLabel?: string;
 }) {
   const { t, i18n } = useTranslation(["products", "errors", "shell"]);
   const { canManageAsOwner } = useWorkspace();
@@ -262,6 +374,11 @@ export function ProductForm({
           field.endsWith(".amount")
         }
         currency={field.endsWith(".currency")}
+        readOnly={
+          acquisitionCurrencyLocked &&
+          field.startsWith("acquisition") &&
+          field.endsWith(".currency")
+        }
         multiline={field === "note"}
       />
     );
@@ -515,7 +632,7 @@ export function ProductForm({
         type="submit"
         className="min-h-11 lg:min-h-9"
       >
-        {t(busy ? "saving" : "save")}
+        {busy ? t("saving") : (submitLabel ?? t("save"))}
       </PendingButton>
     </form>
   );
