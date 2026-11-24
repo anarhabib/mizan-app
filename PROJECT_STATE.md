@@ -1,5 +1,11 @@
 # Misqal project state
 
+## Mobile drawer and date controls (November 24, 2026)
+
+- `ProductPanel.tsx` and `form-drawer-viewport.ts` keep the mobile product, purchase and other shared form drawers inside the visual viewport. The form body scrolls independently of the footer and returns focus to the opener. The desktop sheet still uses its existing sizing.
+- `SupplierPicker.tsx` keeps search and options in the form's scroll flow and allows an option tap to complete after the search field blurs. `input.tsx` bounds native date controls, and `Histories.tsx` widens narrow supplier purchase and payment filter columns.
+- All 178 web tests, web TypeScript, changed-source lint and the production build passed. Fixture-backed Chromium verified product and purchase forms, supplier selection, validation, date bounds and focus restoration at 320, 360, 375, 390, 430 and 1280 px. Touch scrolling and fixture submissions also passed at 390 px. Keyboard viewport geometry was simulated. Physical iOS and Android browsers and installed PWAs still need keyboard and native date picker checks.
+
 ## Staging deployment preparation (November 24, 2026)
 
 - `apps/api/src/server.ts` uses Render's `PORT` on `0.0.0.0` and retains loopback binding locally. `apps/api/src/app.ts` allows CORS for the configured `MIZAN_WEB_ORIGIN` and supports bearer, JSON, idempotency, and sale confirmation headers.
