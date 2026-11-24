@@ -219,6 +219,18 @@ All supplier endpoints are under `/organizations/:organizationId/stores/:storeId
 - An owner can add a historical supplier to an unlinked existing product with the historical-supplier PATCH. The link is informational and has a separate audit event. Owner product detail includes any recorded `registrationSource` and `historicalSupplier`. Legacy inventory keeps unknown origins.
 - Clients can attach photos after a successful registration using the existing signed PUT and confirm endpoints. Photo failures can be retried independently of stock and supplier records.
 
+### Jewelry sets
+
+Set routes live under `/organizations/:organizationId/stores/:storeId/jewelry-sets`. Assigned users can list and read sets. Owner mode is required for preview, creation, editing and dissolution.
+
+- `GET /` lists sets with component counts and weights. It accepts `q` (set name, component code or component name), `availability=available|unavailable`, `after` and `limit`. `GET /:id` returns the description, revision, component records and totals.
+- `GET /products?organizationId=...&storeId=...&setEligible=true` uses the existing product search and pagination, restricted to in-stock products without a sale or set membership.
+- `POST /preview` takes `{productIds}` and returns current component records and totals for a draft. It checks scope. Creation and editing independently validate membership and availability at save time.
+- `POST /` and `PATCH /:id?revision=...` take `{name, description?, productIds}`. A set contains 1–100 unique products. The patch replaces the membership atomically and requires the last read revision. A stale revision or an ineligible or already grouped addition returns 409.
+- `DELETE /:id?revision=...` dissolves a set and returns 204. It releases its memberships and preserves the component inventory and supplier records.
+
+Components already in a set remain visible if sold individually. Such sets appear under unavailable. Totals include all current members. Net alloy weight is omitted when any member has no recorded value. Acquisition totals sum recorded amounts by currency and are returned only if every component cost is visible under the existing product permissions.
+
 ### Operational dashboard
 
 All dashboard endpoints require an active store assignment. Paths below start with `O/stores/:storeId`. Response types are in `packages/contracts/src/dashboard.ts`.

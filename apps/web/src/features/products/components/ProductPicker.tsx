@@ -1,26 +1,29 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import type { ProductListItem } from "@mizan/contracts";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { productListQuery } from "@/features/products";
 import { ErrorState } from "@/shared/ui/ErrorState";
-import type { SaleScope } from "../api/queries";
+import { ListSkeleton } from "@/shared/ui/ListSkeleton";
+import { productListQuery, type ProductScope } from "../api/queries";
 
-export function SaleProductPicker({
+export function ProductPicker({
   scope,
   excluded,
   select,
   close,
+  setEligible,
 }: {
-  scope: SaleScope;
+  scope: ProductScope;
   excluded: string[];
   select: (product: ProductListItem) => void;
   close: () => void;
+  setEligible?: true;
 }) {
-  const { t } = useTranslation("sales");
+  const { t } = useTranslation(["sales", "products"]);
+  const inputId = useId();
   const [search, setSearch] = useState("");
   const [q, setQuery] = useState("");
   const searchField = useRef<HTMLInputElement>(null);
@@ -33,7 +36,11 @@ export function SaleProductPicker({
     return () => window.clearTimeout(timer);
   }, [search]);
   const query = useInfiniteQuery(
-    productListQuery(scope, { q: q || undefined, status: "IN_STOCK" }),
+    productListQuery(scope, {
+      q: q || undefined,
+      status: "IN_STOCK",
+      setEligible,
+    }),
   );
   const products = query.isPlaceholderData
     ? []
@@ -46,11 +53,23 @@ export function SaleProductPicker({
     <div
       className="grid gap-2 rounded-lg border border-border bg-muted p-3"
       aria-busy={query.isFetching}
+      data-form-panel-escape={setEligible ? "" : undefined}
+      onKeyDown={(event) => {
+        if (setEligible && event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          close();
+        }
+      }}
     >
-      <Label htmlFor="sale-product-search">{t("searchProducts")}</Label>
+      <Label htmlFor={inputId}>
+        {setEligible
+          ? t("sets.searchProducts", { ns: "products" })
+          : t("searchProducts")}
+      </Label>
       <Input
         ref={searchField}
-        id="sale-product-search"
+        id={inputId}
         type="search"
         value={search}
         maxLength={160}
@@ -60,6 +79,7 @@ export function SaleProductPicker({
           if (event.key === "Enter") event.preventDefault();
         }}
       />
+      {setEligible && query.isPending && <ListSkeleton rows={2} />}
       {query.error && (
         <ErrorState
           error={query.error}
@@ -73,11 +93,13 @@ export function SaleProductPicker({
       )}
       {!query.isFetching && !query.error && !products.length && (
         <p role="status" className="text-muted-foreground">
-          {t("noProducts")}
+          {setEligible
+            ? t("sets.noEligibleProducts", { ns: "products" })
+            : t("noProducts")}
         </p>
       )}
       {products.length > 0 && (
-        <ul className="max-h-52 overflow-y-auto">
+        <ul className={setEligible ? undefined : "max-h-52 overflow-y-auto"}>
           {products.map((product) => (
             <li key={product.id}>
               <Button

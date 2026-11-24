@@ -104,6 +104,7 @@ model Store {
   assignments    StoreAssignment[]
   invitations    Invitation[]
   products       Product[]
+  jewelrySets    JewelrySet[]
   customers      Customer[]
   suppliers      Supplier[]
   goldPriceRules StoreGoldPriceRule[]
@@ -327,10 +328,38 @@ model Product {
   historicalSupplierName String?
   historicalSupplier     Supplier?           @relation(fields: [organizationId, storeId, historicalSupplierId], references: [organizationId, storeId, id], onDelete: Restrict)
   supplierActivities     SupplierActivity[]
+  setMembership          JewelrySetMember?
 
   @@id([organizationId, storeId, id])
   @@unique([organizationId, code])
   @@index([organizationId, categoryId])
+  @@schema("mizan")
+}
+
+model JewelrySet {
+  organizationId String             @db.Uuid
+  storeId        String             @db.Uuid
+  id             String             @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  revision       Int                @default(1)
+  store          Store              @relation(fields: [organizationId, storeId], references: [organizationId, id], onDelete: Restrict)
+  members        JewelrySetMember[]
+
+  @@id([organizationId, storeId, id])
+  @@schema("mizan")
+}
+
+model JewelrySetMember {
+  organizationId String     @db.Uuid
+  storeId        String     @db.Uuid
+  productId      String     @db.Uuid
+  setId          String     @db.Uuid
+  set            JewelrySet @relation(fields: [organizationId, storeId, setId], references: [organizationId, storeId, id], onDelete: Cascade)
+  product        Product    @relation(fields: [organizationId, storeId, productId], references: [organizationId, storeId, id], onDelete: Restrict)
+
+  @@id([organizationId, storeId, productId])
+  @@index([organizationId, storeId, setId])
   @@schema("mizan")
 }
 

@@ -1,5 +1,13 @@
 # Misqal project state
 
+## Task 17 — jewelry set management (November 24, 2026)
+
+- Products now has a Jewelry sets view in AZ, EN and RU. Store members can search and filter sets and inspect their individually tracked components. Owner mode can create, edit and dissolve sets in the existing drawer or sheet. The picker shows eligible stock and the API calculates draft and saved totals.
+- `apps/api/src/modules/products/jewelry-set.service.ts` uses scoped membership, revision checks and the same organization lock as individual sales. Sold components stay visible and mark the set unavailable. Acquisition totals preserve each currency and follow product cost visibility. A missing component alloy weight leaves the aggregate alloy weight unspecified.
+- Migration `202611240004_jewelry_sets` adds the set and membership tables. Prisma validation, migration status and schema parity passed on disposable PostgreSQL. Six targeted API, 30 contracts and 179 web tests passed. Live Storage was skipped. Workspace TypeScript, changed-file lint and formatting, and package builds passed.
+- Chromium with fixture authentication verified the live Fastify flow at 320px, 390px and 1280px, including light and dark at 390px and 1280px. The mobile drawer regression suite passed. Physical iOS and Android keyboard and safe-area checks remain open.
+- The task branch is `task/17-jewelry-set-management`. The migration ran only against the disposable database. Task 18 still needs checkout to resolve and revalidate set membership inside the sale transaction and snapshot the cost and currency for each sold component.
+
 ## Dashboard default section order (November 24, 2026)
 
 - `preferences.ts` defaults to Market, Payments, Sales, Inventory and Operations. Existing saved section order is preserved. All 16 Dashboard preference and layout tests passed with the updated default order.

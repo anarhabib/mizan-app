@@ -8,12 +8,14 @@ export const Route = createFileRoute("/products")({
   ): {
     product?: string;
     intent?: "create" | "sale";
+    view?: "sets";
     status?: ProductStatus;
     soldOn?: string;
     receivedOn?: string;
     agedDays?: number;
     credit?: true;
   } => ({
+    view: search.view === "sets" ? "sets" : undefined,
     product:
       typeof search.product === "string"
         ? search.product || undefined
@@ -44,12 +46,13 @@ export const Route = createFileRoute("/products")({
 });
 
 function ProductsRoute() {
-  const { product, intent, ...filters } = Route.useSearch();
+  const { product, intent, view, ...filters } = Route.useSearch();
   const navigate = Route.useNavigate();
   return (
     <ProductsPage
       product={product}
       intent={intent}
+      view={view}
       filters={filters}
       clearDashboardFilters={() =>
         void navigate({

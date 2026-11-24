@@ -33,6 +33,11 @@ export type AccessFailure =
   | "SALE_CONFLICT"
   | "SALE_NOT_FOUND"
   | "INVALID_PRODUCT"
+  | "INVALID_JEWELRY_SET"
+  | "JEWELRY_SET_NOT_FOUND"
+  | "JEWELRY_SET_CHANGED"
+  | "JEWELRY_SET_PRODUCT_UNAVAILABLE"
+  | "JEWELRY_SET_PRODUCT_CONFLICT"
   | "PRODUCT_NOT_FOUND"
   | "PRODUCT_CODE_CONFLICT"
   | "PRODUCT_EDIT_CONFLICT"
@@ -122,6 +127,23 @@ const details = {
   INVALID_PRODUCT: {
     statusCode: 400,
     message: "Məhsul məlumatlarını yoxlayın.",
+  },
+  INVALID_JEWELRY_SET: {
+    statusCode: 400,
+    message: "Dəst məlumatlarını yoxlayın.",
+  },
+  JEWELRY_SET_NOT_FOUND: { statusCode: 404, message: "Dəst tapılmadı." },
+  JEWELRY_SET_CHANGED: {
+    statusCode: 409,
+    message: "Dəst dəyişdirilib. Yenidən açıb yoxlayın.",
+  },
+  JEWELRY_SET_PRODUCT_UNAVAILABLE: {
+    statusCode: 409,
+    message: "Seçilmiş məhsullardan biri bu dəstə əlavə edilə bilmir.",
+  },
+  JEWELRY_SET_PRODUCT_CONFLICT: {
+    statusCode: 409,
+    message: "Seçilmiş məhsullardan biri başqa dəstə daxildir.",
   },
   PRODUCT_NOT_FOUND: { statusCode: 404, message: "Məhsul tapılmadı." },
   PRODUCT_CODE_CONFLICT: {

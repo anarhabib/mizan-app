@@ -1,4 +1,9 @@
 {
+  "INVALID_JEWELRY_SET": "Check the set information.",
+  "JEWELRY_SET_NOT_FOUND": "The jewelry set could not be found.",
+  "JEWELRY_SET_CHANGED": "This set has changed. Close and reopen the form to review the latest version.",
+  "JEWELRY_SET_PRODUCT_UNAVAILABLE": "One of the selected products is no longer eligible for this set.",
+  "JEWELRY_SET_PRODUCT_CONFLICT": "One of the selected products already belongs to another set.",
   "INVALID_SUPPLIER": "Check the supplier details.",
   "SUPPLIER_NOT_FOUND": "Supplier not found.",
   "SUPPLIER_INACTIVE": "Select an active supplier for a new purchase.",

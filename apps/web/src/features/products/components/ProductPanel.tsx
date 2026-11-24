@@ -64,7 +64,7 @@ export function ProductPanel({
       size="icon"
       disabled={busy}
       onClick={dismiss}
-      className="min-h-11 min-w-11 lg:min-h-9 lg:min-w-9"
+      className="min-h-11 min-w-11 shrink-0 lg:min-h-9 lg:min-w-9"
       aria-label={t("close")}
     >
       <X aria-hidden="true" />
@@ -98,7 +98,7 @@ export function ProductPanel({
           className="gap-0 data-[side=right]:sm:max-w-lg motion-reduce:animate-none motion-reduce:transition-none"
         >
           <SheetHeader className="flex-row items-center justify-between px-6">
-            <SheetTitle>{title}</SheetTitle>
+            <SheetTitle className="min-w-0 wrap-anywhere">{title}</SheetTitle>
             {closeButton}
           </SheetHeader>
           {body}
@@ -122,7 +122,7 @@ export function ProductPanel({
         className="overflow-clip [touch-action:pan-y_pinch-zoom]! after:hidden data-[vaul-drawer-direction=bottom]:bottom-[var(--form-drawer-bottom,0px)] data-[vaul-drawer-direction=bottom]:max-h-[min(85dvh,calc(var(--form-drawer-height,100dvh)-max(0.5rem,env(safe-area-inset-top))))] motion-reduce:animate-none motion-reduce:transition-none"
       >
         <DrawerHeader className="shrink-0 touch-none flex-row items-center justify-between">
-          <DrawerTitle>{title}</DrawerTitle>
+          <DrawerTitle className="min-w-0 wrap-anywhere">{title}</DrawerTitle>
           {closeButton}
         </DrawerHeader>
         {body}

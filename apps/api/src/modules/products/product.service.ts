@@ -260,7 +260,7 @@ function acquisitionData(input: ProductAcquisitionInput, total: MoneyInput) {
   };
 }
 
-async function lockProductOwner(
+export async function lockProductOwner(
   tx: Prisma.TransactionClient,
   access: AccessContext,
 ) {
@@ -330,6 +330,7 @@ export async function deleteProduct(
           saleItem: null,
           purchaseItem: null,
           historicalSupplierId: null,
+          setMembership: null,
           movements: { none: {} },
         },
       });
@@ -428,6 +429,7 @@ export async function listProducts(
     photos?: boolean;
     unpurchased?: boolean;
     purchaseCurrency?: string;
+    setEligible?: boolean;
   },
 ) {
   const pageSize = readPageSize(filters.limit, "INVALID_PRODUCT");
@@ -452,6 +454,12 @@ export async function listProducts(
       purchaseItem: filters.unpurchased ? null : undefined,
       acquisitionCurrency: filters.purchaseCurrency,
       acquisitionCost: filters.unpurchased ? { gt: 0 } : undefined,
+      ...(filters.setEligible && {
+        status: "IN_STOCK",
+        sale: null,
+        saleItem: null,
+        setMembership: null,
+      }),
       gemstones:
         filters.gemstones === "recorded"
           ? { some: {} }

@@ -33,7 +33,6 @@ export const listFields = {
 } as const satisfies Prisma.ProductSelect;
 
 export function detailFields(access: AccessContext) {
-  const showCost = canViewAcquisition(access);
   const owner = canManageAsOwner(access);
   return {
     ...listFields,
@@ -56,13 +55,8 @@ export function detailFields(access: AccessContext) {
     metalType: true,
     netGoldWeight: true,
     grade: { select: { active: true } },
-    acquisitionCost: showCost,
-    acquisitionCostPerGram: showCost,
-    acquisitionCurrency: showCost,
-    acquisitionMetal: owner,
-    acquisitionGemstones: owner,
-    acquisitionWorkmanship: owner,
-    acquisitionOther: owner,
+    ...acquisitionFields(access),
+    setMembership: { select: { setId: true } },
     fixedSellingAmount: true,
     fixedSellingCurrency: true,
     gemstones: {
@@ -124,6 +118,20 @@ export function detailFields(access: AccessContext) {
   } as const satisfies Prisma.ProductSelect;
 }
 
+export function acquisitionFields(access: AccessContext) {
+  const showCost = canViewAcquisition(access);
+  const owner = canManageAsOwner(access);
+  return {
+    acquisitionCost: showCost,
+    acquisitionCostPerGram: showCost,
+    acquisitionCurrency: showCost,
+    acquisitionMetal: owner,
+    acquisitionGemstones: owner,
+    acquisitionWorkmanship: owner,
+    acquisitionOther: owner,
+  } as const;
+}
+
 export type DetailRow = Prisma.ProductGetPayload<{
   select: ReturnType<typeof detailFields>;
 }>;
@@ -153,6 +161,45 @@ function presentMoney(value: Prisma.Decimal, currency: string) {
       Math.max(value.decimalPlaces(), currencyMinorUnits(currency)),
     ),
     currency,
+  };
+}
+
+export function presentAcquisition(
+  row: Pick<DetailRow, keyof ReturnType<typeof acquisitionFields>> & {
+    purchaseItem: object | null;
+  },
+  access: AccessContext,
+) {
+  const { acquisitionCost, acquisitionCostPerGram, acquisitionCurrency } = row;
+  const owner = canManageAsOwner(access);
+  const showCost = canViewAcquisition(access) && (owner || !row.purchaseItem);
+  const breakdown: AcquisitionBreakdown = {};
+  if (owner) {
+    if (row.acquisitionMetal) breakdown.metal = row.acquisitionMetal.toFixed();
+    if (row.acquisitionGemstones)
+      breakdown.gemstones = row.acquisitionGemstones.toFixed();
+    if (row.acquisitionWorkmanship)
+      breakdown.workmanship = row.acquisitionWorkmanship.toFixed();
+    if (row.acquisitionOther) breakdown.other = row.acquisitionOther.toFixed();
+  }
+  return {
+    ...(Object.keys(breakdown).length > 0 && {
+      acquisitionBreakdown: breakdown,
+    }),
+    ...(showCost &&
+      (owner || acquisitionCostPerGram) &&
+      acquisitionCost &&
+      acquisitionCurrency && {
+        acquisitionCost: presentMoney(acquisitionCost, acquisitionCurrency),
+      }),
+    ...(showCost &&
+      acquisitionCostPerGram &&
+      acquisitionCurrency && {
+        acquisitionCostPerGram: presentMoney(
+          acquisitionCostPerGram,
+          acquisitionCurrency,
+        ),
+      }),
   };
 }
 
@@ -208,9 +255,6 @@ export function presentDetail(
   access: AccessContext,
 ): ProductDetail {
   const {
-    acquisitionCost,
-    acquisitionCostPerGram,
-    acquisitionCurrency,
     note,
     createdAt,
     movements,
@@ -222,21 +266,11 @@ export function presentDetail(
   const sale = saleItem
     ? { ...saleItem.sale, saleAmount: saleItem.saleAmount }
     : legacySale;
-  const breakdown: AcquisitionBreakdown = {};
   const owner = canManageAsOwner(access);
-  const showCost = owner || !row.purchaseItem;
   const purchase = row.purchaseItem?.purchase;
   const registrationSource = movements.find(
     ({ registrationSource }) => registrationSource,
   )?.registrationSource;
-  if (owner) {
-    if (row.acquisitionMetal) breakdown.metal = row.acquisitionMetal.toFixed();
-    if (row.acquisitionGemstones)
-      breakdown.gemstones = row.acquisitionGemstones.toFixed();
-    if (row.acquisitionWorkmanship)
-      breakdown.workmanship = row.acquisitionWorkmanship.toFixed();
-    if (row.acquisitionOther) breakdown.other = row.acquisitionOther.toFixed();
-  }
   return {
     ...presentListItem(row),
     ...(owner && registrationSource && { registrationSource }),
@@ -276,23 +310,7 @@ export function presentDetail(
           row.fixedSellingCurrency,
         ),
       }),
-    ...(Object.keys(breakdown).length > 0 && {
-      acquisitionBreakdown: breakdown,
-    }),
-    ...(showCost &&
-      (owner || acquisitionCostPerGram) &&
-      acquisitionCost &&
-      acquisitionCurrency && {
-        acquisitionCost: presentMoney(acquisitionCost, acquisitionCurrency),
-      }),
-    ...(showCost &&
-      acquisitionCostPerGram &&
-      acquisitionCurrency && {
-        acquisitionCostPerGram: presentMoney(
-          acquisitionCostPerGram,
-          acquisitionCurrency,
-        ),
-      }),
+    ...presentAcquisition(row, access),
     ...(owner && {
       canEditAcquisition: canEditAcquisition(row),
       canDelete:
@@ -300,6 +318,7 @@ export function presentDetail(
         !sale &&
         !row.purchaseItem &&
         !row.historicalSupplierId &&
+        !row.setMembership &&
         movements.length === 0,
     }),
     note,

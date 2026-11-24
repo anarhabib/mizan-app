@@ -45,6 +45,7 @@ type Query = {
   limit?: string;
   unpurchased?: string;
   purchaseCurrency?: string;
+  setEligible?: string;
 };
 type ProductQuery = { Querystring: Query };
 type ProductId = ProductQuery & { Params: { id: string } };
@@ -151,6 +152,7 @@ export function registerProductRoutes(
       limit,
       unpurchased,
       purchaseCurrency,
+      setEligible,
     } = request.query;
     if (unpurchased !== undefined) {
       if (unpurchased !== "true")
@@ -202,6 +204,11 @@ export function registerProductRoutes(
       throw new AccessError("INVALID_PRODUCT", "q");
     if (status !== undefined && status !== "IN_STOCK" && status !== "SOLD")
       throw new AccessError("INVALID_PRODUCT", "status");
+    if (
+      setEligible !== undefined &&
+      (setEligible !== "true" || status === "SOLD" || credit !== undefined)
+    )
+      throw new AccessError("INVALID_PRODUCT", "setEligible");
     if (credit !== undefined && (credit !== "true" || status === "IN_STOCK"))
       throw new AccessError("INVALID_PRODUCT", "credit");
     if (
@@ -215,6 +222,7 @@ export function registerProductRoutes(
     return listProducts(options(), request.access!, {
       unpurchased: unpurchased === "true",
       purchaseCurrency,
+      setEligible: setEligible === "true",
       photos: request.query.photos === "1",
       q: q?.trim(),
       status,

@@ -15,6 +15,7 @@ import type {
 } from "@mizan/contracts";
 import { apiRequest, type ApiError } from "@/shared/lib/api";
 import type { CursorPage } from "@/shared/hooks/useCursorPagination";
+import { refreshJewelrySets } from "./jewelry-sets";
 
 export type ProductScope = Pick<StoreContext, "organizationId" | "storeId">;
 
@@ -31,6 +32,7 @@ export type ProductFilters = {
   credit?: true;
   unpurchased?: true;
   purchaseCurrency?: string;
+  setEligible?: true;
 };
 
 // GET /products/options in docs/API_NOTES.md.
@@ -183,6 +185,25 @@ export async function invalidateProductInventory(
       productKeys.facets(scope),
       productKeys.overview(scope, false),
       productKeys.overview(scope, true),
+    ].map((queryKey) => client.invalidateQueries({ queryKey, exact: true })),
+  );
+  await refreshJewelrySets(client, scope);
+}
+
+export function refreshSetPicker(
+  client: QueryClient,
+  scope: ProductScope,
+  ids: string[],
+) {
+  const pickers = client.getQueryCache().findAll({
+    queryKey: productKeys.lists(scope),
+    predicate: ({ queryKey }) =>
+      (queryKey[4] as ProductFilters | undefined)?.setEligible === true,
+  });
+  return Promise.all(
+    [
+      ...pickers.map(({ queryKey }) => queryKey),
+      ...ids.map((id) => productKeys.detail(scope, id)),
     ].map((queryKey) => client.invalidateQueries({ queryKey, exact: true })),
   );
 }

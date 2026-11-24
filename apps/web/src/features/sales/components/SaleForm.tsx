@@ -36,7 +36,7 @@ import {
   exchangeRatesQuery,
   suggestedExchangeRate,
 } from "@/features/exchange-rates";
-import { productDetailQuery } from "@/features/products";
+import { productDetailQuery, ProductPicker } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { formatMoney } from "@/shared/lib/format";
 import { MoneyText } from "@/shared/ui/MoneyText";
@@ -48,7 +48,6 @@ import {
   saleResolver,
   type SaleFormValues,
 } from "../lib/form";
-import { SaleProductPicker } from "./SaleProductPicker";
 import { SaleCustomerPicker } from "./SaleCustomerPicker";
 import { PaymentFields } from "./PaymentFields";
 import { DecimalInput, FormField } from "./SaleFields";
@@ -603,7 +602,7 @@ export function SaleForm({
           </div>
         ))}
         {picking ? (
-          <SaleProductPicker
+          <ProductPicker
             scope={scope}
             excluded={[
               productId,

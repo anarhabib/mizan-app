@@ -1,4 +1,9 @@
 {
+  "INVALID_JEWELRY_SET": "Dəst məlumatlarını yoxlayın.",
+  "JEWELRY_SET_NOT_FOUND": "Dəst tapılmadı.",
+  "JEWELRY_SET_CHANGED": "Dəst dəyişdirilib. Son vəziyyəti görmək üçün formanı bağlayıb yenidən açın.",
+  "JEWELRY_SET_PRODUCT_UNAVAILABLE": "Seçilmiş məhsullardan biri artıq bu dəstə əlavə edilə bilmir.",
+  "JEWELRY_SET_PRODUCT_CONFLICT": "Seçilmiş məhsullardan biri artıq başqa dəstə daxildir.",
   "INVALID_SUPPLIER": "Təchizatçı məlumatlarını yoxlayın.",
   "SUPPLIER_NOT_FOUND": "Təchizatçı tapılmadı.",
   "SUPPLIER_INACTIVE": "Yeni alış üçün aktiv təchizatçı seçin.",

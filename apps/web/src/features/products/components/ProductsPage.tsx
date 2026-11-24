@@ -9,6 +9,8 @@ import { ProductCreate } from "./ProductCreate";
 import { ProductDetail } from "./ProductDetail";
 import { ProductList } from "./ProductList";
 import { InventoryOverview } from "./InventoryOverview";
+import { JewelrySets } from "./JewelrySets";
+import { ProductsNavigation } from "./ProductsNavigation";
 
 type Panel =
   | { kind: "create"; opener: HTMLElement }
@@ -17,6 +19,7 @@ type Panel =
 type Props = {
   product?: string;
   intent?: "create" | "sale";
+  view?: "sets";
   filters?: Pick<
     ProductFilters,
     "status" | "soldOn" | "receivedOn" | "agedDays" | "credit"
@@ -30,6 +33,14 @@ export function ProductsPage(props: Props) {
   const { organizationId, storeId, settings, canManageAsOwner } =
     useWorkspace();
   const scope = { organizationId, storeId };
+  if (props.view === "sets")
+    return (
+      <JewelrySets
+        key={`${organizationId}/${storeId}`}
+        scope={scope}
+        owner={canManageAsOwner}
+      />
+    );
 
   return (
     <ScopedProducts
@@ -95,6 +106,7 @@ function ScopedProducts({
           </Button>
         }
       />
+      {intent !== "sale" && <ProductsNavigation />}
       {intent === "sale" ? (
         <p className="mb-4 text-sm text-muted-foreground">
           {dashboard("selectForSale")}
