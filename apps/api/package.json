@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/cors": "^11.4.3",
     "@mizan/contracts": "workspace:*",
     "@mizan/database": "workspace:*",
     "fastify": "^5",

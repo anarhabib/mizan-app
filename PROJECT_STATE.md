@@ -1,5 +1,11 @@
 # Misqal project state
 
+## Staging deployment preparation (November 24, 2026)
+
+- `apps/api/src/server.ts` uses Render's `PORT` on `0.0.0.0` and retains loopback binding locally. `apps/api/src/app.ts` allows CORS for the configured `MIZAN_WEB_ORIGIN` and supports bearer, JSON, idempotency, and sale confirmation headers.
+- `apps/web/vite.config.ts` exposes only the three approved public settings and keeps the local proxy. [Staging deployment](docs/STAGING_DEPLOYMENT.md) records build order, Pages SPA routing, Supabase redirects, and session-pooler TLS settings.
+- Contracts, Prisma Client generation, database, API, and web builds passed. Fourteen API tests, local and simulated Render listener and health checks, and Vite environment and bundle canary checks passed. Dashboard configuration, manual deployment, and live smoke tests remain. No hosted service or database changes were made.
+
 ## Mobile product registration sheet (November 24, 2026)
 
 - `ProductCreate.tsx` and `ProductPanel.tsx` place the compact totals and save action in a safe-area-aware mobile drawer footer. Single non-purchase registration has only the save action. Bulk totals and purchase amounts remain available in the expandable summary. The desktop sheet retains its layout.

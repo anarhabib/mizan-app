@@ -46,6 +46,7 @@ const memberships =
     : undefined;
 const app = await buildApp({
   logger: true,
+  webOrigin: process.env.MIZAN_WEB_ORIGIN,
   access,
   onboardingDb: db,
   memberships,
@@ -67,7 +68,10 @@ const app = await buildApp({
 if (db) app.addHook("onClose", async () => db.$disconnect());
 
 try {
-  await app.listen({ host: "127.0.0.1", port });
+  await app.listen({
+    host: process.env.RENDER === "true" ? "0.0.0.0" : "127.0.0.1",
+    port,
+  });
 } catch (error) {
   app.log.error(error);
   await app.close();
