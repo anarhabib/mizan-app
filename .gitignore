@@ -22,3 +22,5 @@ apps/web/.tanstack/
 # Debug logs
 debug.log
 *.log
+
+/.staging-worktree/
