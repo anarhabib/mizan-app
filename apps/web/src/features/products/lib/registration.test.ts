@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { previewProduct, previewRegistration } from "./registration";
-import type { ProductFormValues } from "./form";
+import { resolveProductForm, type ProductFormValues } from "./form";
 
 const product: ProductFormValues = {
   code: "R1",
@@ -11,6 +11,45 @@ const product: ProductFormValues = {
   netGoldWeight: "1.500",
   acquisitionCostPerGram: { amount: "50.12", currency: "AZN" },
 };
+
+test("stone-set products require a supplier total and validate alloy weight and stone measurements", () => {
+  const stoneSet: ProductFormValues = {
+    ...product,
+    categoryId: "00000000-0000-4000-8000-000000000001",
+    gemstones: [
+      { gemstoneType: "Diamond", stoneCount: "2", totalCarats: "0.400" },
+    ],
+    acquisitionCost: { amount: "120.1234", currency: "AZN" },
+    acquisitionBreakdown: { metal: "100.1234", gemstones: "20" },
+  };
+  expect(resolveProductForm(stoneSet)).toMatchObject({
+    errors: {},
+    values: {
+      netGoldWeight: "1.500",
+      acquisitionCost: stoneSet.acquisitionCost,
+      gemstones: [{ gemstoneType: "Diamond", stoneCount: 2 }],
+    },
+  });
+  expect(previewProduct(stoneSet).cost).toEqual(stoneSet.acquisitionCost);
+  expect(
+    previewProduct({ ...stoneSet, acquisitionCost: undefined }).cost,
+  ).toBeUndefined();
+  expect(
+    resolveProductForm({ ...stoneSet, netGoldWeight: "2.002" }).errors,
+  ).toHaveProperty("netGoldWeight");
+  expect(
+    resolveProductForm({
+      ...stoneSet,
+      gemstones: [{ ...stoneSet.gemstones![0], individualCarats: "0.500" }],
+    }).errors,
+  ).toHaveProperty("gemstones.0.individualCarats");
+  expect(
+    resolveProductForm({
+      ...stoneSet,
+      acquisitionBreakdown: { metal: "100", gemstones: "20" },
+    }).errors,
+  ).toHaveProperty("acquisitionBreakdown");
+});
 
 test("summarizes exact weights, apportioned product costs and partial supplier payment", () => {
   const rows = [

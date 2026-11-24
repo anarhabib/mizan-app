@@ -63,6 +63,7 @@ export function ProductTextField({
   currency,
   multiline,
   readOnly,
+  onValueChange,
 }: {
   form: ProductFormState;
   name: FieldPath<ProductFormValues>;
@@ -74,11 +75,13 @@ export function ProductTextField({
   currency?: boolean;
   multiline?: boolean;
   readOnly?: boolean;
+  onValueChange?: (value: string) => void;
 }) {
   const id = useId();
   const registration = form.register(name, {
-    onChange: () => {
+    onChange: (event) => {
       if (form.getFieldState(name).invalid) form.clearErrors(name);
+      onValueChange?.(event.target.value);
       if (currency) {
         const amount = name.replace(
           /\.currency$/,

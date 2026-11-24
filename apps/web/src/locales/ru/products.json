@@ -105,13 +105,11 @@
     "purity": "Проба",
     "weight": "Общий вес",
     "netGoldWeight": "Вес золотого сплава без вставок",
-    "estimatedMaterialValue": "Оценочная стоимость золота",
     "estimatedSellingValue": "Оценочная цена продажи",
     "acquisitionCost": "Общая закупочная стоимость",
     "acquisitionCostPerGram": "Закупочная стоимость за грамм",
     "createdAt": "Добавлен",
     "note": "Примечание",
-    "fineGoldWeight": "Вес чистого золота",
     "metalType": "Металл",
     "estimatedMetalSellingValue": "Оценочная продажная стоимость только золота",
     "fixedSellingPrice": "Фиксированная цена продажи"
@@ -190,6 +188,7 @@
     "acquisitionValue": "Закупочная стоимость запасов"
   },
   "jewelry": {
+    "useGrossWeight": "Использовать общий вес",
     "gold": "Золото",
     "acquisition": "Расчёт закупочной стоимости",
     "perGram": "За грамм",

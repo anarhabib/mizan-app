@@ -2,7 +2,7 @@ import { PendingButton } from "@/shared/ui/PendingButton";
 import { toast } from "sonner";
 import { OptionSelect } from "@/shared/ui/OptionSelect";
 import { useQuery } from "@tanstack/react-query";
-import { useId, useRef, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import {
   Controller,
   useForm,
@@ -227,7 +227,11 @@ export function ProductFields({
 }) {
   const { t, i18n } = useTranslation(["products", "errors", "shell"]);
   const id = useId();
-  const { errors, submitCount } = form.formState;
+  const { defaultValues, errors, submitCount } = form.formState;
+  const [netOverridden, setNetOverridden] = useState(
+    () =>
+      (defaultValues?.netGoldWeight ?? "") !== (defaultValues?.weight ?? ""),
+  );
   const activeCategories =
     categories.data?.filter((category) => category.isActive) ?? [];
   const currentCategory = product?.productCategory;
@@ -246,6 +250,12 @@ export function ProductFields({
     compute: (groups) => Boolean(groups?.length),
   });
   const totalAcquisition = usesTotalAcquisition(acquisitionMode, hasGemstones);
+
+  function copyGrossWeight(weight: string) {
+    form.setValue("netGoldWeight", weight, { shouldDirty: true });
+    form.clearErrors("netGoldWeight");
+  }
+
   function fieldMessage(error: FieldError, field: TextField | "purity") {
     if (error.type === "PRODUCT_CODE_CONFLICT")
       return t("PRODUCT_CODE_CONFLICT", { ns: "errors" });
@@ -289,6 +299,15 @@ export function ProductFields({
           field.endsWith(".currency")
         }
         multiline={field === "note"}
+        onValueChange={
+          product
+            ? undefined
+            : field === "netGoldWeight"
+              ? () => setNetOverridden(true)
+              : field === "weight" && !netOverridden
+                ? copyGrossWeight
+                : undefined
+        }
       />
     );
   }
@@ -368,9 +387,6 @@ export function ProductFields({
       />
       {!product && (
         <>
-          <p className="text-sm text-muted-foreground">
-            {t("fields.metalType")} Â· {t("jewelry.gold")}
-          </p>
           <div className="align-form-fields grid grid-cols-2 gap-2">
             <Controller
               control={form.control}
@@ -419,6 +435,21 @@ export function ProductFields({
       )}
       {product && renderText("weight", errors.weight)}
       {renderText("netGoldWeight", errors.netGoldWeight)}
+      {!product && netOverridden && (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 justify-self-start lg:min-h-9"
+          disabled={busy}
+          onClick={() => {
+            copyGrossWeight(form.getValues("weight"));
+            setNetOverridden(false);
+            form.setFocus("netGoldWeight");
+          }}
+        >
+          {t("jewelry.useGrossWeight")}
+        </Button>
+      )}
       {!product && <GemstoneFields form={form} busy={busy} />}
       <section className="grid gap-3" aria-label={t("jewelry.acquisition")}>
         {hasGemstones ? (
@@ -574,7 +605,7 @@ function AcquisitionPreview({
         {t("fields.acquisitionCost")}
       </span>
       <output aria-labelledby={id} className="wrap-anywhere font-medium">
-        {"total" in preview ? <MoneyText value={preview.total} /> : "â€”"}
+        {"total" in preview ? <MoneyText value={preview.total} /> : "—"}
       </output>
     </div>
   );

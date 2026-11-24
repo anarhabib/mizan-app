@@ -392,36 +392,12 @@ function ProductRecord({
             <WeightText value={product.netGoldWeight} />
           </Fact>
         )}
-        {product.fineGoldWeight && (
-          <Fact label={t("fields.fineGoldWeight")}>
-            <span className="tabular-nums">
-              {t("jewelry.grams", {
-                amount: formatDecimal(product.fineGoldWeight, locale),
-              })}
-            </span>
-          </Fact>
-        )}
         {product.fixedSellingPrice && (
           <Fact label={t("fields.fixedSellingPrice")}>
             <MoneyText value={product.fixedSellingPrice} />
           </Fact>
         )}
-        {product.estimatedMaterialValue && (
-          <Fact label={t("fields.estimatedMaterialValue")}>
-            <MoneyText value={product.estimatedMaterialValue} />
-          </Fact>
-        )}
-        {product.estimatedSellingValue && (
-          <Fact
-            label={t(
-              product.netGoldWeight !== product.weight
-                ? "fields.estimatedMetalSellingValue"
-                : "fields.estimatedSellingValue",
-            )}
-          >
-            <MoneyText value={product.estimatedSellingValue} />
-          </Fact>
-        )}
+
         {product.estimatedMetalSellingValue && (
           <Fact label={t("fields.estimatedMetalSellingValue")}>
             <MoneyText value={product.estimatedMetalSellingValue} />
@@ -435,6 +411,17 @@ function ProductRecord({
         {canViewAcquisition && product.acquisitionCost && (
           <Fact label={t("fields.acquisitionCost")}>
             <MoneyText value={product.acquisitionCost} />
+          </Fact>
+        )}
+        {product.estimatedSellingValue && (
+          <Fact
+            label={t(
+              product.netGoldWeight !== product.weight
+                ? "fields.estimatedMetalSellingValue"
+                : "fields.estimatedSellingValue",
+            )}
+          >
+            <MoneyText value={product.estimatedSellingValue} />
           </Fact>
         )}
         <Fact label={t("fields.createdAt")}>{time(product.createdAt)}</Fact>
