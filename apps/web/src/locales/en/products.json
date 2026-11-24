@@ -140,13 +140,11 @@
     "purity": "Purity",
     "weight": "Gross weight",
     "netGoldWeight": "Net gold alloy weight",
-    "estimatedMaterialValue": "Estimated gold material value",
     "estimatedSellingValue": "Estimated selling price",
     "acquisitionCost": "Total acquisition cost",
     "acquisitionCostPerGram": "Acquisition cost per gram",
     "createdAt": "Added",
     "note": "Note",
-    "fineGoldWeight": "Fine gold content",
     "metalType": "Metal",
     "estimatedMetalSellingValue": "Estimated selling value of gold only",
     "fixedSellingPrice": "Fixed selling price"
@@ -225,6 +223,7 @@
     "acquisitionValue": "Inventory acquisition value"
   },
   "jewelry": {
+    "useGrossWeight": "Use gross weight",
     "gold": "Gold",
     "acquisition": "Acquisition pricing",
     "perGram": "Per gram",

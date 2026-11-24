@@ -8,6 +8,12 @@
 - Chromium with fixture authentication verified the live Fastify flow at 320px, 390px and 1280px, including light and dark at 390px and 1280px. The mobile drawer regression suite passed. Physical iOS and Android keyboard and safe-area checks remain open.
 - The task branch is `task/17-jewelry-set-management`. The migration ran only against the disposable database. Task 18 still needs checkout to resolve and revalidate set membership inside the sale transaction and snapshot the cost and currency for each sold component.
 
+## Product weight and acquisition display (November 24, 2026)
+
+- `ProductForm.tsx` and `ProductFormFields.tsx` copy gross weight into net gold alloy weight for each new registration row until the user edits net weight. The localized reset restores synchronization. Saved product edits keep independent weights. The registration form omits the redundant metal line and uses an em dash when the acquisition preview has no amount.
+- `ProductDetail.tsx` omits fine gold content and estimated gold material value. Acquisition and selling amounts, shared validation and backend accounting retain their existing behavior.
+- 62 focused Vitest checks, nine Chromium fixture checks at 320px, 390px and 1280px, web TypeScript, targeted ESLint and the production build passed. Physical iOS and Android and live intake submission were outside the verification pass.
+
 ## Dashboard default section order (November 24, 2026)
 
 - `preferences.ts` defaults to Market, Payments, Sales, Inventory and Operations. Existing saved section order is preserved. All 16 Dashboard preference and layout tests passed with the updated default order.

@@ -32,7 +32,9 @@ async function openFixture(width, run, search = "") {
         },
       });
     });
-    await page.goto(new URL(`/tests/mobile-forms/${search}`, origin).href);
+    await page.goto(new URL(`/tests/mobile-forms/${search}`, origin).href, {
+      timeout: 15000,
+    });
     const opener = page.getByRole("button", { name: "Open intake" });
     await opener.click();
     const dialog = page.getByRole("dialog", { name: "Intake" });
@@ -42,6 +44,76 @@ async function openFixture(width, run, search = "") {
     await context.close();
   }
 }
+
+const grossWeight = (row) =>
+  row.getByLabel("Gross weight (g)", { exact: true });
+const netWeight = (row) =>
+  row.getByLabel("Net gold alloy weight (g, optional)");
+
+for (const width of [320, 390, 1280]) {
+  test(`registration weight and acquisition preview at ${width}px`, async () => {
+    await openFixture(
+      width,
+      async ({ dialog }) => {
+        const first = dialog.getByRole("group", { name: "First product" });
+        const summary = first.getByRole("status", {
+          name: "Total acquisition cost",
+        });
+        assert.equal(await summary.textContent(), "—");
+        await grossWeight(first).fill("2.001");
+        assert.equal(await netWeight(first).inputValue(), "2.001");
+        await grossWeight(first).fill("3.002");
+        assert.equal(await netWeight(first).inputValue(), "3.002");
+        await netWeight(first).fill("1.250");
+        await grossWeight(first).fill("4.003");
+        assert.equal(await netWeight(first).inputValue(), "1.250");
+        await netWeight(first).fill("");
+        await grossWeight(first).fill("5.004");
+        assert.equal(await netWeight(first).inputValue(), "");
+        await first.getByRole("button", { name: "Use gross weight" }).click();
+        assert.equal(await netWeight(first).inputValue(), "5.004");
+        await grossWeight(first).fill("6.005");
+        assert.equal(await netWeight(first).inputValue(), "6.005");
+        await first
+          .getByLabel("Acquisition cost per gram", { exact: true })
+          .fill("2");
+        assert.match(await summary.textContent(), /^12\.01\s+AZN$/);
+        if (width === 390) {
+          const second = dialog.getByRole("group", { name: "Second product" });
+          await netWeight(first).fill("1.300");
+          await grossWeight(second).fill("7.150");
+          assert.equal(await netWeight(second).inputValue(), "7.150");
+          await second
+            .getByLabel("Acquisition cost per gram", { exact: true })
+            .fill("10");
+          assert.match(
+            await second
+              .getByRole("status", { name: "Total acquisition cost" })
+              .textContent(),
+            /^71\.50\s+USD$/,
+          );
+          assert.equal(await netWeight(first).inputValue(), "1.300");
+        }
+      },
+      width === 390 ? "?weights=bulk&short" : "?weights=single&short",
+    );
+  });
+}
+
+test("editing saved weight keeps the existing net amount until explicitly edited", async () => {
+  await openFixture(
+    390,
+    async ({ dialog }) => {
+      assert.equal(await grossWeight(dialog).inputValue(), "2.001");
+      assert.equal(await netWeight(dialog).inputValue(), "1.500");
+      await grossWeight(dialog).fill("3.001");
+      assert.equal(await netWeight(dialog).inputValue(), "1.500");
+      await netWeight(dialog).fill("1.750");
+      assert.equal(await netWeight(dialog).inputValue(), "1.750");
+    },
+    "?weights=edit&short",
+  );
+});
 
 test("only the mobile form body owns scrolling as row content changes", async () => {
   await openFixture(

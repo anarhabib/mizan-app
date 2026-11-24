@@ -140,13 +140,11 @@
     "purity": "Əyar",
     "weight": "Ümumi çəki",
     "netGoldWeight": "Qızıl ərintisinin xalis çəkisi",
-    "estimatedMaterialValue": "Qızılın təxmini dəyəri",
     "estimatedSellingValue": "Təxmini satış qiyməti",
     "acquisitionCost": "Ümumi alış dəyəri",
     "acquisitionCostPerGram": "Bir qramın alış dəyəri",
     "createdAt": "Əlavə edilmə tarixi",
     "note": "Qeyd",
-    "fineGoldWeight": "Saf qızılın çəkisi",
     "metalType": "Metal",
     "estimatedMetalSellingValue": "Yalnız qızılın təxmini satış dəyəri",
     "fixedSellingPrice": "Sabit satış qiyməti"
@@ -225,6 +223,7 @@
     "acquisitionValue": "Ehtiyatın alış dəyəri"
   },
   "jewelry": {
+    "useGrossWeight": "Ümumi çəkini istifadə et",
     "gold": "Qızıl",
     "acquisition": "Alış dəyərinin hesablanması",
     "perGram": "Qram üzrə",
