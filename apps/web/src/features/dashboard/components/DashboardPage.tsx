@@ -165,14 +165,24 @@ function ScopedDashboard({
         {owner && inGroup(id, ownerWidgets) && (
           <QueryContent query={financials} rows={1}>
             {(data) => (
-              <OwnerMetric
-                data={data[id]}
-                comparison={
-                  id === "grossProfit"
-                    ? (data.grossProfitComparison ?? [])
-                    : undefined
-                }
-              />
+              <>
+                <OwnerMetric
+                  data={data[id]}
+                  comparison={
+                    id === "grossProfit"
+                      ? (data.grossProfitComparison ?? [])
+                      : undefined
+                  }
+                />
+                {id === "grossProfit" && data.netGrossProfit !== undefined && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-xs text-muted-foreground">
+                      {t("netGrossProfit")}
+                    </p>
+                    <OwnerMetric data={data.netGrossProfit} />
+                  </div>
+                )}
+              </>
             )}
           </QueryContent>
         )}

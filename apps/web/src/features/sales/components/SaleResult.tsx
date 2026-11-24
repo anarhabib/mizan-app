@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import type { SaleProfit, SaleResult as Result } from "@mizan/contracts";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { categoryLabel } from "@mizan/contracts";
 import { useWorkspace } from "@/features/workspace";
 import { formatDateTime } from "@/shared/lib/format";
@@ -15,6 +17,7 @@ import { saleDetailQuery, type SaleScope } from "../api/queries";
 import { SaleRepayment } from "./SaleRepayment";
 import { SalePaymentStatusBadge } from "./SalePaymentStatusBadge";
 import { SaleTotals } from "./SaleTotals";
+import type { SaleReturnAction } from "./SaleReturnPanel";
 
 export function SaleDate({ value }: { value: string }) {
   const { i18n } = useTranslation("sales");
@@ -27,10 +30,12 @@ export function SaleDetail({
   scope,
   id,
   onRepaymentSubmittingChange,
+  onReturn,
 }: {
   scope: SaleScope;
   id: string;
   onRepaymentSubmittingChange: (submitting: boolean) => void;
+  onReturn?: (action: SaleReturnAction) => void;
 }) {
   const detail = useQuery(saleDetailQuery(scope, id));
   if (detail.isError)
@@ -47,6 +52,7 @@ export function SaleDetail({
       sale={detail.data}
       scope={scope}
       onRepaymentSubmittingChange={onRepaymentSubmittingChange}
+      onReturn={onReturn}
     />
   );
 }
@@ -55,10 +61,12 @@ function SaleRecord({
   sale,
   scope,
   onRepaymentSubmittingChange,
+  onReturn,
 }: {
   sale: Result;
   scope: SaleScope;
   onRepaymentSubmittingChange: (submitting: boolean) => void;
+  onReturn?: (action: SaleReturnAction) => void;
 }) {
   const { t, i18n } = useTranslation(["sales", "auth", "products"]);
   const { canManageAsOwner } = useWorkspace();
@@ -72,7 +80,14 @@ function SaleRecord({
         <p className="text-xs text-muted-foreground">
           <SaleDate value={sale.createdAt} />
         </p>
-        <SalePaymentStatusBadge status={sale.paymentStatus} />
+        {sale.returnStatus !== "RETURNED" && (
+          <SalePaymentStatusBadge status={sale.paymentStatus} />
+        )}
+        {sale.returnStatus && (
+          <Badge variant="outline">
+            {t(`returns.status.${sale.returnStatus}`)}
+          </Badge>
+        )}
         {sale.customerId && sale.customerName && (
           <Link
             to="/customers"
@@ -88,6 +103,16 @@ function SaleRecord({
           name: sale.actorName ?? t("unknownActor", { ns: "auth" }),
         })}
       </p>
+      {sale.returnable && onReturn && (
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 justify-self-start lg:min-h-9"
+          onClick={() => onReturn({ sale })}
+        >
+          {t("returns.title")}
+        </Button>
+      )}
 
       <section className="grid gap-3 rounded-lg border border-border bg-muted p-4">
         <h3 className="font-medium">{t("soldProducts")}</h3>
@@ -97,13 +122,18 @@ function SaleRecord({
           </p>
         )}
         <ul className="divide-y rounded-lg border border-border bg-card">
-          {sale.items.map(({ product, saleAmount, profit }) => (
+          {sale.items.map(({ product, saleAmount, profit, returned }) => (
             <li key={product.id} className="grid gap-3 p-3">
               <div className="grid gap-1">
                 <h4 className="font-medium wrap-anywhere">{product.name}</h4>
                 <p className="wrap-anywhere text-xs text-muted-foreground">
                   {product.code}
                 </p>
+                {returned && (
+                  <Badge variant="outline">
+                    {t("returns.status.RETURNED")}
+                  </Badge>
+                )}
               </div>
               <dl className="grid grid-cols-2 gap-3">
                 <Fact label={t("fields.category", { ns: "products" })}>
@@ -189,6 +219,94 @@ function SaleRecord({
         paid={{ amount: sale.paidAmount, currency: sale.currency }}
         outstanding={outstanding}
       />
+      {sale.returns && (
+        <section className="grid gap-3 rounded-lg border p-4">
+          <h3 className="font-medium">{t("returns.history")}</h3>
+          <dl className="grid grid-cols-2 gap-3">
+            <Fact label={t("returns.returnedValue")}>
+              {money(sale.returnedValue!)}
+            </Fact>
+            <Fact label={t("overview.netSales")}>
+              {money(sale.netSaleAmount!)}
+            </Fact>
+            <Fact label={t("overview.netReceived")}>
+              {money(sale.netPaidAmount!)}
+            </Fact>
+            {canManageAsOwner && (
+              <Fact label={t("returns.netProfit")}>
+                {sale.netGrossProfit == null
+                  ? t("notAvailable")
+                  : money(sale.netGrossProfit)}
+              </Fact>
+            )}
+          </dl>
+          {sale.returns.map((row) => (
+            <article key={row.id} className="grid gap-3 rounded-md border p-3">
+              <div>
+                <p className="font-medium">
+                  <time dateTime={row.returnDate}>{row.returnDate}</time> ·{" "}
+                  {row.actorName ?? t("unknownActor", { ns: "auth" })}
+                </p>
+                <p className="wrap-anywhere">{row.reason}</p>
+              </div>
+              <ul className="grid gap-2">
+                {row.items.map(({ productId, resellable }) => {
+                  const product = sale.items.find(
+                    (item) => item.product.id === productId,
+                  )?.product;
+                  return (
+                    <li key={productId} className="wrap-anywhere">
+                      {product?.name} · {product?.code} ·{" "}
+                      {t(resellable ? "returns.stock" : "returns.unavailable")}
+                    </li>
+                  );
+                })}
+              </ul>
+              <dl className="grid grid-cols-2 gap-3">
+                <Fact label={t("returns.returnedValue")}>
+                  {money(row.returnedValue)}
+                </Fact>
+                <Fact label={t("returns.debtCanceled")}>
+                  {money(row.debtCanceled)}
+                </Fact>
+                <Fact label={t("returns.remainingRefundable")}>
+                  {money(row.remainingRefundable)}
+                </Fact>
+                <Fact label={t("returns.refundLimit")}>
+                  {money(row.refundLimit)}
+                </Fact>
+              </dl>
+              {row.refunds.length > 0 && (
+                <ul className="space-y-2">
+                  {row.refunds.map((refund) => (
+                    <li key={refund.id} className="wrap-anywhere">
+                      <time dateTime={refund.refundDate}>
+                        {refund.refundDate}
+                      </time>
+                      {" · "}
+                      {t(`methods.${refund.method}`)}
+                      {" · "}
+                      {money(refund.amount)}
+                      {" · "}
+                      {refund.actorName ?? t("unknownActor", { ns: "auth" })}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {row.refundLimit !== "0" && onReturn && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 justify-self-start lg:min-h-9"
+                  onClick={() => onReturn({ sale, refund: row })}
+                >
+                  {t("returns.refund")}
+                </Button>
+              )}
+            </article>
+          ))}
+        </section>
+      )}
       {sale.payout !== "0" && (
         <dl>
           <Fact label={t("fields.payout")}>{money(sale.payout)}</Fact>

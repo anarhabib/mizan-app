@@ -13,7 +13,8 @@ import { uuidPattern, type AccessContext } from "../access/access.service.js";
 import { canManageAsOwner } from "../access/display-mode.js";
 import { lockOrganization } from "../access/organization-owner.js";
 import type { SalesDatabase } from "../sales/sale.service.js";
-import { paidSaleAmount } from "../sales/settlement.js";
+import { returnSummary, returnTotals } from "../sales/sale-return.service.js";
+import { paidSaleAmount, SaleDecimal } from "../sales/settlement.js";
 
 type CustomerDatabase = Pick<
   Prisma.TransactionClient,
@@ -52,18 +53,25 @@ async function summarize(
     Array<{
       customerId: string;
       purchases: Prisma.Decimal;
+      netPurchases: Prisma.Decimal | null;
+      hasReturns: boolean;
       debt: Prisma.Decimal;
       lastPurchaseAt: Date;
     }>
   >`
-    SELECT "customerId",
-      ROUND(SUM("defaultSaleAmount" * "customerReportingRate"), 2) AS purchases,
-      ROUND(SUM("outstandingDebt" * "customerReportingRate"), 2) AS debt,
-      MAX("createdAt") AS "lastPurchaseAt"
-    FROM "mizan"."Sale"
-    WHERE "organizationId" = ${organizationId}::uuid AND "storeId" = ${storeId}::uuid
-      AND "customerId" IN (${Prisma.join(customers.map(({ id }) => Prisma.sql`${id}::uuid`))})
-    GROUP BY "customerId"
+    SELECT s."customerId",
+      ROUND(SUM(s."defaultSaleAmount" * s."customerReportingRate"), 2) AS purchases,
+      ROUND(SUM((s."defaultSaleAmount" - COALESCE(r.value, 0)) * s."customerReportingRate"), 2) AS "netPurchases",
+      bool_or(r.value IS NOT NULL) AS "hasReturns",
+      ROUND(SUM(s."outstandingDebt" * s."customerReportingRate"), 2) AS debt,
+      MAX(s."createdAt") AS "lastPurchaseAt"
+    FROM "mizan"."Sale" s LEFT JOIN LATERAL (
+      SELECT SUM("returnedValue") value FROM "mizan"."SaleReturn"
+      WHERE ("organizationId", "storeId", "saleId") = (s."organizationId", s."storeId", s.id)
+    ) r ON true
+    WHERE s."organizationId" = ${organizationId}::uuid AND s."storeId" = ${storeId}::uuid
+      AND s."customerId" IN (${Prisma.join(customers.map(({ id }) => Prisma.sql`${id}::uuid`))})
+    GROUP BY s."customerId"
   `;
   const totals = new Map(rows.map((row) => [row.customerId, row]));
   return customers.map((customer) => {
@@ -71,6 +79,8 @@ async function summarize(
     return {
       ...customer,
       totalPurchases: azn(row?.purchases.toFixed(2) ?? "0.00"),
+      ...(row?.hasReturns &&
+        row.netPurchases && { netPurchases: azn(row.netPurchases.toFixed(2)) }),
       outstandingDebt: azn(row?.debt.toFixed(2) ?? "0.00"),
       lastPurchaseAt: row?.lastPurchaseAt.toISOString() ?? null,
     };
@@ -205,38 +215,65 @@ export async function listCustomerPurchases(
       paymentCurrency: true,
       paymentAmount: true,
       _count: { select: { items: true } },
+      returns: returnSummary,
     },
   });
   return {
-    items: rows.slice(0, pageSize).map((sale) => ({
-      id: sale.id,
-      createdAt: sale.createdAt.toISOString(),
-      productName: sale.productName,
-      itemCount: sale._count.items || 1,
-      total: {
-        amount: sale.defaultSaleAmount.toFixed(),
+    items: rows.slice(0, pageSize).map((sale) => {
+      const totals = returnTotals(sale.returns);
+      const count = sale.returns.reduce(
+        (sum, row) => sum + row.items.length,
+        0,
+      );
+      const money = (value: Prisma.Decimal) => ({
+        amount: value.toFixed(),
         currency: sale.defaultCurrency,
-      },
-      outstandingDebt: {
-        amount: sale.outstandingDebt.toFixed(),
-        currency: sale.defaultCurrency,
-      },
-      tradeInCredit: {
-        amount: sale.acceptedTradeInTotal.toFixed(),
-        currency: sale.defaultCurrency,
-      },
-      paidAmount: {
-        amount: paidSaleAmount(sale.defaultSettlement, sale.outstandingDebt),
-        currency: sale.defaultCurrency,
-      },
-      payment:
-        sale.paymentCurrency && sale.paymentAmount
-          ? {
-              amount: sale.paymentAmount.toFixed(),
-              currency: sale.paymentCurrency,
-            }
-          : null,
-    })),
+      });
+      const paid = paidSaleAmount(
+        new SaleDecimal(sale.defaultSettlement).minus(totals.canceled),
+        sale.outstandingDebt,
+      );
+      return {
+        id: sale.id,
+        createdAt: sale.createdAt.toISOString(),
+        productName: sale.productName,
+        itemCount: sale._count.items || 1,
+        total: {
+          amount: sale.defaultSaleAmount.toFixed(),
+          currency: sale.defaultCurrency,
+        },
+        outstandingDebt: {
+          amount: sale.outstandingDebt.toFixed(),
+          currency: sale.defaultCurrency,
+        },
+        tradeInCredit: {
+          amount: sale.acceptedTradeInTotal.toFixed(),
+          currency: sale.defaultCurrency,
+        },
+        paidAmount: {
+          amount: paid,
+          currency: sale.defaultCurrency,
+        },
+        payment:
+          sale.paymentCurrency && sale.paymentAmount
+            ? {
+                amount: sale.paymentAmount.toFixed(),
+                currency: sale.paymentCurrency,
+              }
+            : null,
+        ...(count && {
+          returnStatus:
+            count === (sale._count.items || 1)
+              ? ("RETURNED" as const)
+              : ("PARTIALLY_RETURNED" as const),
+          returnedValue: money(totals.value),
+          netTotal: money(
+            new SaleDecimal(sale.defaultSaleAmount).minus(totals.value),
+          ),
+          netPaidAmount: money(new SaleDecimal(paid).minus(totals.refunded)),
+        }),
+      };
+    }),
     nextCursor: rows.length > pageSize ? rows[pageSize - 1].id : undefined,
   };
 }

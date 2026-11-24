@@ -11,6 +11,14 @@ import {
   canViewAcquisition,
 } from "../access/display-mode.js";
 
+export const activeLegacySale = {
+  items: { none: {} },
+  returns: { none: {} },
+} as const;
+export const activeSaleItem = { returnedItem: null } as const;
+const activeLegacySales = { where: activeLegacySale, take: 1 } as const;
+const activeSaleItems = { where: activeSaleItem, take: 1 } as const;
+
 export const listFields = {
   id: true,
   code: true,
@@ -28,8 +36,11 @@ export const listFields = {
   purity: true,
   weight: true,
   status: true,
-  sale: { select: { outstandingDebt: true } },
-  saleItem: { select: { sale: { select: { outstandingDebt: true } } } },
+  sales: { ...activeLegacySales, select: { outstandingDebt: true } },
+  saleItems: {
+    ...activeSaleItems,
+    select: { sale: { select: { outstandingDebt: true } } },
+  },
 } as const satisfies Prisma.ProductSelect;
 
 export const gemstoneFields = {
@@ -90,12 +101,20 @@ export function detailFields(access: AccessContext) {
         kind: true,
         registrationSource: true,
         actorId: true,
+        saleId: true,
+        returnItem: {
+          select: {
+            returnId: true,
+            saleReturn: { select: { returnDate: true } },
+          },
+        },
         actor: actorProfile,
         createdAt: true,
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     },
-    sale: {
+    sales: {
+      ...activeLegacySales,
       select: {
         id: true,
         saleAmount: true,
@@ -104,7 +123,8 @@ export function detailFields(access: AccessContext) {
         outstandingDebt: true,
       },
     },
-    saleItem: {
+    saleItems: {
+      ...activeSaleItems,
       select: {
         saleAmount: true,
         sale: {
@@ -142,7 +162,7 @@ export function presentListItem(
   row: Prisma.ProductGetPayload<{ select: typeof listFields }>,
 ): ProductListItem {
   const { id, code, name, category, purity, weight, status } = row;
-  const sale = row.saleItem?.sale ?? row.sale;
+  const sale = row.saleItems[0]?.sale ?? row.sales[0];
   return {
     id,
     code,
@@ -222,8 +242,8 @@ export function presentAcquisition(
 export function canEditAcquisition(row: DetailRow) {
   return (
     row.status === "IN_STOCK" &&
-    !row.sale &&
-    !row.saleItem &&
+    !row.sales.length &&
+    !row.saleItems.length &&
     !row.purchaseItem &&
     row.movements.every(
       ({ kind }) =>
@@ -279,8 +299,8 @@ export function presentDetail(
     note,
     createdAt,
     movements,
-    sale: legacySale,
-    saleItem,
+    sales: [legacySale],
+    saleItems: [saleItem],
     photoContentType,
     photoSize,
   } = row;
@@ -342,18 +362,28 @@ export function presentDetail(
       photoUrl && photoContentType && photoSize !== null
         ? { url: photoUrl, contentType: photoContentType, size: photoSize }
         : null,
-    movements: movements.map(({ actor, registrationSource, ...movement }) => ({
-      ...movement,
-      ...(owner && registrationSource && { registrationSource }),
-      actorName: actor.membership.user.fullName,
-      createdAt: movement.createdAt.toISOString(),
-    })),
-    sale: sale
-      ? {
-          id: sale.id,
-          total: presentMoney(sale.saleAmount, sale.currency),
-          createdAt: sale.createdAt.toISOString(),
-        }
-      : null,
+    movements: movements.map(
+      ({ actor, registrationSource, saleId, returnItem, ...movement }) => ({
+        ...movement,
+        ...(owner && registrationSource && { registrationSource }),
+        ...(saleId && { saleId }),
+        ...(returnItem && {
+          returnId: returnItem.returnId,
+          returnDate: returnItem.saleReturn.returnDate
+            .toISOString()
+            .slice(0, 10),
+        }),
+        actorName: actor.membership.user.fullName,
+        createdAt: movement.createdAt.toISOString(),
+      }),
+    ),
+    sale:
+      sale && row.status === "SOLD"
+        ? {
+            id: sale.id,
+            total: presentMoney(sale.saleAmount, sale.currency),
+            createdAt: sale.createdAt.toISOString(),
+          }
+        : null,
   };
 }

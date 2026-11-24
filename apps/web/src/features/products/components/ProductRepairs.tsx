@@ -94,16 +94,18 @@ export function ProductRepairs({
         {t("repairs.title")}
       </h3>
       <div className="flex flex-wrap gap-2">
-        {owner && product.status === "IN_STOCK" && (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 lg:min-h-9"
-            onClick={() => onEdit({ action: "send" })}
-          >
-            {t("repairs.actions.send")}
-          </Button>
-        )}
+        {owner &&
+          (product.status === "IN_STOCK" ||
+            product.status === "UNAVAILABLE") && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 lg:min-h-9"
+              onClick={() => onEdit({ action: "send" })}
+            >
+              {t("repairs.actions.send")}
+            </Button>
+          )}
         {activeId && activeId !== selected && selected && (
           <Button
             type="button"

@@ -1,4 +1,11 @@
 {
+  "returns": {
+    "RETURNED": "Returned",
+    "PARTIALLY_RETURNED": "Partially returned",
+    "value": "Return value",
+    "netTotal": "Net purchase",
+    "netPaid": "Net paid"
+  },
   "note": "Notes",
   "optionalNote": "Notes (optional)",
   "invalidNote": "Enter up to {{max}} characters.",

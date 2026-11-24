@@ -1,4 +1,5 @@
 import type { MoneyInput } from "./money.js";
+import type { SaleReturnRecord, SaleReturnStatus } from "./sale-returns.js";
 
 export type SaleCreateInput = SaleTerms &
   (
@@ -153,6 +154,7 @@ export interface SaleProfit {
 export interface SaleItem {
   product: SaleResult["product"];
   saleAmount: string;
+  returned?: boolean;
   profit?: SaleProfit & { acquisitionCostPerGram: MoneyInput | null };
 }
 
@@ -170,6 +172,8 @@ export interface SaleList {
       | "balance"
       | "paymentStatus"
       | "outstandingDebt"
+      | "returnStatus"
+      | "returnedValue"
     > & {
       paymentCurrency: string | null;
       itemCount: number;
@@ -187,6 +191,13 @@ export interface SaleResult {
   outstandingDebt: string;
   paymentStatus: SalePaymentStatus;
   paidAmount: string;
+  returnStatus?: SaleReturnStatus;
+  returnedValue?: string;
+  netSaleAmount?: string;
+  netPaidAmount?: string;
+  netGrossProfit?: string | null;
+  returnable?: boolean;
+  returns?: SaleReturnRecord[];
   payments: SalePayment[];
   actorId: string;
   actorName?: string | null;
@@ -229,4 +240,8 @@ export interface SaleOverview {
   salesAmount: MoneyInput[];
   amountReceived: MoneyInput[];
   outstandingDebt: MoneyInput[];
+  returnedValue?: MoneyInput[];
+  netSales?: MoneyInput[];
+  refunds?: MoneyInput[];
+  netReceived?: MoneyInput[];
 }

@@ -1,4 +1,7 @@
 {
+  "returnedSales": "Bugünkü qaytarmalar",
+  "refunds": "Bu gün qaytarılan pul",
+  "netGrossProfit": "Bugünkü qaytarmalardan sonra ümumi mənfəət",
   "greeting": "Xoş gəlmisiniz, {{name}}",
   "moveGroupUp": "{{name}} qrupunu yuxarı köçür",
   "moveGroupDown": "{{name}} qrupunu aşağı köçür",

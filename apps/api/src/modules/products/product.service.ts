@@ -31,6 +31,8 @@ import {
   listFields,
   presentDetail,
   presentListItem,
+  activeSaleItem,
+  activeLegacySale,
 } from "./product.presenter.js";
 import {
   pagePhotoUrls,
@@ -326,8 +328,8 @@ export async function deleteProduct(
         where: {
           ...where,
           status: "IN_STOCK",
-          sale: null,
-          saleItem: null,
+          sales: { none: {} },
+          saleItems: { none: {} },
           purchaseItem: null,
           historicalSupplierId: null,
           setMembership: null,
@@ -356,7 +358,10 @@ export async function deleteProduct(
 const creditSale = { outstandingDebt: { gt: 0 } } as const;
 const soldOnCredit: Prisma.ProductWhereInput = {
   status: "SOLD",
-  OR: [{ saleItem: { sale: creditSale } }, { sale: creditSale }],
+  OR: [
+    { saleItems: { some: { ...activeSaleItem, sale: creditSale } } },
+    { sales: { some: { ...activeLegacySale, ...creditSale } } },
+  ],
 };
 
 export async function getProductOverview(
@@ -456,8 +461,6 @@ export async function listProducts(
       acquisitionCost: filters.unpurchased ? { gt: 0 } : undefined,
       ...(filters.setEligible && {
         status: "IN_STOCK",
-        sale: null,
-        saleItem: null,
         setMembership: null,
       }),
       gemstones:
@@ -472,9 +475,16 @@ export async function listProducts(
         ...(soldOn
           ? [
               {
+                status: "SOLD" as const,
                 OR: [
-                  { saleItem: { sale: { createdAt: soldOn } } },
-                  { sale: { createdAt: soldOn } },
+                  {
+                    saleItems: {
+                      some: { ...activeSaleItem, sale: { createdAt: soldOn } },
+                    },
+                  },
+                  {
+                    sales: { some: { ...activeLegacySale, createdAt: soldOn } },
+                  },
                 ],
               },
             ]

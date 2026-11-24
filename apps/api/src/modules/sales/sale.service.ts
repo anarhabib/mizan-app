@@ -27,10 +27,9 @@ import {
   goldExchangeRate,
   resolveGoldRate,
 } from "../gold-prices/store-pricing.service.js";
-import { lockOrganization } from "../access/organization-owner.js";
+import { resolveSaleMutationAccess } from "./sale-access.js";
 import {
   actorProfile,
-  resolveAccessContext,
   uuidPattern,
   type AccessContext,
 } from "../access/access.service.js";
@@ -47,6 +46,13 @@ import {
 import { resolveJewelrySetSale } from "../products/jewelry-set.service.js";
 import { requireSaleConfirmation } from "./sale-confirmation.js";
 import {
+  hasLegacyReturnSnapshot,
+  presentReturnHistory,
+  returnHistory,
+  returnSummary,
+  returnTotals,
+} from "./sale-return.service.js";
+import {
   calculateSettlement,
   calculateTradeIns,
   convertPayment,
@@ -62,6 +68,8 @@ const include = {
   customer: { select: { name: true } },
   tradeIns: { orderBy: { id: "asc" } },
   items: { orderBy: { position: "asc" } },
+  returns: returnHistory,
+  movements: { where: { kind: "PRODUCT_SOLD" }, select: { productId: true } },
   payments: {
     include: { actor: actorProfile },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
@@ -79,28 +87,6 @@ function assertPaymentCurrency(
     !settings.paymentCurrencies.includes(currency)
   )
     throw new AccessError("INVALID_SALE", field);
-}
-
-async function resolveSaleMutationAccess(
-  tx: Prisma.TransactionClient,
-  context: AccessContext,
-  sessionId: string | undefined,
-) {
-  const { organizationId, storeId, userId } = context;
-  await lockOrganization(tx, organizationId);
-  const restricted =
-    context.salespersonDisplay ||
-    (sessionId &&
-      (await tx.salespersonDisplaySession.findUnique({
-        where: { sessionId, userId },
-        select: { sessionId: true },
-      })));
-  return resolveAccessContext(
-    tx,
-    restricted ? { ...context, salespersonDisplay: true } : context,
-    organizationId,
-    storeId,
-  );
 }
 
 function productSnapshot(
@@ -297,6 +283,12 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
   const currency = sale.defaultCurrency;
   const saleAmount = sale.defaultSaleAmount.toFixed();
   const showProfit = canManageAsOwner(access);
+  const totals = returnTotals(sale.returns);
+  const returned = new Set(
+    sale.returns.flatMap(({ items }) =>
+      items.map(({ productId }) => productId),
+    ),
+  );
   const rows = sale.items.length
     ? sale.items
     : [
@@ -310,7 +302,11 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
       ];
   const items = rows.map((row): SaleItem => {
     const amount = row.saleAmount.toFixed();
-    const item = { product: productSnapshot(row), saleAmount: amount };
+    const item = {
+      product: productSnapshot(row),
+      saleAmount: amount,
+      ...(returned.has(row.productId) && { returned: true }),
+    };
     if (!showProfit) return item;
     return {
       ...item,
@@ -389,6 +385,11 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
         : null,
     });
   }
+  const adjustedBalance = new SaleDecimal(sale.defaultSettlement).minus(
+    totals.canceled,
+  );
+  const collected = paidSaleAmount(adjustedBalance, sale.outstandingDebt);
+  const kept = items.filter((item) => !item.returned);
   return {
     id: sale.id,
     ...(sale.jewelrySetId &&
@@ -398,8 +399,32 @@ function presentSale(sale: SaleRecord, access: AccessContext): SaleResult {
     ...(sale.customerId && { customerId: sale.customerId }),
     ...(sale.customer && { customerName: sale.customer.name }),
     outstandingDebt: sale.outstandingDebt.toFixed(),
-    paymentStatus: paymentStatus(sale.defaultSettlement, sale.outstandingDebt),
-    paidAmount: paidSaleAmount(sale.defaultSettlement, sale.outstandingDebt),
+    paymentStatus: paymentStatus(adjustedBalance, sale.outstandingDebt),
+    paidAmount: collected,
+    returnable:
+      kept.length > 0 &&
+      (sale.items.length > 0 || hasLegacyReturnSnapshot(sale)),
+    ...(returned.size > 0 && {
+      returnStatus: kept.length ? "PARTIALLY_RETURNED" : "RETURNED",
+      returnedValue: totals.value.toFixed(),
+      netSaleAmount: new SaleDecimal(sale.defaultSaleAmount)
+        .minus(totals.value)
+        .toFixed(),
+      netPaidAmount: new SaleDecimal(collected)
+        .minus(totals.refunded)
+        .toFixed(),
+      returns: presentReturnHistory(sale),
+      ...(showProfit && {
+        netGrossProfit: kept.every(({ profit }) => profit?.grossProfit != null)
+          ? kept
+              .reduce(
+                (sum, { profit }) => sum.plus(profit!.grossProfit!),
+                new SaleDecimal(0),
+              )
+              .toFixed()
+          : null,
+      }),
+    }),
     payments,
     actorId: sale.actorId,
     actorName: sale.actor.membership.user.fullName,
@@ -489,6 +514,11 @@ export async function getSaleOverview(
       salesAmount: string;
       amountReceived: string;
       outstandingDebt: string;
+      returnedValue: string;
+      netSales: string;
+      refunds: string;
+      netReceived: string;
+      returnCount: bigint;
     }[]
   >`
     WITH matching_sales AS (
@@ -502,22 +532,45 @@ export async function getSaleOverview(
       JOIN matching_sales sale ON sale.id = item."saleId"
       WHERE item."organizationId" = ${organizationId}::uuid AND item."storeId" = ${storeId}::uuid
       GROUP BY item."saleId"
+    ), adjustments AS (
+      SELECT r."saleId", COUNT(*) quantity, SUM(r."returnedValue") value, SUM(COALESCE(d.amount, 0)) canceled,
+        SUM(COALESCE((SELECT SUM(f.amount) FROM "mizan"."SaleRefund" f
+          WHERE (f."organizationId", f."storeId", f."returnId") =
+            (r."organizationId", r."storeId", r.id)), 0)) refunded
+      FROM "mizan"."SaleReturn" r JOIN matching_sales s ON s.id = r."saleId"
+      LEFT JOIN "mizan"."SaleReturnDebt" d ON (d."organizationId", d."storeId", d."returnId") =
+        (r."organizationId", r."storeId", r.id)
+      WHERE r."organizationId" = ${organizationId}::uuid AND r."storeId" = ${storeId}::uuid
+      GROUP BY r."saleId"
     )
     SELECT
       sale."defaultCurrency" AS currency,
       count(*) AS "completedSales",
       sum(coalesce(item_counts.quantity, 1))::bigint AS "productsSold",
       sum(sale."defaultSaleAmount")::text AS "salesAmount",
-      sum(greatest(sale."defaultSettlement" - sale."outstandingDebt", 0))::text AS "amountReceived",
+      sum(greatest(sale."defaultSettlement" - sale."outstandingDebt" - coalesce(a.canceled, 0), 0))::text AS "amountReceived",
+      sum(coalesce(a.value, 0))::text AS "returnedValue",
+      sum(coalesce(a.quantity, 0))::bigint AS "returnCount",
+      sum(sale."defaultSaleAmount" - coalesce(a.value, 0))::text AS "netSales",
+      sum(coalesce(a.refunded, 0))::text AS refunds,
+      sum(greatest(sale."defaultSettlement" - sale."outstandingDebt" - coalesce(a.canceled, 0), 0) - coalesce(a.refunded, 0))::text AS "netReceived",
       sum(sale."outstandingDebt")::text AS "outstandingDebt"
     FROM matching_sales sale
     LEFT JOIN item_counts ON item_counts."saleId" = sale.id
+    LEFT JOIN adjustments a ON a."saleId" = sale.id
     GROUP BY sale."defaultCurrency"
     ORDER BY sale."defaultCurrency"
   `;
 
   const amounts = (
-    field: "salesAmount" | "amountReceived" | "outstandingDebt",
+    field:
+      | "salesAmount"
+      | "amountReceived"
+      | "outstandingDebt"
+      | "returnedValue"
+      | "netSales"
+      | "refunds"
+      | "netReceived",
   ) =>
     rows.map((row) => ({
       currency: row.currency,
@@ -535,6 +588,12 @@ export async function getSaleOverview(
     salesAmount: amounts("salesAmount"),
     amountReceived: amounts("amountReceived"),
     outstandingDebt: amounts("outstandingDebt"),
+    ...(rows.some((row) => row.returnCount > 0n) && {
+      returnedValue: amounts("returnedValue"),
+      netSales: amounts("netSales"),
+      refunds: amounts("refunds"),
+      netReceived: amounts("netReceived"),
+    }),
   };
 }
 
@@ -566,6 +625,21 @@ export async function listSales(
     "paymentDate",
   );
   const status = filters.paymentStatus;
+  const recordedPayment: Prisma.SaleWhereInput = {
+    OR: [
+      { payments: { some: { convertedAmount: { gt: 0 } } } },
+      { convertedPayment: { gt: 0 }, paymentCurrency: { not: null } },
+    ],
+  };
+  const unpaid: Prisma.SaleWhereInput = {
+    OR: [
+      {
+        returns: { none: {} },
+        outstandingDebt: { equals: db.sale.fields.defaultSettlement },
+      },
+      { returns: { some: {} }, NOT: recordedPayment },
+    ],
+  };
   let debt: Prisma.SaleWhereInput = {};
   switch (status) {
     case undefined:
@@ -575,13 +649,14 @@ export async function listSales(
       break;
     case "UNPAID":
       debt = {
-        outstandingDebt: { gt: 0, equals: db.sale.fields.defaultSettlement },
+        outstandingDebt: { gt: 0 },
+        ...unpaid,
       };
       break;
     case "PARTIALLY_PAID":
       debt = {
         outstandingDebt: { gt: 0 },
-        NOT: { outstandingDebt: { equals: db.sale.fields.defaultSettlement } },
+        NOT: unpaid,
       };
       break;
     default:
@@ -711,6 +786,7 @@ export async function listSales(
           ? { select: { photoObjectKey: true } }
           : undefined,
       _count: { select: { items: true } },
+      returns: returnSummary,
     },
   });
   const page = rows.slice(0, pageSize);
@@ -725,6 +801,12 @@ export async function listSales(
   return {
     items: page.map((sale) => {
       const thumbnailUrl = photos.get(sale.productId);
+      const totalItems = sale._count.items || 1;
+      const returnedCount = sale.returns.reduce(
+        (sum, row) => sum + row.items.length,
+        0,
+      );
+      const totals = returnTotals(sale.returns);
       return {
         id: sale.id,
         createdAt: sale.createdAt.toISOString(),
@@ -735,12 +817,19 @@ export async function listSales(
         balance: sale.defaultSettlement.toFixed(),
         outstandingDebt: sale.outstandingDebt.toFixed(),
         paymentStatus: paymentStatus(
-          sale.defaultSettlement,
+          new SaleDecimal(sale.defaultSettlement).minus(totals.canceled),
           sale.outstandingDebt,
         ),
         paymentCurrency: sale.paymentCurrency,
         product: productSnapshot(sale),
-        itemCount: sale._count.items || 1,
+        itemCount: totalItems,
+        ...(returnedCount && {
+          returnStatus:
+            returnedCount === totalItems
+              ? ("RETURNED" as const)
+              : ("PARTIALLY_RETURNED" as const),
+          returnedValue: totals.value.toFixed(),
+        }),
         ...(thumbnailUrl && { thumbnailUrl }),
       };
     }),
@@ -974,10 +1063,14 @@ export async function recordSale(
               },
             ]
           : []);
+      // Use the time after the organization lock was acquired. A waiting
+      // resale must follow the return that made the item available.
+      const createdAt = new Date();
       const sale = await tx.sale.create({
         data: {
           ...key,
           requestDigest,
+          createdAt,
           productId: first.productId,
           jewelrySetId: jewelrySet?.id,
           jewelrySetName: jewelrySet?.name,
@@ -1008,7 +1101,14 @@ export async function recordSale(
           productWeight: first.productWeight,
           items: { create: saleItems },
           ...(checkoutPayments.length && {
-            payments: { createMany: { data: checkoutPayments } },
+            payments: {
+              createMany: {
+                data: checkoutPayments.map((payment) => ({
+                  ...payment,
+                  createdAt,
+                })),
+              },
+            },
           }),
         },
         include: {
@@ -1016,9 +1116,11 @@ export async function recordSale(
           customer: include.customer,
           items: include.items,
           payments: include.payments,
+          returns: include.returns,
+          movements: include.movements,
         },
       });
-      const movement = { ...scope, actorId, saleId: sale.id };
+      const movement = { ...scope, actorId, saleId: sale.id, createdAt };
       await tx.inventoryMovement.createMany({
         data: saleItems.map(({ productId }) => ({
           ...movement,
@@ -1116,7 +1218,13 @@ export async function recordRepayment(
         data: {
           outstandingDebt: { decrement: converted.convertedAmount },
           payments: {
-            create: { ...converted, actorId, idempotencyKey, requestDigest },
+            create: {
+              ...converted,
+              actorId,
+              idempotencyKey,
+              requestDigest,
+              createdAt: new Date(),
+            },
           },
         },
         include,

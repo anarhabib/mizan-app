@@ -1,5 +1,13 @@
 # Misqal project state
 
+## Task 25 — sale returns and refunds (November 25, 2026)
+
+- Sales detail records complete or selected-item returns and immediate or later partial refunds in AZ, EN and RU. `apps/web/src/features/sales/components/SaleReturnPanel.tsx` uses the shared drawer and sheet, a server-reviewed allocation, and retry keys scoped to the signed-in account and store. Sales Overview keeps its sale-date cohort and shows gross sales, returns, net sales and collections. Customer history and Dashboard reflect debt, return and refund events. Profit reversals use sale-time costs and remain Owner-only.
+- `apps/api/src/modules/sales/sale-return.service.ts` serializes returns with checkout, repayments and repairs. Debt cancellation, refund liability and actual disbursement have separate records. A resellable return restores the original product. A damaged return stays unavailable unless repaired, and canceling that repair preserves the unavailable status. Resale generates a new receipt while existing sale, set and acquisition snapshots remain readable.
+- Migration `202611250001_sale_returns` passed Prisma validation and schema parity on disposable PostgreSQL. Upgrading a database seeded with legacy and set receipts, a repayment, a completed repair and product movements preserved those historical rows. Twenty-five API tests (including seven return scenarios), four schema tests, 30 contracts tests and 181 web tests passed. Chromium passed 18 checks, including return and refund review and retry at 320px, 390px and 1280px. TypeScript, web lint, formatting and package builds passed. Physical iOS and Android and live Storage remain unverified.
+- Refunds are bounded by collected tender in the original settlement currency. Foreign-tender liabilities remain visible. Returns that require unwinding old-gold credit need a separate workflow.
+- Migration `202611250001_sale_returns` is applied to the hosted development database configured for the local API. Prisma reports all 24 migrations applied. Read-only Fastify checks against that database returned HTTP 200 for the sales list, overview and receipt detail. Branch is `task/25-product-returns`.
+
 ## Task 24 — jewelry repair management (November 24, 2026)
 
 - Products has an In repair status filter and a repair section in the product drawer or sheet. Owners can send a product to a supplier or named repairer, append progress, complete or cancel the repair, and record full payment. Assigned staff can read operational history. Repairs use AZ, EN and RU strings and the existing light and dark tokens.

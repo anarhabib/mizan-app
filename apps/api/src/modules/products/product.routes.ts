@@ -206,7 +206,8 @@ export function registerProductRoutes(
       status !== undefined &&
       status !== "IN_STOCK" &&
       status !== "SOLD" &&
-      status !== "IN_REPAIR"
+      status !== "IN_REPAIR" &&
+      status !== "UNAVAILABLE"
     )
       throw new AccessError("INVALID_PRODUCT", "status");
     if (

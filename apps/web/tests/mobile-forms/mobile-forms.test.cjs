@@ -1,3 +1,5 @@
+/* eslint @typescript-eslint/no-require-imports: "off" -- Node loads the local Playwright installation through NODE_PATH. */
+/* global require, process, URL, URLSearchParams, document, getComputedStyle, scrollY, window, Event */
 const assert = require("node:assert/strict");
 const { after, before, test } = require("node:test");
 const { chromium } = require("playwright");
@@ -57,6 +59,170 @@ async function openFixture(width, run, search = "") {
   } finally {
     await context.close();
   }
+}
+
+for (const width of [320, 390, 1280]) {
+  test(`return review, refund and retry at ${width}px`, async () => {
+    const mobile = width < 1024;
+    const page = await browser.newPage({
+      viewport: { width, height: 800 },
+      hasTouch: mobile,
+      isMobile: mobile,
+      reducedMotion: "reduce",
+    });
+    try {
+      page.setDefaultTimeout(7000);
+      const writes = [];
+      await page.route("**/api/v1/sales/*/returns**", async (route) => {
+        const request = route.request();
+        const input = request.postDataJSON();
+        if (new URL(request.url()).pathname.endsWith("/preview")) {
+          const allocated = input.debtCanceled === "300";
+          return route.fulfill({
+            json: {
+              currency: "AZN",
+              returnedValue: "400",
+              collected: "400",
+              minDebtCanceled: "0",
+              maxDebtCanceled: "400",
+              debtCanceled: allocated ? "300" : null,
+              remainingDebt: allocated ? "300" : null,
+              refundableValue: allocated ? "100" : null,
+              refundAmount: input.refund?.amount ?? "0",
+              refundLimit: allocated ? "100" : null,
+              remainingRefundable: allocated
+                ? input.refund
+                  ? "50"
+                  : "100"
+                : null,
+              remainingProductIds: ["other-ring"],
+              confirmation: allocated ? "reviewed" : undefined,
+            },
+          });
+        }
+        writes.push({ key: request.headers()["idempotency-key"], input });
+        if (writes.length === 1) return route.abort("failed");
+        return route.fulfill({ status: 201, json: { id: "saved-return" } });
+      });
+      await page.goto(
+        new URL(
+          `/tests/mobile-forms/?return${width === 390 ? "&dark" : ""}`,
+          origin,
+        ).href,
+        { timeout: 20000 },
+      );
+      const opener = page.getByRole("button", { name: "Open return" });
+      await opener.click();
+      const dialog = page.getByRole("dialog", { name: "Return", exact: true });
+      await dialog.getByRole("checkbox", { name: /Ring · R1/ }).click();
+      await dialog
+        .getByRole("checkbox", { name: "Return to available stock" })
+        .click();
+      const date = dialog.getByLabel("Return date", { exact: true });
+      await date.fill("2000-01-01");
+      assert.equal(
+        await date.evaluate((node) => node.validity.rangeUnderflow),
+        true,
+      );
+      await date.fill(await date.getAttribute("max"));
+      await dialog
+        .getByLabel("Reason", { exact: true })
+        .fill("Customer request");
+      await dialog.getByRole("button", { name: "Review", exact: true }).click();
+      await dialog.getByLabel("Debt canceled", { exact: true }).fill("300");
+      await dialog.getByRole("button", { name: "Review", exact: true }).click();
+      await dialog
+        .getByRole("button", { name: "Record a refund now", exact: true })
+        .click();
+      await dialog.getByLabel("Refund amount (AZN)").fill("50");
+      await dialog.getByLabel("Payment method").click();
+      await page.getByRole("option", { name: "Card", exact: true }).click();
+      await dialog.getByRole("button", { name: "Review", exact: true }).click();
+      await dialog.getByText("Remaining sale items (1)").waitFor();
+      const confirm = dialog.getByRole("button", {
+        name: "Confirm",
+        exact: true,
+      });
+      const action = await confirm.boundingBox();
+      assert.ok(action && action.y + action.height <= 800);
+      assert.equal(
+        await dialog.evaluate(
+          (node) => node.scrollWidth <= node.clientWidth + 1,
+        ),
+        true,
+      );
+      await confirm.click();
+      await dialog
+        .getByRole("alert")
+        .getByText(/result is unknown/i)
+        .waitFor();
+      await dialog.getByRole("button", { name: "Retry submission" }).click();
+      await dialog.waitFor({ state: "hidden" });
+      assert.equal(writes.length, 2);
+      assert.deepEqual(writes[0], writes[1]);
+      assert.match(writes[0].key, /^[a-f0-9-]{36}$/);
+      assert.equal(writes[0].input.refund.method, "CARD");
+      assert.equal(writes[0].input.items[0].resellable, true);
+      assert.equal(
+        await opener.evaluate((node) => node === document.activeElement),
+        true,
+      );
+    } finally {
+      await page.close();
+    }
+  });
+}
+
+test("a later refund reviews its date and method before submitting", async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 800 } });
+  try {
+    const requests = [];
+    await page.route("**/api/v1/sales/*/returns/*/refunds**", (route) => {
+      requests.push(route.request().postDataJSON());
+      return route.fulfill({ status: 201, json: { id: "recorded-refund" } });
+    });
+    await page.goto(
+      new URL("/tests/mobile-forms/?return=refund", origin).href,
+      { timeout: 20000 },
+    );
+    await page.getByRole("button", { name: "Open return" }).click();
+    const dialog = page.getByRole("dialog", { name: "Record refund" });
+    const date = dialog.getByLabel("Refund date", { exact: true });
+    assert.equal(await date.getAttribute("min"), "2026-01-02");
+    await dialog.getByLabel("Refund amount (AZN)").fill("75");
+    await dialog.getByRole("button", { name: "Review", exact: true }).click();
+    assert.deepEqual(requests, []);
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].method, "CASH");
+    assert.equal(requests[0].amount, "75");
+  } finally {
+    await page.close();
+  }
+});
+
+for (const [language, title, reason] of [
+  ["az", "Qaytar", "Səbəb"],
+  ["ru", "Вернуть товар", "Причина"],
+]) {
+  test(`return form is localized in ${language}`, async () => {
+    const page = await browser.newPage({
+      viewport: { width: 390, height: 800 },
+    });
+    try {
+      await page.goto(
+        new URL(`/tests/mobile-forms/?return&language=${language}`, origin)
+          .href,
+        { timeout: 20000 },
+      );
+      await page.getByRole("button", { name: "Open return" }).click();
+      const dialog = page.getByRole("dialog", { name: title, exact: true });
+      await dialog.getByLabel(reason, { exact: true }).fill("Test");
+    } finally {
+      await page.close();
+    }
+  });
 }
 
 test("repair dispatch at 320px keeps dates, supplier search and the footer usable", async () => {

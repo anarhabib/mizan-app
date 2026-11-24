@@ -1,4 +1,7 @@
 {
+  "returnedSales": "Returns today",
+  "refunds": "Refunds paid today",
+  "netGrossProfit": "Gross profit after today’s returns",
   "greeting": "Welcome, {{name}}",
   "moveGroupUp": "Move {{name}} group up",
   "moveGroupDown": "Move {{name}} group down",

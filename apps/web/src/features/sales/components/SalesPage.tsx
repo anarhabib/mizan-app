@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/features/auth";
 import { ProductPanel } from "@/features/products";
 import { useWorkspace } from "@/features/workspace";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -9,6 +10,7 @@ import { SaleCreate, type SetSaleTarget } from "./SaleCreate";
 import { SaleList } from "./SaleList";
 import { SaleDetail } from "./SaleResult";
 import { SaleSetPicker } from "./SaleSetPicker";
+import { SaleReturnPanel, type SaleReturnAction } from "./SaleReturnPanel";
 
 type CreateTarget = {
   productId?: string;
@@ -40,6 +42,7 @@ function ScopedSales({
   setFilters,
 }: CreateTarget & { scope: SaleScope }) {
   const { t } = useTranslation("sales");
+  const { userId } = useSession();
   const [focusTarget, setFocusTarget] = useState<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<{ id: string; opener: HTMLElement }>();
   const [startingSet, setStartingSet] = useState<{
@@ -47,6 +50,7 @@ function ScopedSales({
     id?: string;
   }>();
   const [repaying, setRepaying] = useState(false);
+  const [returnAction, setReturnAction] = useState<SaleReturnAction>();
   const receipt =
     saleId && focusTarget ? { id: saleId, opener: focusTarget } : detail;
   const setSale =
@@ -99,19 +103,33 @@ function ScopedSales({
           close={startingSet ? () => setStartingSet(undefined) : closeCreate}
         />
       )}
-      {!startingSet && !checkoutKey && receipt && (
-        <ProductPanel
-          title={t("detail")}
-          close={saleId ? closeCreate : () => setDetail(undefined)}
+      {!startingSet &&
+        !checkoutKey &&
+        receipt &&
+        returnAction?.sale.id !== receipt.id && (
+          <ProductPanel
+            title={t("detail")}
+            close={saleId ? closeCreate : () => setDetail(undefined)}
+            opener={receipt.opener}
+            busy={repaying}
+          >
+            <SaleDetail
+              key={receipt.id}
+              scope={scope}
+              id={receipt.id}
+              onRepaymentSubmittingChange={setRepaying}
+              onReturn={setReturnAction}
+            />
+          </ProductPanel>
+        )}
+      {userId && receipt && returnAction?.sale.id === receipt.id && (
+        <SaleReturnPanel
+          scope={scope}
+          actorId={userId}
+          action={returnAction}
           opener={receipt.opener}
-          busy={repaying}
-        >
-          <SaleDetail
-            scope={scope}
-            id={receipt.id}
-            onRepaymentSubmittingChange={setRepaying}
-          />
-        </ProductPanel>
+          close={() => setReturnAction(undefined)}
+        />
       )}
     </>
   );

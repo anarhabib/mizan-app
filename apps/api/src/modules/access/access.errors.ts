@@ -32,6 +32,10 @@ export type AccessFailure =
   | "SALE_PAYMENT_EXCEEDS_BALANCE"
   | "SALE_CONFLICT"
   | "SALE_NOT_FOUND"
+  | "INVALID_RETURN"
+  | "RETURN_CONFLICT"
+  | "RETURN_TRADE_IN"
+  | "REFUND_EXCEEDS_BALANCE"
   | "INVALID_PRODUCT"
   | "INVALID_REPAIR"
   | "REPAIR_NOT_FOUND"
@@ -50,6 +54,22 @@ export type AccessFailure =
   | "PHOTO_UNAVAILABLE";
 
 const details = {
+  INVALID_RETURN: {
+    statusCode: 400,
+    message: "Qaytarma məlumatlarını yoxlayın.",
+  },
+  RETURN_CONFLICT: {
+    statusCode: 409,
+    message: "Satış dəyişib. Qaytarmanı yenidən yoxlayın.",
+  },
+  RETURN_TRADE_IN: {
+    statusCode: 409,
+    message: "Qaytarılan məbləğ pul ödənişi və qalan borcdan çoxdur.",
+  },
+  REFUND_EXCEEDS_BALANCE: {
+    statusCode: 409,
+    message: "Ödənişin qaytarıla bilən məbləğini yoxlayın.",
+  },
   INVALID_SUPPLIER: {
     statusCode: 400,
     message: "Təchizatçı məlumatlarını yoxlayın.",

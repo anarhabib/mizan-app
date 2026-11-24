@@ -25,6 +25,7 @@ export type DashboardMoneyComparison = DashboardComparison & {
 export type DashboardSummary = {
   day: string;
   sales: { total: Money[]; count: number; products: number; average: Money[] };
+  returnedSales?: Money[];
   previousSales: {
     total: Money[];
     count: number;
@@ -35,6 +36,7 @@ export type DashboardSummary = {
     total: Money[];
     normalized: Money | null;
     repayments: Money[];
+    refunds?: Money[];
     tradeInCredit: Money[];
     payouts: Money[];
     methods: { method: string; total: Money[] }[];
@@ -63,6 +65,7 @@ export type DashboardSummary = {
 
 export type DashboardOwnerSummary = {
   grossProfit: Money[] | null;
+  netGrossProfit?: Money[] | null;
   intakeCost: Money[];
   inventoryCost: Money[];
   grossProfitComparison: DashboardMoneyComparison[];

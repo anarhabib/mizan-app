@@ -83,8 +83,14 @@ function intake(scope: Scope, start: Date, now: Date) {
 }
 
 const totalPayments = Prisma.sql`SELECT currency, SUM(amount) AS amount FROM payments`;
-const paymentStatus = Prisma.sql`CASE WHEN "outstandingDebt" = 0 THEN 'PAID'
-  WHEN "outstandingDebt" = "defaultSettlement" THEN 'UNPAID' ELSE 'PARTIALLY_PAID' END`;
+const paymentStatus = Prisma.sql`CASE WHEN s."outstandingDebt" = 0 THEN 'PAID'
+  WHEN s."outstandingDebt" = s."defaultSettlement" - COALESCE((
+    SELECT SUM(d.amount) FROM "mizan"."SaleReturn" r
+    JOIN "mizan"."SaleReturnDebt" d ON (d."organizationId", d."storeId", d."returnId") =
+      (r."organizationId", r."storeId", r.id)
+    WHERE (r."organizationId", r."storeId", r."saleId") =
+      (s."organizationId", s."storeId", s.id)
+  ), 0) THEN 'UNPAID' ELSE 'PARTIALLY_PAID' END`;
 
 export async function dashboardSummary(
   db: Prisma.TransactionClient,
@@ -108,6 +114,7 @@ export async function dashboardSummary(
     db.$queryRaw<
       {
         sales: DashboardSummary["sales"];
+        returnedSales: NonNullable<DashboardSummary["returnedSales"]>;
         previousSales: DashboardSummary["sales"];
         payments: DashboardSummary["payments"];
         previousReceipts: string | null;
@@ -139,7 +146,7 @@ export async function dashboardSummary(
           AND r."receivedAt" >= ${start} AND r."receivedAt" < ${now}
       ),
       debt AS (
-        SELECT currency, "customerId", "outstandingDebt", ${paymentStatus} AS status FROM "mizan"."Sale"
+        SELECT currency, "customerId", "outstandingDebt", ${paymentStatus} AS status FROM "mizan"."Sale" s
         WHERE ${store(scope)} AND "outstandingDebt" > 0
       ),
       new_debt AS (
@@ -152,6 +159,8 @@ export async function dashboardSummary(
       )
       SELECT
         ${saleStats("sales")} AS sales,
+        ${money(Prisma.sql`SELECT currency, SUM("returnedValue") amount FROM "mizan"."SaleReturn"
+          WHERE ${store(scope)} AND "returnDate" = ${day}::date GROUP BY currency`)} AS "returnedSales",
         ${saleStats("previous_sales")} AS "previousSales",
         (SELECT CASE WHEN count(*) = count(normalized)
           THEN SUM(normalized)::text END FROM previous_payments) AS "previousReceipts",
@@ -162,6 +171,8 @@ export async function dashboardSummary(
             THEN jsonb_build_object('currency', 'AZN', 'amount', COALESCE(SUM(normalized), 0)::text)
             END FROM payments),
           'repayments', ${money(Prisma.sql`${totalPayments} WHERE repayment GROUP BY currency`)},
+          'refunds', ${money(Prisma.sql`SELECT currency, SUM(amount) amount FROM "mizan"."SaleRefund"
+            WHERE ${store(scope)} AND "refundDate" = ${day}::date GROUP BY currency`)},
           'tradeInCredit', ${money(Prisma.sql`SELECT currency, SUM("acceptedTradeInTotal") amount
             FROM sales WHERE "acceptedTradeInTotal" <> 0 GROUP BY currency`)},
           'payouts', ${money(Prisma.sql`SELECT currency, SUM(settlement) amount
@@ -227,16 +238,18 @@ export async function dashboardOwnerSummary(
   scope: Scope,
   now = new Date(),
 ): Promise<DashboardOwnerSummary> {
-  const { start, previousStart, previousThrough } = dashboardWindow(now);
+  const { day, start, previousStart, previousThrough } = dashboardWindow(now);
   const profit = (previous: boolean) => Prisma.sql`
     CASE WHEN EXISTS(SELECT 1 FROM profit WHERE previous = ${previous} AND amount IS NULL)
       THEN NULL ELSE ${money(Prisma.sql`SELECT currency, SUM(amount) amount FROM profit
         WHERE previous = ${previous} GROUP BY currency`)} END`;
-  const [{ previousProfit, ...summary }] = await db.$queryRaw<
-    (Omit<DashboardOwnerSummary, "grossProfitComparison"> & {
-      previousProfit: DashboardOwnerSummary["grossProfit"];
-    })[]
-  >`
+  const [{ previousProfit, netGrossProfit, hasReturns, ...summary }] =
+    await db.$queryRaw<
+      (Omit<DashboardOwnerSummary, "grossProfitComparison"> & {
+        previousProfit: DashboardOwnerSummary["grossProfit"];
+        hasReturns: boolean;
+      })[]
+    >`
     WITH sales AS (
       SELECT *, false AS previous FROM (${scopedSales(scope, start, now)}) today
       UNION ALL
@@ -252,10 +265,27 @@ export async function dashboardOwnerSummary(
         FROM "mizan"."SaleItem" i WHERE (i."organizationId", i."storeId", i."saleId") =
           (s."organizationId", s."storeId", s.id)
       ) costs
+    ), reversals AS (
+      SELECT r.currency, CASE WHEN i."acquisitionCurrency" = r.currency AND i."acquisitionCost" > 0
+        THEN i."acquisitionCost" - i."saleAmount" END AS amount
+      FROM "mizan"."SaleReturn" r
+      JOIN "mizan"."SaleReturnItem" ri ON (ri."organizationId", ri."storeId", ri."saleId", ri."returnId") =
+        (r."organizationId", r."storeId", r."saleId", r.id)
+      LEFT JOIN "mizan"."SaleItem" i ON (i."organizationId", i."storeId", i."saleId", i."productId") =
+        (ri."organizationId", ri."storeId", ri."saleId", ri."snapshotProductId")
+      WHERE r."organizationId" = ${scope.organizationId}::uuid AND r."storeId" = ${scope.storeId}::uuid
+        AND r."returnDate" = ${day}::date
+    ), net AS (
+      SELECT currency, amount FROM profit WHERE NOT previous
+      UNION ALL SELECT currency, amount FROM reversals
     )
     SELECT
       ${profit(false)} AS "grossProfit",
       ${profit(true)} AS "previousProfit",
+      CASE WHEN EXISTS(SELECT 1 FROM net WHERE amount IS NULL) THEN NULL
+        ELSE ${money(Prisma.sql`SELECT currency, SUM(amount) amount FROM net GROUP BY currency`)}
+      END AS "netGrossProfit",
+      EXISTS(SELECT 1 FROM reversals) AS "hasReturns",
       ${money(Prisma.sql`SELECT "acquisitionCurrency" currency, SUM("acquisitionCost") amount
         FROM "mizan"."Product" WHERE ${store(scope)} AND id IN (SELECT "productId" FROM intake)
         GROUP BY "acquisitionCurrency"`)} AS "intakeCost",
@@ -265,6 +295,7 @@ export async function dashboardOwnerSummary(
   `;
   return {
     ...summary,
+    ...(hasReturns && { netGrossProfit }),
     grossProfitComparison: compareMoney(summary.grossProfit, previousProfit),
   };
 }
@@ -321,7 +352,7 @@ export async function dashboardCharts(
         'PAID', COUNT(*) FILTER (WHERE status = 'PAID'),
         'PARTIALLY_PAID', COUNT(*) FILTER (WHERE status = 'PARTIALLY_PAID'),
         'UNPAID', COUNT(*) FILTER (WHERE status = 'UNPAID')
-      ) FROM (SELECT ${paymentStatus} AS status FROM sales) statuses) AS settlement
+      ) FROM (SELECT ${paymentStatus} AS status FROM sales s) statuses) AS settlement
   `;
   return charts;
 }
