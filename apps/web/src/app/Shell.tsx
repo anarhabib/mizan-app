@@ -52,7 +52,7 @@ const items = [
   { to: "/customers", namespace: "customers", icon: ContactRound },
   { to: "/suppliers", namespace: "suppliers", icon: Truck, ownerOnly: true },
   settingsItem,
-  { to: "/team", namespace: "team", icon: Users, ownerOnly: true },
+  // { to: "/team", namespace: "team", icon: Users, ownerOnly: true },
 ] as const;
 export function Shell() {
   return (
