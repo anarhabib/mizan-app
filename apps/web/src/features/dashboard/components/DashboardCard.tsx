@@ -14,7 +14,7 @@ export function DashboardCard({
   children: ReactNode;
 }) {
   return (
-    <Card className="min-w-0 gap-3 py-4 shadow-none">
+    <Card className="min-w-0 gap-3 py-4">
       <CardHeader className="px-4">
         <CardTitle role="heading" aria-level={3} className="wrap-anywhere">
           {title}
