@@ -209,7 +209,7 @@ function ShellContent() {
           <SidebarHeader className="min-h-14 flex-row items-center justify-between px-3 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <BrandMark compact={!open} />
             <SidebarTrigger
-              className="shrink-0"
+              className="shrink-0 focus:border-sidebar-border focus:ring-sidebar-ring/50 aria-expanded:border-sidebar-border aria-expanded:ring-sidebar-ring/50"
               aria-label={t(open ? "collapseNavigation" : "expandNavigation")}
               aria-controls={concealed ? undefined : "main-navigation"}
               aria-expanded={open}

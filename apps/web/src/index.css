@@ -68,6 +68,7 @@
   --info-foreground: #234b87;
   --info-outline: #b8ccef;
   --brand-accent: color-mix(in srgb, #aee036 54%, #14171b);
+  --card-shadow: 0 4px 6px rgba(62, 65, 70, 0.178);
   --background: #e5e8ec;
   --foreground: oklch(0.148 0.004 228.8);
   --card: #ffffff;
@@ -110,7 +111,7 @@
     var(--danger-foreground) 25%,
     transparent
   );
-  --ring: oklch(0.723 0.014 214.4);
+  --ring: var(--brand-accent);
   --chart-1: oklch(0.897 0.196 126.665);
   --chart-2: oklch(0.768 0.233 130.85);
   --chart-3: oklch(0.648 0.2 131.684);
@@ -133,6 +134,8 @@
   --info-foreground: #a9caff;
   --info-outline: #355582;
   --brand-accent: #aee036;
+  --card-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.55), 0 0 10px rgba(0, 0, 0, 0.171);
   --background: #08090b;
   --foreground: oklch(0.987 0.002 197.1);
   --card: #14171b;
@@ -174,7 +177,7 @@
     var(--danger-foreground) 25%,
     transparent
   );
-  --ring: oklch(0.56 0.021 213.5);
+  --ring: var(--brand-accent);
   --chart-1: oklch(0.897 0.196 126.665);
   --chart-2: oklch(0.768 0.233 130.85);
   --chart-3: oklch(0.648 0.2 131.684);
@@ -334,4 +337,8 @@ html {
     grid-template-rows: subgrid;
     align-items: start;
   }
+}
+
+:is([data-slot="card"], [class~="bg-card"]) {
+  box-shadow: var(--card-shadow);
 }

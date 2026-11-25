@@ -26,7 +26,7 @@ Surface and control tokens:
 
 Status tokens use semantic background, foreground and 25%-opacity border colors: success `#E3F6E8` / `#14632B` in light and `#12301D` / `#5FD982` in dark; warning `#FFF3CC` / `#7A5200` and `#3A2E0A` / `#F5C542`; danger `#FDE4E2` / `#A3231A` and `#3A1512` / `#FF7A70`. Badges retain visible text labels. Native controls use the matching light/dark color scheme.
 
-Density: 14px base text, compact desktop controls, 44px mobile targets, spacing 2/3/4/6, borders over shadows. Tabular numerals for money and weight.
+Density: 14px base text, compact desktop controls, 44px mobile targets, spacing 2/3/4/6, subtle card shadows. Tabular numerals for money and weight.
 
 The shell uses bottom navigation below `lg` and the collapsible 224px shadcn Sidebar on desktop. Dashboard is the default destination, followed by Products, Sales, and Customers. Suppliers, Settings and Team require Owner mode and appear in the mobile More menu. The sidebar header holds the collapse control. Account controls live in the desktop sidebar footer and under the mobile header avatar. The top bar holds the store selector. Page containers keep headers and content aligned, with safe-area gutters and a 1600px cap for wide pages. The shell retains its skip link, visible keyboard focus and current-page indicator.
 

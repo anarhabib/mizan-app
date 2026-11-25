@@ -96,7 +96,7 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 - Products use scoped API aggregates for the inventory overview. Summary links open the matching inventory status, including products whose sale currently has an outstanding balance. On desktop, search and filters share one toolbar that scrolls internally when its controls exceed the available width. On mobile, search stays beside a Filters button that opens the filter drawer.
 - Suppliers requires Owner mode and appears in the desktop sidebar and mobile More. Supplier and purchase histories use scoped cursor pagination. The supplier purchase form can stage new products and link eligible existing inventory. Add Product handles single or bulk intake with an explicit registration source. The purchase source uses the active supplier picker, and historical links use the same picker with inactive suppliers included. Show supplier ledger amounts and the registration preview at their recorded precision. The preview uses shared acquisition parsing and integer arithmetic. The API computes the final balance.
 - Lists are rows on mobile; use tables only on `lg` and only when columns help. Dialogs become drawers on mobile.
-- Preserve the shadcn preset in `components.json`, including typography, radius, icon library, and light and dark themes. Use semantic tokens and favor borders over shadows. Keep neutral surfaces and independent status colors.
+- Preserve the shadcn preset in `components.json`, including typography, radius, icon library, and light and dark themes. Use semantic tokens, subtle card shadows, and brand-accent focus rings. Keep neutral surfaces and independent status colors.
 - Tabular numbers for amounts and weights. Real labels and real data, never lorem ipsum.
 - Touch targets at least 40px on mobile. Visible focus ring. Respect `prefers-reduced-motion`, safe-area insets and OS text scale.
 - Use semantic green, amber, red and blue for success, warning, error and informational feedback across pages. Use the brand accent for small selection indicators. Keep larger surfaces neutral and pair color with a label, icon or accessible state.
@@ -107,7 +107,7 @@ Dashboard is the authenticated landing page. Its widgets use scoped summary, act
 ## Branding
 
 - `src/shared/ui/BrandMark.tsx` renders the approved light and dark wordmarks and compact marks from `src/assets/branding`. The favicon uses the supplied lime SVG and the Apple Touch Icon uses its 180px raster export.
-- `--brand-accent` in `src/index.css` colors small selection indicators. Keep brand colors centralized and preserve the approved artwork and existing semantic tokens.
+- `--brand-accent` in `src/index.css` colors small selection indicators and focused control outlines. Keep brand colors centralized and preserve the approved artwork and existing semantic tokens.
 
 ## Verification (UI)
 
